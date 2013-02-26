@@ -51,6 +51,7 @@
     <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>
     <org.exoplatform.ws.version>2.2.9-GA</org.exoplatform.ws.version>
     <org.exoplatform.jcr.version>1.14.9-GA</org.exoplatform.jcr.version>
+    <org.exoplatform.jcr-services.version>1.14.9-GA</org.exoplatform.jcr-services.version>
     <org.exoplatform.portal.version>3.2.6-PLF</org.exoplatform.portal.version>
     <org.exoplatform.ecms.version>2.3.9</org.exoplatform.ecms.version>
     <org.exoplatform.commons.version>1.1.9</org.exoplatform.commons.version>
@@ -295,6 +296,11 @@
 
       <!-- for tests -->
       <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>hsqldb</artifactId>
+        <version>2.0.0</version>
+      </dependency>
+      <dependency>
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
         <version>${testng.version}</version>
@@ -316,9 +322,21 @@
         <version>${org.slf4j.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.exoplatform.core</groupId>
+        <artifactId>exo.core.component.organization.api</artifactId>
+        <version>${org.exoplatform.core.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
       <groupId>org.exoplatform.platform</groupId>
         <artifactId>exo.platform.component.organization</artifactId>
         <version>${org.exoplatform.platform.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform</groupId>
+        <artifactId>exo-jcr-services</artifactId>
+        <version>${org.exoplatform.jcr-services.version}</version>
+        <type>jar</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
