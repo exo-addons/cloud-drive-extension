@@ -705,7 +705,7 @@ public class ConnectService implements ResourceContainer {
     String masterHost = System.getProperty("tenant.masterhost");
     if (initId != null) {
       try {
-        if (tenantName != null) {
+        if (masterHost != null) {
           if (uriInfo.getRequestUri().getHost().equals(masterHost)) {
             // need redirect to actual tenant URL, TODO remove state query parameter
             resp.location(uriInfo.getRequestUri()
