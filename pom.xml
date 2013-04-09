@@ -28,7 +28,7 @@
   </parent>
 
   <artifactId>exo-clouddrive-parent</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>eXo Cloud Drive Extension :: Parent</name>
   <description>eXo Cloud Drive extension project reactor</description>
@@ -46,15 +46,15 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>3.5.5</org.exoplatform.platform.version>
-    <org.exoplatform.kernel.version>2.3.9-GA</org.exoplatform.kernel.version>
-    <org.exoplatform.core.version>2.4.9-GA</org.exoplatform.core.version>
-    <org.exoplatform.ws.version>2.2.9-GA</org.exoplatform.ws.version>
-    <org.exoplatform.jcr.version>1.14.9-GA</org.exoplatform.jcr.version>
-    <org.exoplatform.jcr-services.version>1.14.9-GA</org.exoplatform.jcr-services.version>
-    <org.exoplatform.portal.version>3.2.6-PLF</org.exoplatform.portal.version>
-    <org.exoplatform.ecms.version>2.3.9</org.exoplatform.ecms.version>
-    <org.exoplatform.commons.version>1.1.9</org.exoplatform.commons.version>
+    <org.exoplatform.platform.version>4.0.0-RC1</org.exoplatform.platform.version>
+    <org.exoplatform.kernel.version>2.4.2-GA</org.exoplatform.kernel.version>
+    <org.exoplatform.core.version>2.5.2-GA</org.exoplatform.core.version>
+    <org.exoplatform.ws.version>2.3.2-GA</org.exoplatform.ws.version>
+    <org.exoplatform.jcr.version>1.15.2-GA</org.exoplatform.jcr.version>
+    <org.exoplatform.jcr-services.version>1.15.2-GA</org.exoplatform.jcr-services.version>
+    <org.gatein.portal.version>3.5.3.Final</org.gatein.portal.version>
+    <org.exoplatform.commons.version>4.0.0-RC1</org.exoplatform.commons.version>
+    <org.exoplatform.ecms.version>4.0.0-RC1</org.exoplatform.ecms.version>
 
     <!-- Third parties -->
     <!-- org.codehaus.jackson.version>1.9.7</org.codehaus.jackson.version -->
@@ -68,11 +68,8 @@
     <version.google.guava>11.0.1</version.google.guava>
 
     <!-- Logger libs -->
-    <org.slf4j.version>1.6.1</org.slf4j.version>
-    <log4j.version>1.2.16</log4j.version>
-
-    <!-- picocontainer.version>2.14.1</picocontainer.version -->
-    <!-- httpcomponents.version>4.1.2</httpcomponents.version -->
+    <org.slf4j.version>1.7.2</org.slf4j.version>
+    <log4j.version>1.2.16</log4j.version>    
 
     <!-- Testing tools -->
     <testng.version>6.3.1</testng.version>
@@ -153,7 +150,7 @@
       </dependency>
       <dependency>
         <groupId>org.exoplatform.commons</groupId>
-        <artifactId>exo.platform.commons.webui.ext</artifactId>
+        <artifactId>commons-webui-ext</artifactId>
         <version>${org.exoplatform.commons.version}</version>
         <scope>provided</scope>
       </dependency>
@@ -189,31 +186,41 @@
       </dependency>
       <dependency>
         <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>exo-ecms-core-services</artifactId>
+        <artifactId>ecms-core-services</artifactId>
+        <version>${org.exoplatform.ecms.version}</version>
+        <type>jar</type>
+        <exclusions>
+          <exclusion>
+            <groupId>maven-plugins</groupId>
+            <artifactId>maven-findbugs-plugin</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>maven-plugins</groupId>
+            <artifactId>maven-cobertura-plugin</artifactId>
+          </exclusion>
+         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.ecms</groupId>
+        <artifactId>ecms-core-connector</artifactId>
         <version>${org.exoplatform.ecms.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
         <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>exo-ecms-core-connector</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>exo-ecms-core-webui-explorer</artifactId>
+        <artifactId>ecms-core-webui-explorer</artifactId>
         <version>${org.exoplatform.ecms.version}</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>exo-ecms-ext-authoring-services</artifactId>
+        <artifactId>ecms-ext-authoring-services</artifactId>
         <version>${org.exoplatform.ecms.version}</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
         <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>exo-ecms-core-webui</artifactId>
+        <artifactId>ecms-core-webui</artifactId>
         <version>${org.exoplatform.ecms.version}</version>
         <scope>provided</scope>
       </dependency>
@@ -310,12 +317,6 @@
         <artifactId>mockito-all</artifactId>
         <version>${mockito.version}</version>
       </dependency>
-      <!-- dependency>
-        <groupId>org.exoplatform.core</groupId>
-        <artifactId>exo.core.component.organization.api</artifactId>
-        <version>${org.exoplatform.core.version}</version>
-        <type>jar</type>
-      </dependency -->
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
