@@ -1325,10 +1325,10 @@ function CloudDriveUI() {
 				&& typeof UIRightClickPopupMenu.prototype.__cw_overridden == "undefined") {
 			var clickRightMouse_orig = UIRightClickPopupMenu.prototype.clickRightMouse;
 			UIRightClickPopupMenu.prototype.clickRightMouse = function(event, elemt, menuId, objId, params, opt) {
-				if (params.indexOf(MENU_OPEN_FILE) >= 0) {
+				if (params && params.indexOf(MENU_OPEN_FILE) >= 0) {
 					params = cloudMenuActions(objId, elemt, params, ALLOWED_FILE_MENU_ACTIONS);
 					addProviderName(menuId, "a.OpenCloudFile16x16Icon");
-				} else if (params.indexOf(MENU_REFRESH_DRIVE) >= 0) {
+				} else if (params && params.indexOf(MENU_REFRESH_DRIVE) >= 0) {
 					params = cloudMenuActions(objId, elemt, params, ALLOWED_DRIVE_MENU_ACTIONS);
 					addProviderName(menuId, "a.RefreshCloudDrive16x16Icon");
 				}
