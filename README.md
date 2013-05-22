@@ -9,7 +9,7 @@ Thanks to this extension it's possible connect cloud drives as folders in Docume
 Currently supported cloud drives:
 * Google Drive
 
-This adddon is for eXo Platform version 3.5.
+This addon is for eXo Platform version 3.5.
 
 Getting started
 ===============
