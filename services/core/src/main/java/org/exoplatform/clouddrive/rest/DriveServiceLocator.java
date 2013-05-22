@@ -37,7 +37,7 @@ public class DriveServiceLocator {
    * @return {@link String}
    */
   String getBaseHost() {
-    return "";
+    return null;
   }
   
   /**
