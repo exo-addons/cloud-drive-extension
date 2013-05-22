@@ -50,12 +50,6 @@ public class DriveServiceLocator {
   String getServiceHost(String context, String requestHost) {
     // ignore context 
     return requestHost;
-    
-//    if (requestHost.equals(requestHost)) {
-//      // need redirect to actual tenant URL, TODO remove state query parameter
-//      resp.location(uriInfo.getRequestUri().toString().replace(masterHost, repoName + "." + masterHost));
-//      return resp.status(Status.MOVED_PERMANENTLY).build(); // redirect
-//    }
   }
 
 }
