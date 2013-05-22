@@ -19,10 +19,11 @@ Build from sources
 
 To build addon from sources use [Maven 3](http://maven.apache.org/download.html).
 
-Clone the project with:
+Clone the project and checkout this branch stable/1.0.x:
 
     git clone git@github.com:exo-addons/cloud-drive-extension.git
     cd cloud-drive-extension
+    git checkout -b stable/1.0.x origin/stable/1.0.x
 
 Build it with
 
