@@ -434,14 +434,7 @@ public class ConnectService implements ResourceContainer {
                   String processId = processId(workspace, userNode.getPath(), name);
 
                   // rest it by expire = 0
-                  resp.cookie(CONNECT_COOKIE,
-                              cid.toString(),
-                              "/",
-                              locator.getBaseHost() != null ? locator.getBaseHost() : uriInfo.getRequestUri()
-                                                                                             .getHost(),
-                              "Cloud Drive connect ID",
-                              0,
-                              false);
+                  resp.cookie(CONNECT_COOKIE, cid.toString(), "/", host, "Cloud Drive connect ID", 0, false);
 
                   ConnectProcess connect = active.get(processId);
                   if (connect == null || connect.error != null) {
