@@ -33,7 +33,7 @@
       <set-method>registerChangePlugin</set-method>
       <!-- The full qualified name of the PortalContainerDefinitionChangePlugin -->
       <type>org.exoplatform.container.definition.PortalContainerDefinitionChangePlugin</type>
-      <priority>100</priority>
+      <priority>1000</priority>
       <init-params>
         <values-param>
           <name>default.portal.container</name>
