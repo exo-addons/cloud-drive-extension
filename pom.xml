@@ -239,7 +239,7 @@
       </dependency>
 
       <!-- Third-parties -->
-      <dependency>
+      <!--dependency>
         <groupId>javax.jcr</groupId>
         <artifactId>jcr</artifactId>
         <version>${javax.jcr.version}</version>
@@ -263,7 +263,7 @@
         <version>1.0</version>
         <type>jar</type>
       </dependency>
-      <!-- dependency>
+      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${org.slf4j.version}</version>
@@ -282,12 +282,12 @@
         <groupId>org.slf4j</groupId>
         <artifactId>log4j-over-slf4j</artifactId>
         <version>${org.slf4j.version}</version>
-      </dependency -->
+      </dependency>
       <dependency>
         <groupId>org.picocontainer</groupId>
         <artifactId>picocontainer</artifactId>
         <version>${picocontainer.version}</version>
-      </dependency>
+      </dependency-->
       <dependency>
         <groupId>com.google.api-client</groupId>
         <artifactId>google-api-client</artifactId>
@@ -303,7 +303,7 @@
         <artifactId>google-api-services-oauth2</artifactId>
         <version>${version.google.api.services.oauth2}</version>
       </dependency>
-      <dependency>
+      <!-- dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${com.google.guava.version}</version>
@@ -312,9 +312,10 @@
         <groupId>com.ibm.icu</groupId>
         <artifactId>icu4j</artifactId>
         <version>${com.ibm.icu.version}</version>
-      </dependency>
+      </dependency-->
 
       <!-- for tests -->
+      <!--
       <dependency>
         <groupId>org.hsqldb</groupId>
         <artifactId>hsqldb</artifactId>
@@ -335,6 +336,7 @@
         <artifactId>slf4j-log4j12</artifactId>
         <version>${org.slf4j.version}</version>
       </dependency>
+      -->
       <dependency>
         <groupId>org.exoplatform.core</groupId>
         <artifactId>exo.core.component.organization.api</artifactId>
