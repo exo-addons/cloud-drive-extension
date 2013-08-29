@@ -46,45 +46,29 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.depmgt.version>7.1</org.exoplatform.depmgt.version>
     <org.exoplatform.platform.version>4.0.2</org.exoplatform.platform.version>
-    <org.exoplatform.kernel.version>2.4.5-GA</org.exoplatform.kernel.version>
-    <org.exoplatform.core.version>2.5.5-GA</org.exoplatform.core.version>
-    <org.exoplatform.ws.version>2.3.5-GA</org.exoplatform.ws.version>
-    <org.exoplatform.jcr.version>1.15.5-GA</org.exoplatform.jcr.version>
-    <org.exoplatform.jcr-services.version>1.15.5-GA</org.exoplatform.jcr-services.version>
-    <org.gatein.portal.version>3.5.6.Final</org.gatein.portal.version>
-    <org.exoplatform.commons.version>4.0.2</org.exoplatform.commons.version>
-    <org.exoplatform.ecms.version>4.0.2</org.exoplatform.ecms.version>
 
     <!-- Google API -->
     <version.google.api.client>1.10.3-beta</version.google.api.client>
     <version.google.api.services.drive>v2-rev1-1.7.2-beta</version.google.api.services.drive>
     <version.google.api.services.oauth2>v2-rev9-1.7.2-beta</version.google.api.services.oauth2>
 
-    <!-- Logger libs -->
-    <!-- org.slf4j.version>1.7.2</org.slf4j.version -->
-    <!-- ch.qos.logback.version>1.0.9</ch.qos.logback.version -->
-    <!-- log4j.version>1.2.16</log4j.version -->
+		<!-- for tests -->
+		<org.exoplatform.jcr-services.version>1.15.5-GA</org.exoplatform.jcr-services.version>
 
     <!-- maven-release-plugin -->
     <arguments>-Prelease,distrib,exo-staging -Dgatein.working.dir=target -Dmaven.wagon.provider.http=httpclient</arguments>
   </properties>
 
   <dependencyManagement>
-    <!-- ### NEVER CHANGE THIS ORDER OF DEPMGT ### -->
-    <!-- * From top level to bottom projects -->
-    <!-- * maven-depmgt-pom must be the first -->
-    <!-- * Your own modules -->
-    <!-- * And projects below you -->
     <dependencies>
-      <!-- Import versions of external dependencies to use -->
-      <dependency>
-        <groupId>org.exoplatform</groupId>
-        <artifactId>maven-depmgt-pom</artifactId>
-        <version>${org.exoplatform.depmgt.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+      <!-- Import versions from platform project FIRST!!! -->
+		  <dependency>
+			  <groupId>org.exoplatform.platform</groupId>
+			  <artifactId>platform</artifactId>
+			  <version>${org.exoplatform.platform.version}</version>
+			  <type>pom</type>
+			  <scope>import</scope>
       </dependency>
       <!-- Cloud Drive extension -->
       <dependency>
@@ -112,182 +96,7 @@
         <type>war</type>
       </dependency>
 
-      <!-- eXo dependencies -->
-      <dependency>
-        <groupId>org.exoplatform.kernel</groupId>
-        <artifactId>exo.kernel.container</artifactId>
-        <version>${org.exoplatform.kernel.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.kernel</groupId>
-        <artifactId>exo.kernel.component.common</artifactId>
-        <version>${org.exoplatform.kernel.version}</version>
-        <type>jar</type>
-      </dependency>
-      <!-- dependency>
-        <groupId>org.exoplatform.kernel</groupId>
-        <artifactId>exo.kernel.commons</artifactId>
-        <version>${org.exoplatform.kernel.version}</version>
-        <type>jar</type>
-      </dependency -->
-      <dependency>
-        <groupId>org.exoplatform.core</groupId>
-        <artifactId>exo.core.component.security.core</artifactId>
-        <version>${org.exoplatform.core.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ws</groupId>
-        <artifactId>exo.ws.commons</artifactId>
-        <version>${org.exoplatform.ws.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.jcr</groupId>
-        <artifactId>exo.jcr.component.core</artifactId>
-        <version>${org.exoplatform.jcr.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.jcr</groupId>
-        <artifactId>exo.jcr.component.ext</artifactId>
-        <version>${org.exoplatform.jcr.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.jcr</groupId>
-        <artifactId>exo.jcr.framework.web</artifactId>
-        <version>${org.exoplatform.jcr.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.commons</groupId>
-        <artifactId>commons-webui-ext</artifactId>
-        <version>${org.exoplatform.commons.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.portal</groupId>
-        <artifactId>exo.portal.component.portal</artifactId>
-        <version>${org.exoplatform.portal.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.portal</groupId>
-        <artifactId>exo.portal.component.web.api</artifactId>
-        <version>${org.exoplatform.portal.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.portal</groupId>
-        <artifactId>exo.portal.webui.portal</artifactId>
-        <version>${org.exoplatform.portal.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.portal</groupId>
-        <artifactId>exo.portal.webui.eXo</artifactId>
-        <version>${org.exoplatform.portal.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.portal</groupId>
-        <artifactId>exo.portal.webui.core</artifactId>
-        <version>${org.exoplatform.portal.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>ecms-core-services</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <type>jar</type>
-        <exclusions>
-          <exclusion>
-            <groupId>maven-plugins</groupId>
-            <artifactId>maven-findbugs-plugin</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>maven-plugins</groupId>
-            <artifactId>maven-cobertura-plugin</artifactId>
-          </exclusion>
-         </exclusions>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>ecms-core-connector</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>ecms-core-webui-explorer</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>ecms-ext-authoring-services</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.ecms</groupId>
-        <artifactId>ecms-core-webui</artifactId>
-        <version>${org.exoplatform.ecms.version}</version>
-        <scope>provided</scope>
-      </dependency>
-
-      <!-- Third-parties -->
-      <!--dependency>
-        <groupId>javax.jcr</groupId>
-        <artifactId>jcr</artifactId>
-        <version>${javax.jcr.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>servlet-api</artifactId>
-        <version>2.5</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>javax.ws.rs</groupId>
-        <artifactId>jsr311-api</artifactId>
-        <version>1.0</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>javax.annotation</groupId>
-        <artifactId>jsr250-api</artifactId>
-        <version>1.0</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${org.slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>jcl-over-slf4j</artifactId>
-        <version>${org.slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>jul-to-slf4j</artifactId>
-        <version>${org.slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>log4j-over-slf4j</artifactId>
-        <version>${org.slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.picocontainer</groupId>
-        <artifactId>picocontainer</artifactId>
-        <version>${picocontainer.version}</version>
-      </dependency-->
+      <!-- dependencies -->
       <dependency>
         <groupId>com.google.api-client</groupId>
         <artifactId>google-api-client</artifactId>
@@ -303,56 +112,14 @@
         <artifactId>google-api-services-oauth2</artifactId>
         <version>${version.google.api.services.oauth2}</version>
       </dependency>
-      <!-- dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${com.google.guava.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.ibm.icu</groupId>
-        <artifactId>icu4j</artifactId>
-        <version>${com.ibm.icu.version}</version>
-      </dependency-->
-
-      <!-- for tests -->
-      <!--
-      <dependency>
-        <groupId>org.hsqldb</groupId>
-        <artifactId>hsqldb</artifactId>
-        <version>2.0.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.testng</groupId>
-        <artifactId>testng</artifactId>
-        <version>${org.testng.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
-        <version>${org.mockito.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>${org.slf4j.version}</version>
-      </dependency>
-      -->
-      <dependency>
-        <groupId>org.exoplatform.core</groupId>
-        <artifactId>exo.core.component.organization.api</artifactId>
-        <version>${org.exoplatform.core.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-      <groupId>org.exoplatform.platform</groupId>
-        <artifactId>exo.platform.component.organization</artifactId>
-        <version>${org.exoplatform.platform.version}</version>
-      </dependency>
+			
+			<!-- for tests -->
       <dependency>
         <groupId>org.exoplatform</groupId>
         <artifactId>exo-jcr-services</artifactId>
         <version>${org.exoplatform.jcr-services.version}</version>
         <type>jar</type>
+				<scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
