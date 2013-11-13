@@ -54,7 +54,7 @@
     <com.google.api.services.oauth2.version>v2-rev9-1.7.2-beta</com.google.api.services.oauth2.version>
 		
 		<!-- Box API -->
-    <com.box.boxjavalibv2.version>1.0.3</com.box.boxjavalibv2.version>
+    <com.box.boxjavalibv2.version>2.0.1</com.box.boxjavalibv2.version>
 
 		<!-- for tests -->
 		<org.exoplatform.jcr-services.version>1.15.5-GA</org.exoplatform.jcr-services.version>
