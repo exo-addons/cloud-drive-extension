@@ -46,18 +46,18 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.0.2</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.0.3</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.10.3-beta</com.google.api.client.version>
     <com.google.api.services.drive.version>v2-rev1-1.7.2-beta</com.google.api.services.drive.version>
     <com.google.api.services.oauth2.version>v2-rev9-1.7.2-beta</com.google.api.services.oauth2.version>
-		
-		<!-- Box API -->
+
+    <!-- Box API -->
     <com.box.boxjavalibv2.version>2.0.1</com.box.boxjavalibv2.version>
 
-		<!-- for tests -->
-		<org.exoplatform.jcr-services.version>1.15.5-GA</org.exoplatform.jcr-services.version>
+    <!-- for tests -->
+    <org.exoplatform.jcr-services.version>1.15.6-GA</org.exoplatform.jcr-services.version>
 
     <!-- maven-release-plugin -->
     <arguments>-Prelease,distrib,exo-staging -Dgatein.working.dir=target -Dmaven.wagon.provider.http=httpclient</arguments>
@@ -66,7 +66,7 @@
   <dependencyManagement>
     <dependencies>
       <!-- Import versions from platform project FIRST!!! -->
-		  <dependency>
+      <dependency>
 			  <groupId>org.exoplatform.platform</groupId>
 			  <artifactId>platform</artifactId>
 			  <version>${org.exoplatform.platform.version}</version>
