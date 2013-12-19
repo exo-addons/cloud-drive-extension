@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <bundle>
+  <UITabForm>
+    <label>
+      <showConnectCloudDrive>Connect Cloud Documents</showConnectCloudDrive>
+      <connectGoogleDrive>Connect Google Drive</connectGoogleDrive>
+      <connectBox>Connect Box</connectBox>
+    </label>
+  </UITabForm>
   <UIPopupWindow>
     <title>
       <ConnectCloudDriveForm>Connect Cloud Documents</ConnectCloudDriveForm>
+      <ConnectYour>Connect your</ConnectYour>
     </title>
   </UIPopupWindow>
   <UIActionBar>
@@ -10,9 +18,14 @@
       <ShowConnectCloudDrive>Connect Cloud Documents</ShowConnectCloudDrive>
     </tooltip>
   </UIActionBar>
-    <UIActionBar>
+  <UIActionBar>
     <tooltip>
       <ConnectGoogleDrive>Connect your Google Drive</ConnectGoogleDrive>
+    </tooltip>
+  </UIActionBar>
+  <UIActionBar>
+    <tooltip>
+      <ConnectBox>Connect your Box</ConnectBox>
     </tooltip>
   </UIActionBar>
   <ECMContextMenu>

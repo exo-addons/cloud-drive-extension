@@ -16,19 +16,16 @@
  */
 package org.exoplatform.clouddrive.googledrive;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
+import com.google.api.client.util.DateTime;
+import com.google.api.services.drive.model.About;
+import com.google.api.services.drive.model.Change;
+import com.google.api.services.drive.model.ChildReference;
+import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.ParentReference;
 
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudFile;
+import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
@@ -39,12 +36,18 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import com.google.api.client.util.DateTime;
-import com.google.api.services.drive.model.About;
-import com.google.api.services.drive.model.Change;
-import com.google.api.services.drive.model.ChildReference;
-import com.google.api.services.drive.model.File;
-import com.google.api.services.drive.model.ParentReference;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
 
 /**
  * JCR local storage for Google Drive. Created by The eXo Platform SAS.
@@ -57,7 +60,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
   /**
    * Connect algorithm for Google Drive.
    */
-  protected class GoogleDriveConnect extends ConnectCommand {
+  protected class Connect extends ConnectCommand {
 
     /**
      * Google Drive service API.
@@ -65,17 +68,12 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
     protected final GoogleDriveAPI api;
 
     /**
-     * Actually open child iterators. Used for progress indicator.
-     */
-    List<ChildIterator>            iterators = new ArrayList<GoogleDriveAPI.ChildIterator>();
-
-    /**
      * Create connect to Google Drive command.
      * 
      * @throws RepositoryException
      * @throws DriveRemovedException
      */
-    protected GoogleDriveConnect() throws RepositoryException, DriveRemovedException {
+    protected Connect() throws RepositoryException, DriveRemovedException {
       super();
       this.api = getUser().api();
     }
@@ -101,6 +99,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
     protected void fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
       ChildIterator children = api.children(fileId);
       iterators.add(children);
+
       while (children.hasNext()) {
         ChildReference child = children.next();
         File gf = api.file(child.getId());
@@ -151,59 +150,39 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
                      modified);
           }
 
-          result.add(new JCRLocalCloudFile(localNode.getPath(),
-                                           gf.getId(),
-                                           gf.getTitle(),
-                                           gf.getAlternateLink(),
-                                           gf.getEmbedLink(),
-                                           gf.getThumbnailLink(),
-                                           gf.getMimeType(),
-                                           gf.getLastModifyingUserName(),
-                                           gf.getOwnerNames().get(0),
-                                           created,
-                                           modified,
-                                           isFolder));
+          changed.add(new JCRLocalCloudFile(localNode.getPath(),
+                                            gf.getId(),
+                                            gf.getTitle(),
+                                            gf.getAlternateLink(),
+                                            gf.getEmbedLink(),
+                                            gf.getThumbnailLink(),
+                                            gf.getMimeType(),
+                                            gf.getLastModifyingUserName(),
+                                            gf.getOwnerNames().get(0),
+                                            created,
+                                            modified,
+                                            isFolder));
         }
       }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getComplete() {
-      int complete = 0;
-      for (ChildIterator child : iterators) {
-        complete += child.fetched;
-      }
-      return complete;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getAvailable() {
-      int available = 0;
-      for (ChildIterator child : iterators) {
-        available += child.available;
-      }
-      // return always +7,5% more, average time for JCR save on mid-to-big drive
-      return Math.round(available * 1.075f);
     }
   }
 
   /**
    * Sync algorithm for Google Drive.
    */
-  protected class GoogleDriveSync extends SyncCommand {
+  protected class Sync extends SyncCommand {
 
     /**
      * Google Drive service API.
      */
     protected final GoogleDriveAPI api;
 
-    ChangesIterator                changes;
+    /**
+     * Existing files being synchronized with cloud.
+     */
+    protected final Set<Node>      synced = new HashSet<Node>();
+
+    protected ChangesIterator      changes;
 
     /**
      * Create command for Google Drive synchronization.
@@ -211,7 +190,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
      * @throws RepositoryException
      * @throws DriveRemovedException
      */
-    protected GoogleDriveSync() throws RepositoryException, DriveRemovedException {
+    protected Sync() throws RepositoryException, DriveRemovedException {
       super();
       this.api = getUser().api();
     }
@@ -237,10 +216,16 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
         return;
       }
 
-      BigInteger changeId = new BigInteger(localChangeId);
-      BigInteger startChangeId = changeId.add(BigInteger.ONE);
+      long changeId;
+      try {
+        changeId = Long.parseLong(localChangeId);
+      } catch (NumberFormatException e) {
+        throw new CloudDriveException("Error parse localChangeId", e);
+      }
+      long startChangeId = changeId + 1;
 
       changes = api.changes(startChangeId);
+      iterators.add(changes);
 
       if (changes.hasNext()) {
         readLocalNodes(); // read all local nodes to nodes list
@@ -297,6 +282,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
               }
             } // else will be removed below
           }
+          removed.add(en.getPath());
           en.remove();
         }
         nodes.remove(fileId);
@@ -369,7 +355,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
             existing.add(localNode);
           } else if (!localNode.getProperty("exo:title").getString().equals(gf.getTitle())) {
             // file was renamed, rename (move) its Node also
-            localNode = moveNode(localNode, gf.getTitle(), fp);
+            localNode = moveNode(gf.getId(), gf.getTitle(), localNode, fp);
           }
 
           Calendar created = api.parseDate(gf.getCreatedDate().toStringRfc3339());
@@ -401,18 +387,18 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
                      modified);
           }
 
-          result.add(new JCRLocalCloudFile(localNode.getPath(),
-                                           gf.getId(),
-                                           gf.getTitle(),
-                                           gf.getAlternateLink(),
-                                           gf.getEmbedLink(),
-                                           gf.getThumbnailLink(),
-                                           gf.getMimeType(),
-                                           gf.getLastModifyingUserName(),
-                                           gf.getOwnerNames().get(0),
-                                           created,
-                                           modified,
-                                           isFolder));
+          changed.add(new JCRLocalCloudFile(localNode.getPath(),
+                                            gf.getId(),
+                                            gf.getTitle(),
+                                            gf.getAlternateLink(),
+                                            gf.getEmbedLink(),
+                                            gf.getThumbnailLink(),
+                                            gf.getMimeType(),
+                                            gf.getLastModifyingUserName(),
+                                            gf.getOwnerNames().get(0),
+                                            created,
+                                            modified,
+                                            isFolder));
 
           synced.add(localNode);
         }
@@ -423,6 +409,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
         for (Iterator<Node> niter = existing.iterator(); niter.hasNext();) {
           Node n = niter.next();
           if (!synced.contains(n)) {
+            removed.add(n.getPath());
             niter.remove();
             n.remove();
           }
@@ -442,28 +429,6 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
         }
       }
       return new String[0];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getComplete() {
-      if (changes != null) {
-        return changes.fetched;
-      }
-      return 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getAvailable() {
-      if (changes != null) {
-        return changes.available;
-      }
-      return 0;
     }
   }
 
@@ -546,6 +511,23 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
    * {@inheritDoc}
    */
   @Override
+  public String getChangesLink() throws DriveRemovedException, RepositoryException {
+    // long-polling of changes not supported by Google as for Nov 10 2013
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void updateChangesLink() throws DriveRemovedException, CloudProviderException, RepositoryException {
+    // do nothing for Google
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   protected void checkAccess() throws GoogleDriveException {
     getUser().api().checkAccess();
   }
@@ -554,7 +536,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
    * {@inheritDoc}
    */
   @Override
-  protected void updateAccessKey(CloudUser newUser) throws CloudDriveException, RepositoryException {
+  protected void updateAccess(CloudUser newUser) throws CloudDriveException, RepositoryException {
     GoogleDriveAPI api = getUser().api();
     api.updateToken(((GoogleUser) newUser).api());
 
@@ -598,7 +580,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
    */
   @Override
   protected ConnectCommand getConnectCommand() throws DriveRemovedException, RepositoryException {
-    return new GoogleDriveConnect();
+    return new Connect();
   }
 
   /**
@@ -608,7 +590,7 @@ public class JCRLocalGoogleDrive extends JCRLocalCloudDrive {
   protected SyncCommand getSyncCommand() throws DriveRemovedException,
                                         SyncNotSupportedException,
                                         RepositoryException {
-    return new GoogleDriveSync();
+    return new Sync();
   }
 
   /**

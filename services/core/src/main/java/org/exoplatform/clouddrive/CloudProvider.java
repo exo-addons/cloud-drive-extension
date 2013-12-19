@@ -17,7 +17,9 @@
 package org.exoplatform.clouddrive;
 
 /**
- * Created by The eXo Platform SAS
+ * Cloud Drive provider entity.
+ * 
+ * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CloudProvider.java 00000 Oct 4, 2012 pnedonosko $
@@ -25,8 +27,8 @@ package org.exoplatform.clouddrive;
 public abstract class CloudProvider {
 
   /**
-   * GOOGLEDRIVE("gdrive", "Google Drive"), SKYDRIVE("skydrive", "Muicrosoft SkyDrive"), DROPBOX("dbox",
-   * "Dropbox"), BOX( "boxnet", "Box File Share"), TEST("exo", "Test Cloud Drive");
+   * GOOGLEDRIVE("gdrive", "Google Drive"), SKYDRIVE("skydrive", "Microsoft SkyDrive"), DROPBOX("dbox",
+   * "Dropbox"), BOX( "box", "Box"), TEST("exo", "Test Cloud Drive");
    */
 
   public static final String CONNECT_URL_BASE = "/portal/rest/clouddrive/connect/";

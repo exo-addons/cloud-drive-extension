@@ -4,8 +4,118 @@
 	width: 16px !important;
 }
 
-.uiIconEcmsOpenCloudFile,.uiIconEcmsRefreshCloudDrive {
+.uiIconEcmsConnectBox {
+	background: url('icons/box-gray-16x16.png') no-repeat scroll left center transparent !important;
+	height: 16px !important;
+	width: 16px !important;
+}
+
+.uiIconEcmsConnectDialogGoogleDrive {
+	background: url('icons/googledrive-gray-24x24.png') no-repeat scroll left center transparent !important;
+	height: 32px !important;
+	width: 32px !important;
+}
+
+.uiIconEcmsConnectDialogBox {
+	background: url('icons/box-gray-24x24.png') no-repeat scroll left center transparent !important;
+	height: 32px !important;
+	width: 32px !important;
+}
+
+.uiIcon16x16CloudFile-gdrive {
 	background: url("icons/googledrive-gray-16x16.png") no-repeat left center transparent !important;
+}
+
+.uiIcon16x16CloudFile-box {
+	background: url("icons/box-gray-16x16.png") no-repeat left center transparent !important;
+}
+
+.uiIcon16x16CloudDrive-box {
+	left: 2px;
+	top: 4px;
+	-webkit-transform: scale(0.36);
+    -moz-transform: scale(0.36);
+    -o-transform: scale(0.36);
+    -ms-transform: scale(0.36);
+    transform: scale(0.36);
+	background: url("icons/box-gray-16x16.png") no-repeat center center transparent !important;
+}
+
+.uiIcon16x16CloudDrive-gdrive {
+	left: 2px;
+	top: 4px;
+	-webkit-transform: scale(0.36);
+    -moz-transform: scale(0.36);
+    -o-transform: scale(0.36);
+    -ms-transform: scale(0.36);
+    transform: scale(0.36);
+	background: url("icons/googledrive-lightgray-16x16.png") no-repeat center center transparent !important;
+}
+
+.uiIcon24x24CloudDrive-gdrive {
+	left: -1px;
+	top: -3px;
+	-webkit-transform: scale(0.7);
+    -moz-transform: scale(0.7);
+    -o-transform: scale(0.7);
+    -ms-transform: scale(0.7);
+    transform: scale(0.7);
+	background: url("icons/googledrive-lightgray-16x16.png") no-repeat center center transparent !important;
+}
+
+.uiIcon24x24CloudDrive-box {
+	left: -1px;
+	top: -3px;
+	-webkit-transform: scale(0.7);
+    -moz-transform: scale(0.7);
+    -o-transform: scale(0.7);
+    -ms-transform: scale(0.7);
+    transform: scale(0.7);
+	background: url("icons/box-gray-16x16.png") no-repeat center center transparent !important;
+}
+
+.uiIcon64x64CloudDrive-gdrive {
+	left: 1px;
+	top: -20px;
+	-webkit-transform: scale(0.7);
+    -moz-transform: scale(0.7);
+    -o-transform: scale(0.7);
+    -ms-transform: scale(0.7);
+    transform: scale(0.7);
+	background: url("icons/googledrive-lightgray-32x32.png") no-repeat center center transparent !important;
+}
+
+.uiIcon64x64CloudDrive-box {
+	left: 1px;
+	top: -20px;
+	-webkit-transform: scale(0.7);
+    -moz-transform: scale(0.7);
+    -o-transform: scale(0.7);
+    -ms-transform: scale(0.7);
+    transform: scale(0.7);
+	background: url("icons/box-gray-32x32.png") no-repeat center center transparent !important;
+}
+
+.uiCloudDriveChanges {
+	position:relative;
+	left:8px;
+	top:9px;
+	display: block;
+	
+	-webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+
+    width: 12px;
+    height: 10px;
+    padding: 1px;
+    
+    background: red;
+    border: 0px solid #f0f0f0;
+    color: #fff;
+    text-align: center;
+    
+    font: 9px Arial, sans-serif
 }
 
 /*************************** NodeType Icon ***********************/
@@ -161,6 +271,18 @@
     transform: scale(0.5);
 	background: url('https://ssl.gstatic.com/docs/doclist/images/icon_10_excel_xl128.png') no-repeat left center !important; /* orientation=lt */
 	background: url('https://ssl.gstatic.com/docs/doclist/images/icon_10_excel_xl128.png') no-repeat right center !important; /* orientation=rt */
+}
+
+.uiIcon16x16applicationx-exoboxwebdoc {
+	background: url('icons/box-webdoc-16x16.png') center center no-repeat !important;
+}
+
+.uiIcon24x24applicationx-exoboxwebdoc {
+    background: url('icons/box-webdoc-24x24.png') center center no-repeat !important;
+}
+
+.uiIcon64x64applicationx-exoboxwebdoc {
+    background: url('icons/box-webdoc-64x64.png') center center no-repeat !important;
 }
 
 .application_xml16x16Icon {

@@ -16,10 +16,7 @@
  */
 package org.exoplatform.clouddrive.googledrive;
 
-import java.io.IOException;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
+import com.google.api.services.oauth2.model.Userinfo;
 
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveConnector;
@@ -27,13 +24,14 @@ import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConfigurationException;
+import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.auth.oauth2.CredentialStore;
-import com.google.api.services.oauth2.model.Userinfo;
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
 
 /**
  * GoogleDrive connector implementation. Created by The eXo Platform SAS.
@@ -104,70 +102,7 @@ public class GoogleDriveConnector extends CloudDriveConnector {
     }
   }
 
-  /**
-   * Single user credentials store. Should be used per session as transient store.
-   */
-  class UserCredentialStore implements CredentialStore {
-
-    String id;
-
-    String accessToken;
-
-    String refreshToken;
-
-    long   expirationTime;
-
-    UserCredentialStore(String id, String accessToken, String refreshToken, long expirationTime) {
-      this.id = id;
-      this.accessToken = accessToken;
-      this.refreshToken = refreshToken;
-      this.expirationTime = expirationTime;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean load(String userId, Credential credential) throws IOException {
-      if (id.equals(userId)) {
-        credential.setAccessToken(accessToken);
-        credential.setRefreshToken(refreshToken);
-        credential.setExpirationTimeMilliseconds(expirationTime);
-        return true;
-      }
-      return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void store(String userId, Credential credential) throws IOException {
-      if (id.equals(userId)) {
-        accessToken = credential.getAccessToken();
-        refreshToken = credential.getRefreshToken();
-        expirationTime = credential.getExpirationTimeMilliseconds();
-      }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void delete(String userId, Credential credential) throws IOException {
-      if (id.equals(userId)) {
-        id = refreshToken = accessToken = null;
-        expirationTime = 0;
-      }
-    }
-  }
-
-  public static final String CONFIG_PROVIDER_CLIENT_ID     = "provider-client-id";
-
-  public static final String CONFIG_PROVIDER_CLIENT_SECRET = "provider-client-secret";
-
-  public static final String AUTH_URL_USERHOST             = "__USERHOST__";
-
+  // TODO cleanup
   // protected static final String SCOPES =
   // "https://www.googleapis.com/auth/userinfo.email+https://www.googleapis.com/auth/userinfo.profile+https://www.googleapis.com/auth/drive.readonly";
 
@@ -189,7 +124,8 @@ public class GoogleDriveConnector extends CloudDriveConnector {
   @Override
   protected CloudProvider createProvider() {
     StringBuilder redirectUrl = new StringBuilder();
-    redirectUrl.append("http://");
+    redirectUrl.append(getConnectorSchema());
+    redirectUrl.append("://");
     redirectUrl.append(getConnectorHost());
     redirectUrl.append("/portal/rest/clouddrive/connect/");
     redirectUrl.append(getProviderId());
@@ -210,14 +146,6 @@ public class GoogleDriveConnector extends CloudDriveConnector {
     authUrl.append(redirectUrl);
 
     return new GoogleProvider(getProviderId(), getProviderName(), authUrl.toString(), redirectUrl.toString(), jcrService);
-  }
-
-  private String getClientId() {
-    return config.get(CONFIG_PROVIDER_CLIENT_ID);
-  }
-
-  private String getClientSecret() {
-    return config.get(CONFIG_PROVIDER_CLIENT_SECRET);
   }
 
   /**
@@ -265,6 +193,7 @@ public class GoogleDriveConnector extends CloudDriveConnector {
    */
   @Override
   protected CloudDrive loadDrive(Node driveNode) throws CloudDriveException, RepositoryException {
+    JCRLocalCloudDrive.checkTrashed(driveNode);
     return new JCRLocalGoogleDrive(new API(), getProvider(), driveNode, sessionProviders);
   }
 

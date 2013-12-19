@@ -51,24 +51,23 @@ public class ConnectGoogleDriveActionComponent extends BaseCloudDriveManagerComp
    * @inherritDoc
    */
   @Override
-  public String renderEventURL(boolean ajax, String name, String beanId, Parameter[] params) throws Exception {   
+  public String renderEventURL(boolean ajax, String name, String beanId, Parameter[] params) throws Exception {
     CloudDriveService drivesService = WCMCoreUtils.getService(CloudDriveService.class);
     if (drivesService != null) {
       try {
-        // XXX gdrive - Google Drive id from configuration        
+        // XXX gdrive - Google Drive id from configuration
         CloudProvider provider = drivesService.getProvider("gdrive");
 
         initContext();
 
-        // add provider's default params 
+        // add provider's default params
         JavascriptManager js = ((WebuiRequestContext) WebuiRequestContext.getCurrentInstance()).getJavascriptManager();
         js.getRequireJS().addScripts("\ncloudDrive.initProvider('" + provider.getId() + "', '"
             + provider.getAuthUrl() + "');\n");
 
-        return "javascript:void(0);//objectId";
-        // TODO cleanup
-        // return "javascript:require(['SHARED/cloudDrive'], function(cd) {cd.connect('" + provider.getId()
-        // + "', '" + provider.getAuthUrl() + "', '" + nodePath + "', '" + workspace + "');})";
+        // XXX do workaround here, need point an id of the provider for this Connect component
+        // this could be better to do by HTML attribute, but we cannot do this for the moment
+        return "javascript:void(0);//" + provider.getId() + "//objectId";
       } catch (ProviderNotAvailableException e) {
         // if no such provider, cannot do anything - default link
         LOG.error("Error rendering Connect to Google Drive component: " + e.getMessage());

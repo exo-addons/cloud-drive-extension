@@ -17,24 +17,6 @@
 
 package org.exoplatform.clouddrive.googledrive;
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.exoplatform.clouddrive.CloudDriveConnector;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.CredentialStore;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
@@ -48,7 +30,7 @@ import com.google.api.client.http.HttpResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.HttpUnsuccessfulResponseHandler;
 import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson.JacksonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.Drive.Changes;
 import com.google.api.services.drive.Drive.Children;
@@ -62,6 +44,24 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.oauth2.Oauth2;
 import com.google.api.services.oauth2.Oauth2Scopes;
 import com.google.api.services.oauth2.model.Userinfo;
+
+import org.exoplatform.clouddrive.CloudDriveConnector;
+import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.utils.ChunkIterator;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Covers calls to Google Drive services and handles related exceptions. <br>
@@ -169,6 +169,7 @@ class GoogleDriveAPI {
    * request to the service. <br>
    * Iterator methods can throw {@link GoogleDriveException} in case of remote or communication errors.
    */
+  @Deprecated
   abstract class PageIterator<C> {
 
     Iterator<C>  iter;
@@ -182,7 +183,7 @@ class GoogleDriveAPI {
     volatile int available;
 
     /**
-     * Totally fetched items. Changes on each {@link #next()}. Used for progress indicator. 
+     * Totally fetched items. Changes on each {@link #next()}. Used for progress indicator.
      */
     volatile int fetched;
 
@@ -239,19 +240,10 @@ class GoogleDriveAPI {
         available += hasNextPage() ? Math.round(newValue * 1.25f) : newValue;
         fetched = newFetched;
       }
-
-      // TODO cleanup
-      // if (available == 0) {
-      // available = newValue;
-      // } else {
-      // int newFetched = available;
-      // available += newValue;
-      // fetched = newFetched;
-      // }
     }
   }
 
-  class ChildIterator extends PageIterator<ChildReference> {
+  class ChildIterator extends ChunkIterator<ChildReference> {
     final Children.List request;
 
     /**
@@ -266,11 +258,11 @@ class GoogleDriveAPI {
       }
 
       // fetch first page
-      iter = nextPage();
+      iter = nextChunk();
     }
 
     @Override
-    Iterator<ChildReference> nextPage() throws GoogleDriveException {
+    protected Iterator<ChildReference> nextChunk() throws GoogleDriveException {
       try {
         ChildList children = request.execute();
         request.setPageToken(children.getNextPageToken());
@@ -285,18 +277,18 @@ class GoogleDriveAPI {
     }
 
     @Override
-    boolean hasNextPage() {
+    protected boolean hasNextChunk() {
       return request.getPageToken() != null && request.getPageToken().length() > 0;
     }
   }
 
-  class ChangesIterator extends PageIterator<Change> {
+  class ChangesIterator extends ChunkIterator<Change> {
     final Changes.List request;
 
     /**
      * @throws GoogleDriveException
      */
-    ChangesIterator(BigInteger startChangeId) throws GoogleDriveException {
+    ChangesIterator(long startChangeId) throws GoogleDriveException {
       try {
         this.request = drive.changes().list();
         this.request.setStartChangeId(startChangeId);
@@ -305,11 +297,11 @@ class GoogleDriveAPI {
       }
 
       // fetch first page
-      iter = nextPage();
+      iter = nextChunk();
     }
 
     @Override
-    Iterator<Change> nextPage() throws GoogleDriveException {
+    protected Iterator<Change> nextChunk() throws GoogleDriveException {
       try {
         ChangeList children = request.execute();
         request.setPageToken(children.getNextPageToken());
@@ -324,7 +316,7 @@ class GoogleDriveAPI {
     }
 
     @Override
-    boolean hasNextPage() {
+    protected boolean hasNextChunk() {
       return request.getPageToken() != null && request.getPageToken().length() > 0;
     }
   }
@@ -352,6 +344,7 @@ class GoogleDriveAPI {
               Thread.sleep(CloudDriveConnector.PROVIDER_REQUEST_ATTEMPT_TIMEOUT);
             } catch (InterruptedException e) {
               LOG.warn("Interrupted while waiting for a next attempt of drive operation: " + e.getMessage());
+              Thread.currentThread().interrupt();
             }
           }
           return supportsRetry; // re-try all what currently supported
@@ -363,20 +356,18 @@ class GoogleDriveAPI {
   /**
    * Credentials for request authentication.
    */
-  protected final Credential credential;
-
-  // protected Userinfo userInfo;
+  final Credential credential;
 
   /**
    * Drive services API.
    */
-  protected final Drive      drive;
+  final Drive      drive;
 
   /**
    * User info API.
    */
   // TODO cleanup
-  protected final Oauth2     oauth2;
+  final Oauth2     oauth2;
 
   /**
    * Create Google Drive API from OAuth2 authentication code.
@@ -464,9 +455,7 @@ class GoogleDriveAPI {
    * @param tokenStore
    * @return GoogleAuthorizationCodeFlow instance.
    */
-  protected GoogleAuthorizationCodeFlow createFlow(String clientId,
-                                                   String clientSecret,
-                                                   CredentialStore tokenStore) {
+  GoogleAuthorizationCodeFlow createFlow(String clientId, String clientSecret, CredentialStore tokenStore) {
     HttpTransport httpTransport = new NetHttpTransport();
     JacksonFactory jsonFactory = new JacksonFactory();
     // (access_type=offline) if application needs to refresh access tokens
@@ -508,10 +497,8 @@ class GoogleDriveAPI {
    */
   Userinfo userInfo() throws GoogleDriveException, CloudDriveException {
     Userinfo userInfo;
-    // this.userInfo = null; // consume it once
-    // if (userInfo == null) {
     try {
-      // TODO this caused Unauthorized: >>> .setHttpRequestInitializer(new RequestInitializer()
+      // XXX FYI this caused Unauthorized: >>> .setHttpRequestInitializer(new RequestInitializer()
       // Oauth2 oauth2 = new Oauth2.Builder(new NetHttpTransport(), new JacksonFactory(),
       // credential).build();
       userInfo = oauth2.userinfo().get().execute();
@@ -533,7 +520,6 @@ class GoogleDriveAPI {
     } catch (IOException e) {
       throw new GoogleDriveException("Authentication error: " + e.getMessage(), e);
     }
-    // }
     if (userInfo != null && userInfo.getId() != null) {
       return userInfo;
     } else {
@@ -559,7 +545,7 @@ class GoogleDriveAPI {
     return new ChildIterator(fileId);
   }
 
-  ChangesIterator changes(BigInteger startChangeId) throws GoogleDriveException {
+  ChangesIterator changes(long startChangeId) throws GoogleDriveException {
     return new ChangesIterator(startChangeId);
   }
 

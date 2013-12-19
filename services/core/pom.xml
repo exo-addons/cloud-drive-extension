@@ -84,6 +84,12 @@
       <artifactId>google-api-client</artifactId>
       <scope>compile</scope>
       <type>jar</type>
+    </dependency>    
+    <dependency>
+      <groupId>com.google.http-client</groupId>
+      <artifactId>google-http-client-jackson2</artifactId>
+      <scope>compile</scope>
+      <type>jar</type>
     </dependency>
     <dependency>
       <groupId>com.google.apis</groupId>
@@ -97,9 +103,11 @@
       <scope>compile</scope>
       <type>jar</type>
     </dependency>
+    
+    <!-- Box API -->
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
+      <groupId>com.box.boxjavalibv2</groupId>
+      <artifactId>BoxJavaLibraryV2</artifactId>
       <scope>compile</scope>
       <type>jar</type>
     </dependency>

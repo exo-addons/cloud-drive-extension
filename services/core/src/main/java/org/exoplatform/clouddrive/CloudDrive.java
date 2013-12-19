@@ -16,17 +16,18 @@
  */
 package org.exoplatform.clouddrive;
 
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
 
 /**
  * Local mirror of cloud drive to JCR sub-tree. All nodes of this sub-tree contain metadata such as name,
@@ -79,6 +80,13 @@ public abstract class CloudDrive {
      * @return long, time in milliseconds
      */
     long getFinishTime();
+    
+    /**
+     * Command name. 
+     * 
+     * @return String
+     */
+    String getName();
 
     /**
      * Collection of files affect by the command. Call to this method will return unmodifiable view on actual
@@ -87,6 +95,22 @@ public abstract class CloudDrive {
      * @return collection of {@link CloudFile} objects
      */
     Collection<CloudFile> getFiles();
+
+    /**
+     * Collection of file paths removed by the command. Call to this method will return unmodifiable view on actual
+     * results and should be treated accordingly until the command will not be completed.
+     * 
+     * @return collection of {@link String} file paths
+     */
+    Collection<String> getRemoved();
+
+    /**
+     * Wait for command will be done.
+     * 
+     * @throws ExecutionException if command thrown an exception.
+     * @throws InterruptedException if current thread was interrupted.
+     */
+    void await() throws ExecutionException, InterruptedException;
   }
 
   /**
@@ -96,16 +120,16 @@ public abstract class CloudDrive {
     /**
      * Complete work in abstract units.
      * 
-     * @return int
+     * @return long
      */
-    int getComplete();
+    long getComplete();
 
     /**
      * Available work to do in abstract units.
      * 
-     * @return int
+     * @return long
      */
-    int getAvailable();
+    long getAvailable();
   }
 
   /**
@@ -281,6 +305,28 @@ public abstract class CloudDrive {
    * @return {@link String}
    */
   public abstract String getLink() throws DriveRemovedException, RepositoryException;
+
+  /**
+   * Link to the drive's long-polling changes notification service. This kind of service optional and may not
+   * be supported. If long-polling changes notification not supported then this link will be <code>null</code>
+   * .
+   * 
+   * @return {@link String} a link to long-polling changes notification service or <code>null</code> if such
+   *         service not supported.
+   */
+  public abstract String getChangesLink() throws DriveRemovedException,
+                                         CloudProviderException,
+                                         RepositoryException;
+
+  /**
+   * Update link to the drive's long-polling changes notification service. This kind of service optional and
+   * may not be supported. If long-polling changes notification not supported then this method will do
+   * nothing.
+   * 
+   */
+  public abstract void updateChangesLink() throws DriveRemovedException,
+                                          CloudProviderException,
+                                          RepositoryException;
 
   /**
    * Local user related to this Cloud Drive.
@@ -517,13 +563,13 @@ public abstract class CloudDrive {
   protected abstract void checkAccess() throws CloudDriveException;
 
   /**
-   * Renew access key using given user credentials.
+   * Renew access using given user credentials.
    * 
    * @param user {@link CloudUser}
    * @throws CloudDriveException if drive node was removed or cloud provider error
    * @throws RepositoryException if storage error
    */
-  protected abstract void updateAccessKey(CloudUser user) throws CloudDriveException, RepositoryException;
+  protected abstract void updateAccess(CloudUser user) throws CloudDriveException, RepositoryException;
 
   /**
    * Used internally for logger messages.

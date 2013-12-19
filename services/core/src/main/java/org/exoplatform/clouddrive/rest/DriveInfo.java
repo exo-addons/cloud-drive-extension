@@ -17,60 +17,70 @@
 
 package org.exoplatform.clouddrive.rest;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jcr.RepositoryException;
-
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.DriveRemovedException;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+
+import javax.jcr.RepositoryException;
 
 /**
  * Resource what will be returned to clients. <br>
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DriveInfo.java 00000 8 січ. 2013 peter $
+ * @version $Id: DriveInfo.java 00000 10 Nov 2013 peter $
  */
 public class DriveInfo {
 
-  final CloudProvider               provider;
+  final CloudProvider          provider;
 
   final Map<String, CloudFile> files;
 
-  final String                      path;
+  final Collection<String>     removed;
 
-  final String                      user;
+  final String                 path;
 
-  final String                      email;
+  final String                 user;
 
-  final String                      title;
+  final String                 email;
 
-  final boolean                     connected;
+  final String                 title;
+
+  final String                 changesLink;
+
+  final boolean                connected;
 
   DriveInfo(String title,
             String path,
             String user,
             String email,
+            String changesLink,
             boolean connected,
             CloudProvider provider,
-            Map<String, CloudFile> files) {
+            Map<String, CloudFile> files,
+            Collection<String> removed) {
     this.title = title;
     this.path = path;
     this.user = user;
     this.email = email;
+    this.changesLink = changesLink;
     this.connected = connected;
     this.provider = provider;
     this.files = files;
+    this.removed = removed;
   }
 
-  static DriveInfo create(CloudDrive drive, Collection<CloudFile> files) throws DriveRemovedException,
-                                                                                  RepositoryException {
+  static DriveInfo create(CloudDrive drive, Collection<CloudFile> files, Collection<String> removed) throws DriveRemovedException,
+                                                                                                    CloudProviderException,
+                                                                                                    RepositoryException {
     Map<String, CloudFile> driveFiles = new HashMap<String, CloudFile>();
     for (CloudFile cf : files) {
       driveFiles.put(cf.getPath(), cf);
@@ -79,13 +89,23 @@ public class DriveInfo {
                          drive.getPath(),
                          drive.getUser().getUsername(),
                          drive.getUser().getEmail(),
+                         drive.getChangesLink(),
                          drive.isConnected(),
                          drive.getUser().getProvider(),
-                         driveFiles);
+                         driveFiles,
+                         removed);
   }
 
-  static DriveInfo create(CloudDrive drive) throws DriveRemovedException, RepositoryException {
-    return create(drive, new ArrayList<CloudFile>());
+  static DriveInfo create(CloudDrive drive, Collection<CloudFile> files) throws DriveRemovedException,
+                                                                        CloudProviderException,
+                                                                        RepositoryException {
+    return create(drive, files, new HashSet<String>());
+  }
+
+  static DriveInfo create(CloudDrive drive) throws DriveRemovedException,
+                                           CloudProviderException,
+                                           RepositoryException {
+    return create(drive, new ArrayList<CloudFile>(), new HashSet<String>());
   }
 
   public CloudProvider getProvider() {
@@ -94,6 +114,10 @@ public class DriveInfo {
 
   public Map<String, CloudFile> getFiles() {
     return files;
+  }
+
+  public Collection<String> getRemoved() {
+    return removed;
   }
 
   public String getPath() {
@@ -106,6 +130,10 @@ public class DriveInfo {
 
   public String getEmail() {
     return email;
+  }
+
+  public String getChangesLink() {
+    return changesLink;
   }
 
   public String getTitle() {

@@ -36,7 +36,7 @@
       <set-method>registerUIExtensionPlugin</set-method>
       <type>org.exoplatform.webui.ext.UIExtensionPlugin</type>
       <init-params>
-        <!-- object-param>
+        <object-param>
           <name>ConnectCloudDrive</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
             <field name="type">
@@ -56,7 +56,7 @@
               </collection>
             </field>
           </object>
-        </object-param -->
+        </object-param>
         <object-param>
           <name>ConnectGoogleDrive</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
@@ -68,6 +68,27 @@
             </field>
             <field name="component">
               <string>org.exoplatform.clouddrive.ecms.ConnectGoogleDriveActionComponent</string>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ConnectBox</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.UIActionBar</string>
+            </field>
+            <field name="name">
+              <string>ConnectBox</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.ecms.ConnectBoxActionComponent</string>
             </field>
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
