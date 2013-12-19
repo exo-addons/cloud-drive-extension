@@ -48,6 +48,11 @@
     <!-- eXo Modules -->
     <org.exoplatform.platform.version>4.0.2</org.exoplatform.platform.version>
 
+    <!-- Third parties -->
+    <!-- org.codehaus.jackson.version>1.9.7</org.codehaus.jackson.version -->
+    <jcr.version>1.0</jcr.version>
+    <icu4j.version>3.8</icu4j.version>
+
     <!-- Google API -->
     <version.google.api.client>1.10.3-beta</version.google.api.client>
     <version.google.api.services.drive>v2-rev1-1.7.2-beta</version.google.api.services.drive>
