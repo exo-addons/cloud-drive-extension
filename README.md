@@ -78,9 +78,9 @@ Enable Google Drive API
 Enable Box API
 --------------
 
-- Go to Box Developers site, to [My Box Apps](http://box.com/developers/services)
-- Create a new app as described in [this guide](http://developers.box.com/oauth/). Note: don't need point `redirect_uri` it will be submited by the add-on in the authentication request
-- Use `client_id` and `client_secret` values for configuration below.
+- Go to Box Developers site, to [My Box Apps](http://box.com/developers/services).
+- Create a new app with API Key Type: Content API. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: don't need point `redirect_uri` for the app, it will be submited by the add-on in the authentication requests.
+- Use your `client_id` and `client_secret` values for configuration below.
 
 Configuration
 -------------
@@ -101,7 +101,7 @@ The `clouddrive.google.client.id` parameter is the `Client ID` of the service ac
 The `clouddrive.google.client.secret` parameter is `Client Secret` of the service account (available in your Google console, see above).
 The same way `clouddrive.box.client.id` and `clouddrive.box.client.secret` refer to Box's `client_id` and `client_secret`.
 
-By default Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for production, thus it needs https URL for redirect and you have to configure your production for SSL HTTP. You also may use your Platform server with enabled SSL connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
+By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled SSL connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
 
 
 Run Platform
