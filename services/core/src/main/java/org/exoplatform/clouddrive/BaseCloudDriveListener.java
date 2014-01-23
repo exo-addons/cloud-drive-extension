@@ -40,7 +40,7 @@ public class BaseCloudDriveListener implements CloudDriveListener {
    * {@inheritDoc}
    */
   @Override
-  public void onConnect(CloudDriveEvent event) {
+  public void onConnected(CloudDriveEvent event) {
     // nothing
   }
 
@@ -48,7 +48,7 @@ public class BaseCloudDriveListener implements CloudDriveListener {
    * {@inheritDoc}
    */
   @Override
-  public void onDisconnect(CloudDriveEvent event) {
+  public void onDisconnected(CloudDriveEvent event) {
     // nothing
   }
 

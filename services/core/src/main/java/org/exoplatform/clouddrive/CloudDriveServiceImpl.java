@@ -77,7 +77,7 @@ public class CloudDriveServiceImpl implements CloudDriveService, Startable {
      * {@inheritDoc}
      */
     @Override
-    public void onDisconnect(CloudDriveEvent event) {
+    public void onDisconnected(CloudDriveEvent event) {
       cleanUserCaches(event.getUser());
     }
 

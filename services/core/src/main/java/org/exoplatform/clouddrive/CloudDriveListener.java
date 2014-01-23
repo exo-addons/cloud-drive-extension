@@ -43,7 +43,7 @@ public interface CloudDriveListener {
     void onRemove(CloudFile file);
 
     /**
-     * Action for deleting file.
+     * Action for update of a file.
      * 
      * @param prevFile {@link CloudFile}
      * @param newFile {@link CloudFile}
@@ -73,17 +73,18 @@ public interface CloudDriveListener {
    * 
    * @param event {@link CloudDriveEvent}
    */
-  void onConnect(CloudDriveEvent event);
+  void onConnected(CloudDriveEvent event);
 
   /**
    * Will be fired after successful disconnection of a drive from remote provider.
    * 
    * @param event {@link CloudDriveEvent}
    */
-  void onDisconnect(CloudDriveEvent event);
+  void onDisconnected(CloudDriveEvent event);
 
   /**
-   * Will be fired just before a drive physical removal from JCR storage.
+   * Will be fired just before a drive physical removal from JCR storage. This even also can be fired in case if 
+   * drive folder already removed by another process and Cloud Drive faced with this fact.
    * 
    * @param event {@link CloudDriveEvent}
    */

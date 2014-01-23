@@ -289,7 +289,7 @@ public class ConnectService implements ResourceContainer {
     }
 
     @Override
-    public void onConnect(CloudDriveEvent event) {
+    public void onConnected(CloudDriveEvent event) {
       // remove from active here
       active.values().remove(this);
       // unregister listener

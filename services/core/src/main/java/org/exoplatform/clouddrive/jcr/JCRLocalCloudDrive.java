@@ -901,7 +901,7 @@ public abstract class JCRLocalCloudDrive extends CloudDrive {
       driveRoot.save();
 
       // fire listeners
-      listeners.fireOnConnect(new CloudDriveEvent(getUser(), rootWorkspace, driveRoot.getPath()));
+      listeners.fireOnConnected(new CloudDriveEvent(getUser(), rootWorkspace, driveRoot.getPath()));
     }
   }
 
@@ -1441,7 +1441,7 @@ public abstract class JCRLocalCloudDrive extends CloudDrive {
           rootNode.save();
 
           // finally fire listeners
-          listeners.fireOnDisconnect(new CloudDriveEvent(getUser(), rootWorkspace, rootNode.getPath()));
+          listeners.fireOnDisconnected(new CloudDriveEvent(getUser(), rootWorkspace, rootNode.getPath()));
         } catch (RepositoryException e) {
           rollback(rootNode);
           throw e;

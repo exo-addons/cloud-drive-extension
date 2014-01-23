@@ -140,10 +140,10 @@ public abstract class CloudDrive {
 
     Queue<CloudDriveListener> registry = new ConcurrentLinkedQueue<CloudDriveListener>();
 
-    public void fireOnConnect(CloudDriveEvent event) {
+    public void fireOnConnected(CloudDriveEvent event) {
       for (CloudDriveListener listener : registry) {
         try {
-          listener.onConnect(event);
+          listener.onConnected(event);
         } catch (Throwable th) {
           // nothing should prevent the connect at this point
           LOG.warn("Error firing onConnect listener on Cloud Drive '" + title() + "': " + th.getMessage(), th);
@@ -151,10 +151,10 @@ public abstract class CloudDrive {
       }
     }
 
-    public void fireOnDisconnect(CloudDriveEvent event) {
+    public void fireOnDisconnected(CloudDriveEvent event) {
       for (CloudDriveListener listener : registry) {
         try {
-          listener.onDisconnect(event);
+          listener.onDisconnected(event);
         } catch (Throwable th) {
           // nothing should prevent at this point
           LOG.warn("Error firing onDisconnect listener on Cloud Drive '" + title() + "': " + th.getMessage(),
@@ -199,7 +199,7 @@ public abstract class CloudDrive {
       }
     }
 
-    public void invokeOnNew(CloudFile file) {
+    public void fireOnFileNew(CloudFile file) {
       for (CloudDriveListener listener : registry) {
         try {
           CloudDriveListener.FileChangeAction action = listener.getFileChangeAction();
@@ -215,7 +215,7 @@ public abstract class CloudDrive {
       }
     }
 
-    public void invokeOnDelete(CloudFile file) {
+    public void fireOnFileRemove(CloudFile file) {
       for (CloudDriveListener listener : registry) {
         try {
           CloudDriveListener.FileChangeAction action = listener.getFileChangeAction();
@@ -231,7 +231,7 @@ public abstract class CloudDrive {
       }
     }
 
-    public void invokeOnUpdate(CloudFile prevFile, CloudFile newFile) {
+    public void fireOnFileUpdate(CloudFile prevFile, CloudFile newFile) {
       for (CloudDriveListener listener : registry) {
         try {
           CloudDriveListener.FileChangeAction action = listener.getFileChangeAction();
@@ -247,7 +247,7 @@ public abstract class CloudDrive {
       }
     }
 
-    public void invokeOnContent(CloudFile file) {
+    public void fireOnFileContent(CloudFile file) {
       for (CloudDriveListener listener : registry) {
         try {
           CloudDriveListener.FileChangeAction action = listener.getFileChangeAction();
@@ -257,6 +257,22 @@ public abstract class CloudDrive {
         } catch (Throwable th) {
           // nothing should prevent at this point
           LOG.warn("Error calling onContent action of listener on Cloud Drive '" + title() + "': "
+                       + th.getMessage(),
+                   th);
+        }
+      }
+    }
+
+    public void fireOnFileComment(CloudFile file, String commentText) {
+      for (CloudDriveListener listener : registry) {
+        try {
+          CloudDriveListener.FileChangeAction action = listener.getFileChangeAction();
+          if (action != null) {
+            // TODO
+          }
+        } catch (Throwable th) {
+          // nothing should prevent at this point
+          LOG.warn("Error calling onComment action of listener on Cloud Drive '" + title() + "': "
                        + th.getMessage(),
                    th);
         }
@@ -436,7 +452,7 @@ public abstract class CloudDrive {
    * @param async boolean, if {@code true} then the connect process will be started in another thread and
    *          method return immediately.
    * @return {@link Command} describing the connect process
-   * @see CloudDriveListener#onConnect(CloudDriveEvent)
+   * @see CloudDriveListener#onConnected(CloudDriveEvent)
    * @throws CloudDriveException
    * @throws RepositoryException
    */
