@@ -40,3 +40,5 @@ target/
 
 # Misc
 *.swp
+.groovy/
+transaction.log
