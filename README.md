@@ -119,8 +119,12 @@ Use Cloud Drive extension
 In running Platform go to Documents app, open Personal Documents folder root and click "Connect your Google Drive".
 Detailed steps described in this post [eXo Add-on in Action: Connecting your Google Drive to eXo Platform](http://blog.exoplatform.com/2013/02/28/exo-add-on-in-action-connecting-your-google-drive-to-exo-platform).
 
+Features Management
+===================
 
+Since version 1.1.0-Beta5 there is Feature API in Cloud Drive extension. It is Java and REST services that can be used to control new drive creation and automatic synchronization on per user basis. Thanks to this API, it's possible to restrict a connection to a new cloud accounts if an user has limitations in the Platform (resources quota, limited permissions etc); the same rule can be applied to a new auto-scaling that is working when an user in the drive folder in Documents.
 
+Technical details of in [Features API documentation](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/FEATURES_API.md).
 
 
 
