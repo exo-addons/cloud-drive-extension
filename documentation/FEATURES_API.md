@@ -11,7 +11,7 @@ Configuration
 =============
 
 By default all features permitted to all users. These rules implemented in default implementation of `CloudDriveFeatures`, in component `org.exoplatform.clouddrive.features.PermissiveFeatures`. This component already added to the configuration in `clouddrive.war`.
-Implement another component when need apply other rules for the extension. Reguster this new component in top extension with the component key:
+Implement another component when need apply other rules for the extension. Register this new component in top extension with the component key:
 
 ```xml
   <component>
@@ -23,7 +23,7 @@ Implement another component when need apply other rules for the extension. Regus
 Rule new drives
 ===============
 
-When an user will request a new drive creation, calling `CloudDriveService.createDrive()`, the service will call `CloudDriveFeatures.canCreateDrive()` with current JCR workspace and node path, with user id and, optionally, with `CloudProvider` of the request. If the features allows the creation, this method should return `true` result, otherwise it returns `false` or alternatively may throw `CannotCreateDriveException`. By default all drive requests are allowed.
+When an user will request a new drive creation, by calling `CloudDriveService.createDrive()`, the service will call `CloudDriveFeatures.canCreateDrive()` with current JCR workspace and node path, with user id and, optionally, with `CloudProvider` of the request. If the features allows the creation, this method should return `true` result, otherwise it returns `false` or alternatively may throw `CannotCreateDriveException`. By default all drive requests are allowed.
 
 ```java
   @Override
@@ -53,6 +53,7 @@ Automatic synchronization it is fully an UI feature, it doesn't have any special
     // TODO decide for automatic synchronization for given drive, an example logic below:
     return acmeOrganization.isPremiumUser(drive.getUser().getId());
   }
+```
  
 Auto-synchronization rule check exposed via REST service. It used by default UI implementation.
 
