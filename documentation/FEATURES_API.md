@@ -33,7 +33,7 @@ When an user will request a new drive creation, calling `CloudDriveService.creat
   }
 ```
 
-This method also used for a default UI implementation for Platform Documents. If a drive cannot be created then a request context in portal, class `CloudDriveContext`, will not be initialized with Cloud Drive settings and finally the UI script will not be able to initiate a new drive creation by the user - user operation will have no effect.
+This method also used for a default UI implementation in Platform Documents. If a drive cannot be created, then a request context in portal, class `CloudDriveContext`, will not be initialized with Cloud Drive settings and finally the UI script will not be able to initiate a new drive creation by the user - user operation will have no effect.
 To provide much clearer user experience need implement dedicated UI forms in case of limited drive creation.
 
 Drive creation rule also exposed via REST service.
