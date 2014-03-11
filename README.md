@@ -122,7 +122,7 @@ Detailed steps described in this post [eXo Add-on in Action: Connecting your Goo
 Features Management
 ===================
 
-Since version 1.1.0-Beta5 there is Feature API in Cloud Drive extension. It is Java and REST services that can be used to control new drive creation and automatic synchronization on per user basis. Thanks to this API, it's possible to restrict a connection to a new cloud accounts if an user has limitations in the Platform (resources quota, limited permissions etc); the same rule can be applied to a new auto-synchrinization that is working when an user in the drive folder in Documents.
+Since version 1.1.0-Beta5 there is Feature API in Cloud Drive extension. It is Java and REST services that can be used to control new drive creation and automatic synchronization on per user basis. Thanks to this API, it's possible to restrict a connection to a new cloud accounts if an user has limitations in the Platform (resources quota, limited permissions etc); the same rule can be applied to a new auto-synchronization that is working when an user in the drive folder in Documents.
 
 Technical details of in [Features API documentation](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/FEATURES_API.md).
 
