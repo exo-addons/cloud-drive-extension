@@ -61,7 +61,7 @@ Enable Google Drive API
 - Create an new API project
 - In the Services page, enable the Drive API
 
-![Google Drive API](https://raw.github.com/exo-addons/cloud-drive-extension/develop/readme-resources/google-drive-api.png)
+![Google Drive API](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-api.png)
 
 - In the API Access page, click on the "Create an OAuth 2.0 client ID..." button
 - Fill the form with a product name of your choice (e.g. "My Platform"), an optionnally a product logo and a home page URL
@@ -73,7 +73,7 @@ Enable Google Drive API
 - Click on "Create client ID"
 - Remember `Client ID` and `Client secret` for configuration below.
 
-![Google Drive API Access](https://raw.github.com/exo-addons/cloud-drive-extension/develop/readme-resources/google-drive-access.png)
+![Google Drive API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-access.png)
 
 Enable Box API
 --------------
