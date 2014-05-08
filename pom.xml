@@ -55,7 +55,7 @@
     <com.google.api.services.oauth2.version>v2-rev69-1.18.0-rc</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
-    <com.box.boxjavalibv2.version>2.1.3-EXO</com.box.boxjavalibv2.version>
+    <net.box.boxjavalibv2.version>3.0.5</net.box.boxjavalibv2.version>
 
     <!-- for tests -->
     <org.exoplatform.jcr-services.version>1.15.7-GA</org.exoplatform.jcr-services.version>
@@ -132,18 +132,18 @@
         <version>${com.google.api.services.drive.version}</version>
       </dependency>
       <dependency>
-	      <groupId>com.box.boxjavalibv2</groupId>
-	      <artifactId>BoxJavaLibraryV2</artifactId>
-	      <version>${com.box.boxjavalibv2.version}</version>
-	    </dependency>
-			
-			<!-- for tests -->
+        <groupId>net.box</groupId>
+        <artifactId>boxjavalibv2</artifactId>
+        <version>${net.box.boxjavalibv2.version}</version>
+      </dependency>
+
+      <!-- for tests -->
       <dependency>
         <groupId>org.exoplatform</groupId>
         <artifactId>exo-jcr-services</artifactId>
         <version>${org.exoplatform.jcr-services.version}</version>
         <type>jar</type>
-				<scope>test</scope>
+      	<scope>test</scope>
       </dependency>
       <!-- We cannot declare groovy here, it will override eXo's version -->
       <!-- dependency>

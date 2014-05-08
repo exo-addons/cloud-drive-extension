@@ -27,15 +27,15 @@
        <fileMode>0644</fileMode>
      </dependencySet>
      <dependencySet>
-			 <!-- Dependencies for deployment to Platform 4.0 instance -->
+       <!-- Dependencies for deployment to Platform 4.0 instance -->
        <outputDirectory>lib</outputDirectory>
        <useTransitiveDependencies>true</useTransitiveDependencies>
        <includes>
          <include>org.exoplatform.addons:exo-clouddrive-*:jar</include>
          <include>com.google.*:*:jar</include>
-				 <include>com.box.*:*:jar</include>
-				 <include>com.fasterxml.jackson.core:*:jar</include>
-				 <include>org.apache.httpcomponents:*:jar</include>
+         <include>net.box:*:jar</include>
+         <include>com.fasterxml.jackson.core:*:jar</include>
+         <include>org.apache.httpcomponents:*:jar</include>
        </includes>
        <scope>provided</scope>
        <fileMode>0644</fileMode>
