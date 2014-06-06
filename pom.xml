@@ -46,7 +46,7 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.0.5</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.0.6</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.18.0-rc</com.google.api.client.version>
@@ -58,7 +58,7 @@
     <net.box.boxjavalibv2.version>3.0.5</net.box.boxjavalibv2.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.15.8-GA</org.exoplatform.jcr-services.version>
+    <org.exoplatform.jcr-services.version>1.15.9-GA</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.0.8</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>0.7-groovy-2.0</spock.version>
