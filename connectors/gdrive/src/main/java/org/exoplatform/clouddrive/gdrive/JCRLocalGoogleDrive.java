@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.exoplatform.clouddrive.googledrive;
+package org.exoplatform.clouddrive.gdrive;
 
 import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.util.DateTime;
@@ -31,9 +31,9 @@ import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
-import org.exoplatform.clouddrive.googledrive.GoogleDriveAPI.ChangesIterator;
-import org.exoplatform.clouddrive.googledrive.GoogleDriveAPI.ChildIterator;
-import org.exoplatform.clouddrive.googledrive.GoogleDriveConnector.API;
+import org.exoplatform.clouddrive.gdrive.GoogleDriveAPI.ChangesIterator;
+import org.exoplatform.clouddrive.gdrive.GoogleDriveAPI.ChildIterator;
+import org.exoplatform.clouddrive.gdrive.GoogleDriveConnector.API;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;

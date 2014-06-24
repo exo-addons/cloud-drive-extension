@@ -15,7 +15,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.exoplatform.clouddrive.googledrive;
+package org.exoplatform.clouddrive.gdrive;
 
 import javax.jcr.RepositoryException;
 
