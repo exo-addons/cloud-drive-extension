@@ -59,7 +59,13 @@
     </dependency>
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
-      <artifactId>exo-clouddrive-connectors-gdrive</artifactId>
+      <artifactId>exo-clouddrive-gdrive-services</artifactId>
+      <scope>provided</scope>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-clouddrive-gdrive-webapp</artifactId>
       <scope>provided</scope>
       <type>war</type>
     </dependency>

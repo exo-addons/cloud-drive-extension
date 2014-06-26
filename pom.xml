@@ -55,7 +55,7 @@
     <com.google.api.services.oauth2.version>v2-rev69-1.18.0-rc</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
-    <net.box.boxjavalibv2.version>3.0.10</net.box.boxjavalibv2.version>
+    <net.box.boxjavalibv2.version>3.0.9</net.box.boxjavalibv2.version>
 
     <!-- for tests -->
     <org.exoplatform.jcr-services.version>1.15.9-GA</org.exoplatform.jcr-services.version>
@@ -111,7 +111,13 @@
       </dependency>
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-connectors-gdrive</artifactId>
+        <artifactId>exo-clouddrive-gdrive-services</artifactId>
+        <version>${project.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-gdrive-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
