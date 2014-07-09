@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <UITabForm>
+    <label>
+      <connectBox>Connect Box</connectBox>
+    </label>
+  </UITabForm>
+  <UIActionBar>
+    <tooltip>
+      <ConnectBox>Connect your Box</ConnectBox>
+    </tooltip>
+  </UIActionBar>
+</bundle>

@@ -36,6 +36,15 @@
        <fileMode>0644</fileMode>
      </dependencySet>
      <dependencySet>
+       <outputDirectory>webapps</outputDirectory>
+       <includes>
+         <include>org.exoplatform.addons:exo-clouddrive-box-webapp:war</include>
+       </includes>
+       <outputFileNameMapping>cloud-drive-box.war</outputFileNameMapping>
+       <scope>provided</scope>
+       <fileMode>0644</fileMode>
+     </dependencySet>
+     <dependencySet>
        <!-- Dependencies for deployment to Platform 4.0 instance -->
        <outputDirectory>lib</outputDirectory>
        <useTransitiveDependencies>true</useTransitiveDependencies>

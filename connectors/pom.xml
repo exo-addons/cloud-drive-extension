@@ -34,8 +34,8 @@
 
   <modules>
     <module>gdrive</module>
-    <!-- module>box</module>
-    <module>dropbox</module>
+    <module>box</module>
+    <!-- module>dropbox</module>
     <module>cmis</module -->
   </modules>
 </project>
