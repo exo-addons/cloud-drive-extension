@@ -118,16 +118,16 @@ There are two options for Box connector:
 
 - Need provide a partner SAML Indetity Provider ID, this ID will be used to construct SSO URL:
 
-    clouddrive.box.sso.partneridpid=YOUR_PARTNER_ID
-
+    `clouddrive.box.sso.partneridpid=YOUR_PARTNER_ID`
+    
 - Or provider ready SSO URL
 
-    clouddrive.box.sso.url=CUSTOM_SSO_URL
+    `clouddrive.box.sso.url=CUSTOM_SSO_URL`
 
-SSO URL has precendence on partner ID, it will be used to construct OAuth2 URL by appending actual authentication URL at the end. Take this in account when configuring SSO URL.
+Ready SSO URL has precedence on partner ID, if exists it will be used to construct OAuth2 URL by appending actual authentication URL at the end. Take this in account when configuring SSO URL.
 
 When provide partner ID, then Box connector will construct SSO URL in following form:
-`https://sso.services.box.net/sp/startSSO.ping?PartnerIdpId=${clouddrive.box.sso.partneridpid}&TargetResource=${OAUTH2_URL}`
+`https://sso.services.box.net/sp/startSSO.ping?PartnerIdpId=${clouddrive.box.sso.partneridpid}&TargetResource=${OAUTH2_URL}`. Where `OAUTH2_URL` an authentication URL as described in [Box documentation](https://developers.box.com/oauth/).
 
 Run Platform
 ------------
