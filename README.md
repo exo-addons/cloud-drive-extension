@@ -116,7 +116,7 @@ This will tell a drive connector to force SSO for authentication URL (to obtain 
 
 There are two options for Box connector:
 
-- Need provide a partner SAML Indetity Provider ID, this ID will be used to construct SSO URL:
+- Need provide a partner SAML Identity Provider ID, this ID will be used to construct SSO URL:
 
     `clouddrive.box.sso.partneridpid=YOUR_PARTNER_ID`
     
