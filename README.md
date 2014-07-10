@@ -103,6 +103,31 @@ The same way `clouddrive.box.client.id` and `clouddrive.box.client.secret` refer
 
 By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled SSL connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
 
+Single Sign-On support
+----------------------
+
+Single Sign-On (SSO) often used by enterprise and they may adapt SSO to access their cloud files. Cloud Drive add-on uses OAuth2 URL that cloud provider offers, it offten can be enough to leverage the SSO available for your enterprise (e.g. for Google Drive). But other cloud providers (e.g. Box) may require an another URL to force SSO for user login. To be able solve this you can force use of SSO via configuration in the add-on.
+
+To enable SSO in configuration add following parameter:
+
+    clouddrive.login.sso=true
+
+This will tell a drive connector to force SSO for authentication URL (to obtain OAuth2 tokens or for embedded file view). But a drive connector may require additional parameters to enable SSO. They are provider specific. Below specific configiration described for Box.
+
+There are two options for Box connector:
+
+- Need provide a partner SAML Indetity Provider ID, this ID will be used to construct SSO URL:
+
+    clouddrive.box.sso.partneridpid=YOUR_PARTNER_ID
+
+- Or provider ready SSO URL
+
+    clouddrive.box.sso.url=CUSTOM_SSO_URL
+
+SSO URL has precendence on partner ID, it will be used to construct OAuth2 URL by appending actual authentication URL at the end. Take this in account when configuring SSO URL.
+
+When provide partner ID, then Box connector will construct SSO URL in following form:
+`https://sso.services.box.net/sp/startSSO.ping?PartnerIdpId=${clouddrive.box.sso.partneridpid}&TargetResource=${OAUTH2_URL}`
 
 Run Platform
 ------------
