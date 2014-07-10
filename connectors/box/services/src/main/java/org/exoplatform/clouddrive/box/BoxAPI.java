@@ -409,8 +409,8 @@ public class BoxAPI {
       this.maxRetries = maxRetries;
       this.retryTimeout = retryTimeout;
 
-      // link will be outdated in 80% of retry timeout
-      this.outdatedTimeout = retryTimeout - Math.round(retryTimeout * 0.20f);
+      // link will be outdated in 95% of retry timeout
+      this.outdatedTimeout = retryTimeout - Math.round(retryTimeout * 0.05f);
       this.created = System.currentTimeMillis();
     }
 
@@ -804,7 +804,7 @@ public class BoxAPI {
         }
         long ttl;
         try {
-          ttl = ttlObj != null ? Long.parseLong(ttlObj.toString()) : 0;
+          ttl = ttlObj != null ? Long.parseLong(ttlObj.toString()) : 10;
         } catch (NumberFormatException e) {
           LOG.warn("Error parsing ttl value in Events response [" + ttlObj + "]: " + e);
           ttl = 10; // 10? What is it ttl? The number from Box docs.
@@ -1574,7 +1574,7 @@ public class BoxAPI {
       Matcher m = BOX_URL_MAKE_CUSTOM_PATTERN.matcher(fileLink);
       if (m.matches()) {
         // we need add custom domain to the link host name
-        return m.replaceFirst("$1://" + customDomain + "$2");
+        return m.replaceFirst("$1://" + customDomain + ".$2");
       } // else, link already starts with custom domain (actual for Enterprise users)
     } // else, custom domain not available
 

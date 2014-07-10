@@ -13,7 +13,7 @@
 		var renewState = function(process, drive) {
 			var newState = cloudDrive.getState(drive);
 			newState.done(function(res) {
-				utils.log("New changes link: " + res.url);
+				utils.log(">>> new changes link: " + res.url);
 				drive.state = res;
 				// this will cause sync also
 				process.resolve();
@@ -61,11 +61,11 @@
 							clearTimeout(linkLive);
 							utils.log(">>> changes fail " + JSON.stringify(response) + " " + status + " " + err);
 							if (err != "abort") {// if not aborted by linkLive timer or browser
-								if (typeof err === "string" && err.indexOf("max_retries") >= 0) {
+								if (( typeof err === "string" && err.indexOf("max_retries") >= 0) || (response && response.error.indexOf("max_retries") >= 0)) {
 									// need reconnect
 									renewState(process, drive);
 								} else {
-									process.reject("Long-polling changes request failed. " + err + " (" + status + ")");
+									process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
 								}
 							}
 						});

@@ -1441,6 +1441,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
+                                   editLink(link),
                                    embedLink,
                                    downloadLink,
                                    type,
@@ -1497,4 +1498,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     return link;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected String editLink(String link) {
+    // Box does not support embedded editor (due to SAMEORIGIN cross-domain policy)
+    return null;
+  }
 }
