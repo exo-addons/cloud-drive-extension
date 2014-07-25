@@ -281,6 +281,113 @@ Cloud Drive offers following kinds of RESTful web-services:
 
 A connector may need, but not required, to provide additional services used by its UI or other clients or apps. It is recommended to keep all related service endpoints with a path `/clouddrive/drive/PROVIDER_ID` (e.g. /clouddrive/drive/cmis). This path may be used in future for connectors/features discovery.
 
+Sample RESTful service created from Template project for "mycloud" provider:
+
+```java
+package org.exoplatform.clouddrive.mycloud.rest;
+....
+
+/**
+ * Sample RESTful service to provide some specific features of "mycloud" connector.
+ */
+@Path("/clouddrive/drive/mycloud")
+@Produces(MediaType.APPLICATION_JSON)
+public class SampleService implements ResourceContainer {
+
+  protected static final Log             LOG = ExoLogger.getLogger(CommentsService.class);
+
+  protected final CloudDriveFeatures     features;
+
+  protected final CloudDriveService      cloudDrives;
+
+  protected final RepositoryService      jcrService;
+
+  protected final SessionProviderService sessionProviders;
+
+  /**
+   * Constructor.
+   * 
+   * @param cloudDrives
+   * @param features
+   * @param jcrService
+   * @param sessionProviders
+   */
+  public SampleService(CloudDriveService cloudDrives,
+                         CloudDriveFeatures features,
+                         RepositoryService jcrService,
+                         SessionProviderService sessionProviders) {
+    this.cloudDrives = cloudDrives;
+    this.features = features;
+    this.jcrService = jcrService;
+    this.sessionProviders = sessionProviders;
+  }
+
+  /**
+   * Return comments on a file existing on cloud side.
+   * 
+   * @param uriInfo
+   * @param workspace
+   * @param path
+   * @param providerId
+   * @return
+   */
+  @GET
+  @Path("/comments/")
+  @RolesAllowed("users")
+  public Response getFileComments(@Context UriInfo uriInfo,
+                                  @QueryParam("workspace") String workspace,
+                                  @QueryParam("path") String path) {
+    if (workspace != null) {
+      if (path != null) {
+        // TODO Get a cloud file and return collection of comments on the file.
+        try {
+          CloudDrive local = cloudDrives.findDrive(workspace, path);
+          if (local != null) {
+            List<Object> comments = new ArrayList<Object>();
+            try {
+              CloudFile file = local.getFile(path);
+              // TODO fill collection of comments on the file.
+              comments.add(new Object());
+            } catch (NotCloudFileException e) {
+              // we assume: not yet uploaded file has no remote comments
+            }
+            return Response.ok().entity(comments).build();
+          }
+          return Response.status(Status.NO_CONTENT).build();
+        } catch (LoginException e) {
+          LOG.warn("Error login to read drive file comments " + workspace + ":" + path + ": " + e.getMessage());
+          return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
+        } catch (CloudDriveException e) {
+          LOG.warn("Error reading file comments " + workspace + ":" + path, e);
+          return Response.status(Status.BAD_REQUEST).entity("Error reading file. " + e.getMessage()).build();
+        } catch (RepositoryException e) {
+          LOG.error("Error reading file comments " + workspace + ":" + path, e);
+          return Response.status(Status.INTERNAL_SERVER_ERROR)
+                         .entity("Error reading file comments: storage error.")
+                         .build();
+        } catch (Throwable e) {
+          LOG.error("Error reading file comments " + workspace + ":" + path, e);
+          return Response.status(Status.INTERNAL_SERVER_ERROR)
+                         .entity("Error reading file comments: runtime error.")
+                         .build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST).entity("Null path.").build();
+      }
+    } else {
+      return Response.status(Status.BAD_REQUEST).entity("Null workspace.").build();
+    }
+  }
+}
+```
+
+And register this service in eXo container:
+```xml
+  <component>
+    <type>org.exoplatform.clouddrive.mycloud.rest.SampleService</type>
+  </component>
+```
+
 UI extensions
 =============
 
@@ -288,9 +395,69 @@ Cloud Drive provides integration with Documents app via [UI extension](http://do
 
 Cloud Drive has two kinds of menu actions: a common dialog where user can chose which provider to connect and menu actions dedicated to some connector. The last, dedicated actions, is optional and it's up to a connector to provider them or not. Indeed it's simply to provide such support as need only extend a Java class `BaseConnectActionComponent` and use provider ID in it: in internal method and for the class name. 
 
+A sample UI extension (from Box connector):
+```java
+@ComponentConfig(events = { @EventConfig(listeners = ConnectBoxActionComponent.ConnectBoxActionListener.class) })
+public class ConnectBoxActionComponent extends BaseConnectActionComponent {
+
+  /**
+   * Box.com id from configuration - box.
+   * */
+  protected static final String PROVIDER_ID = "box";
+
+  public static class ConnectBoxActionListener extends UIActionBarActionListener<ConnectBoxActionComponent> {
+
+    public void processEvent(Event<ConnectBoxActionComponent> event) throws Exception {
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected String getProviderId() {
+    return PROVIDER_ID; // return actual provider ID
+  }
+}
+```
+
 eXo ECMS uses menu action names and respectively related internationalization resources based on action class name. An example: for action class `ConnectBoxActionComponent`, configured as UI extension with name `ConnectBox`, the action name in resource is "ConnectBox" and name for Content administration action is "connectBox".
 
-Cloud Drive UI uses `CloudDriveContext` helper to initialize its UI components and Cloud Drive Javascript API. This helper adds Javascript code to initialize the client and setups available providers on the Documents app pages (via RequireJS support, see also below). When adding a new UI component or action extend `BaseConnectActionComponent` and implement `getProviderId()` method, then this component will initialize context transparently. If not possible to extend, invoke `CloudDriveContext.init(portalRequestContext, workspace, nodePath)` on render phase (like in `renderEventURL()` method) of your component. If given workspace and node path belongs to some cloud drive, then the context will be initialized as described above.
+```xml
+  <external-component-plugins>
+    <target-component>org.exoplatform.webui.ext.UIExtensionManager</target-component>
+    <component-plugin>
+      <name>Add CloudDrive Actions</name>
+      <set-method>registerUIExtensionPlugin</set-method>
+      <type>org.exoplatform.webui.ext.UIExtensionPlugin</type>
+      <init-params>
+        <object-param>
+          <name>ConnectBox</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.UIActionBar</string>
+            </field>
+            <field name="name">
+              <string>ConnectBox</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.box.ecms.ConnectBoxActionComponent</string>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+      </init-params>
+    </component-plugin>
+  </external-component-plugins>
+```
+
+Cloud Drive UI uses `CloudDriveContext` helper to initialize its UI components and Cloud Drive Javascript API. This helper adds Javascript code to initialize the client and setups available providers on the Documents app pages (via RequireJS support, see also below). When adding a new UI component or action, extend `BaseConnectActionComponent` and implement `getProviderId()` method, then this component will initialize context transparently. If not possible to extend, invoke `CloudDriveContext.init(portalRequestContext, workspace, nodePath)` on render phase (like in `renderEventURL()` method) of your component. If given workspace and node path belongs to some cloud drive, then the context will be initialized as described above.
 
 Javascript API
 ==============
@@ -305,6 +472,76 @@ Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. 
 
 There are also `cloudDriveUtils` module which offers cookies management, CSS loading and unified logger. Refer to source code of modules for more information.
 
+It is an example how a connector module can looks (simplified Box connector):
+```javascript
+/**
+ * Box support for eXo Cloud Drive.
+ */
+(function($, cloudDrive, utils) {
+  /**
+	 * Box connector class.
+	 */
+	function Box() {
+		// Provider Id for Box
+		var PROVIDER_ID = "box";
+
+    /**
+     * Renew drive state object from the server.
+     */
+		var renewState = function(process, drive) {
+		  var newState = cloudDrive.getState(drive);
+			newState.done(function(res) {
+				drive.state = res;
+				process.resolve(); // this will cause drive synchronization also
+			});
+			newState.fail(function(response, status, err) {
+				process.reject("Error getting drive state. " + err + " (" + status + ")");
+			});
+			return newState;
+    }
+    
+    /**
+		 * Check if given Box drive has remote changes. Return jQuery Promise object that will be resolved when
+		 * some change will appear, or rejected on error.  
+		 * It is a method that Cloud Drive core client will look for when loading the connector module.
+		 */
+		this.onChange = function(drive) {
+			var process = $.Deferred();
+			if (drive) {
+				if (drive.state) {
+				  var changes = cloudDrive.ajaxGet(drive.state.url);
+					changes.done(function(info, status) {
+					  if (info.message) {
+							if (info.message == "new_change") {
+								process.resolve(); // this will cause drive synchronization
+							} else if (info.message == "reconnect") {
+								renewState(process, drive); // reconnect with current state URL
+							}
+						}
+					});
+					changes.fail(function(response, status, err) {
+				    if ((typeof err === "string" && err.indexOf("max_retries") >= 0)
+				        || (response && response.error.indexOf("max_retries") >= 0)) {
+					    renewState(process, drive); // need get new state URL and reconnect
+				    } else {
+					    process.reject("Long-polling changes request failed on " + drive.path + ". " + err + " (" + status + ") ");
+				    }
+					});	
+        } else {
+					process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
+				}
+			} else {
+				process.reject("Null drive in onChange()");
+			}
+			return process.promise();
+		};
+	}
+
+	return new Box(); // return connector from the module
+})($, cloudDrive, cloudDriveUtils);
+
+```
+
 Drive state monitoring
 ----------------------
 
@@ -312,7 +549,7 @@ It's possible to manage how the Cloud Drive client will invoke drive update (syn
 
 If connector provides a Javascript module and Cloud Drive client can load it, it will check if returned module has a method `onChange()` and if it does, then object returned by this method will be used as an initiator for drive synchronization. If method doesn't exists then default behaviour will be used. 
 
-Cloud Drive client expects that connector's `onChange()` method returns [jQuery Promise](http://api.jquery.com/deferred.promise/) and then it uses the promise to initiate synchronization process. When the promise will be resolved by the connector (its `.resolve()` invoked), it will mean the drive has new remote changes and client will start synchronization and then refresh the UI. If promise rejected (`.reject(error)` invoked) then automatic synchronization will be canceled and a new synchronization will be attempted when an user perform an operation on the Documents page (navigate to other file or folder, use Cloud Drive menu). Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in the drive.
+Cloud Drive client expects that connector's `onChange()` method returns [jQuery Promise](http://api.jquery.com/deferred.promise/) and then it uses the promise to initiate synchronization process. This logic shown in the connector module code above. When the promise will be resolved by the connector (its `.resolve()` invoked), it will mean the drive has new remote changes and client will start synchronization and then refresh the UI. If promise rejected (`.reject(error)` invoked) then automatic synchronization will be canceled and a new synchronization will be attempted when an user perform an operation on the Documents page (navigate to other file or folder, use Cloud Drive menu). Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in the drive.
 
 Deploy to eXo Platform
 ======================
