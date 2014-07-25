@@ -21,7 +21,7 @@ To bootstrat the development there is a [_template_ connector](https://raw.githu
 Architecture
 ============
 
-Being a portal extension, a connector of Cloud Drive it is a plugin of the add-on core component `CloudDriveService`. Plugin should be configured in the connector extension and implement `CloudDriveConnector` interface. It is a programmatical entry point for each connector. Static resources and configurations will be loaded by portal extension mechanism, the single thing what required to get them accessible it's follow the conventions of the portal and this Connector API. To make the plugin to work need implement major parts of the Java API and provide required configuration.
+Being a portal extension, the Cloud Drive connector it is a plugin of the add-on's core component `CloudDriveService`. Plugin should be configured in the connector extension and implement `CloudDriveConnector` interface. It is a programmatical entry point for each connector. Static resources and configurations will be loaded by portal extension mechanism, the single thing that required to make them accessible it's follow the conventions of the portal and this Connector API. To make the plugin to work need implement major parts of the Java API and provide required configuration.
 
 Below a diagram of Cloud Drive architecture. Connector API marked as red (major parts) and blue (optional parts). Major parts should be implemented by any connector. Optional, at the other hand, may be implemented for additional features like automatic synchronization, UI or other client customization.
 
@@ -43,9 +43,9 @@ Connectors are pluggable and identified by provider ID. This ID used in file, mo
 **Artefact names**
 
 Cloud Drive connector consists of services JAR and web app WAR arteracts. There is not strict requirement for JCR file name, but WAR's `display-name` should follow this convention: 
-* service JAR name: exo-clouddrive-PROVIDER\_ID\_-services-VERSION.jar,
-* web app WAR name: cloud-drive-PROVIDER\_ID\_.war 
-* WAR's `display-name`: cloud-drive-PROVIDER\_ID\_ 
+* service JAR name: exo-clouddrive-PROVIDER\_ID-services-VERSION.jar,
+* web app WAR name: cloud-drive-PROVIDER\_ID.war 
+* WAR's `display-name`: cloud-drive-PROVIDER\_ID 
 
 **JCR namespace**
 
@@ -109,8 +109,8 @@ Cloud Drive connector should be a portal extension that simply can be installed 
 All required configurations and resources should be packaged in the connector extension files. Connector dependencies should be outside the WAR file and deployed directly to _libraries_ folder of the Platform server (this already will be done by installation via eXo Add-ons Manager or extension installer script).
 
 Cloud Drive connector consists of following arteracts: 
-* service JAR (exo-clouddrive-PROVIDER\_ID\_-services-VERSION.jar) with the extension configuration, Java API components implementation and related resources (internationalization bundles etc.)
-* web app WAR (cloud-drive-PROVIDER\_ID\_.war) with connector components configuration and required web resources.
+* service JAR (exo-clouddrive-PROVIDER\_ID-services-VERSION.jar) with the extension configuration, Java API components implementation and related resources (internationalization bundles etc.)
+* web app WAR (cloud-drive-PROVIDER\_ID.war) with connector components configuration and required web resources.
 
 Configuration
 -------------
@@ -312,14 +312,14 @@ It's possible to manage how the Cloud Drive client will invoke drive update (syn
 
 If connector provides a Javascript module and Cloud Drive client can load it, it will check if returned module has a method `onChange()` and if it does, then object returned by this method will be used as an initiator for drive synchronization. If method doesn't exists then default behaviour will be used. 
 
-Cloud Drive client expects that connector's `onChange()` method returns [jQuery Promise](http://api.jquery.com/deferred.promise/) and then it uses the promise to initiate synchronization process. When the promise will be resolved (its `.resolve()` invoked), it will mean the drive has new remote changes and client will invoke the synchronization web-service and then refresh the UI. If promise rejected (`.reject(error)` invoked) then the synchronization will be canceled, and a new synchronization will be attempted when an user perform an operation on the Documents page (navigate to other file or folder, use Cloud Drive menu). Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in the drive.
+Cloud Drive client expects that connector's `onChange()` method returns [jQuery Promise](http://api.jquery.com/deferred.promise/) and then it uses the promise to initiate synchronization process. When the promise will be resolved by the connector (its `.resolve()` invoked), it will mean the drive has new remote changes and client will start synchronization and then refresh the UI. If promise rejected (`.reject(error)` invoked) then automatic synchronization will be canceled and a new synchronization will be attempted when an user perform an operation on the Documents page (navigate to other file or folder, use Cloud Drive menu). Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in the drive.
 
 Deploy to eXo Platform
 ======================
 
 To be successfully deployed to eXo Platform, Cloud Drive connector should be packaged as a [portal extension](http://docs.exoplatform.com/PLF40/PLFDevGuide.eXoPlatformExtensions.html), a zip archive containing following files:
-* service JAR name: exo-clouddrive-PROVIDER\_ID\_-services-VERSION.jar,
-* web app WAR name: cloud-drive-PROVIDER\_ID\_.war 
+* service JAR name: exo-clouddrive-PROVIDER\_ID-services-VERSION.jar,
+* web app WAR name: cloud-drive-PROVIDER\_ID.war 
 Where PROVIDER\_ID is for actual provider ID and VERSION for the connector version.
 
 Use eXo Platform [Add-ons Manager](https://github.com/exoplatform/addons-manager) or older Extensions manager script to install a connector. Changes of _configuration.properties_ should be performed manually by a person who administrate the server.
