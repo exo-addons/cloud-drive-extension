@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- Replace PROVIDER_ID and "Template" part in keys with actual value -->
+  
+  <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
+  <UITabForm>
+    <label>
+      <connectTemplate>Connect PROVIDER_ID</connectTemplate>
+    </label>
+  </UITabForm>
+  <!-- For menu caption in Action Bar -->
+  <UIActionBar>
+    <tooltip>
+      <ConnectTemplate>Connect your PROVIDER_ID</ConnectTemplate>
+    </tooltip>
+  </UIActionBar>
+</bundle>

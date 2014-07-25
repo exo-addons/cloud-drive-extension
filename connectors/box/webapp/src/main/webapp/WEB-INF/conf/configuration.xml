@@ -58,6 +58,7 @@
           <property name="connector-schema" value="${clouddrive.service.schema:http}" />
           <property name="login-sso" value="${clouddrive.login.sso:false}" />
           <property name="box-sso-partneridpid" value="${clouddrive.box.sso.partneridpid}" />
+          <property name="box-sso-url" value="${clouddrive.box.sso.url:}" />
         </properties-param>
       </init-params>
     </component-plugin>
@@ -75,13 +76,13 @@
       <type>org.exoplatform.webui.ext.UIExtensionPlugin</type>
       <init-params>
         <object-param>
-          <name>ConnectGoogleDrive</name>
+          <name>ConnectBox</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
             <field name="type">
               <string>org.exoplatform.ecm.dms.UIActionBar</string>
             </field>
             <field name="name">
-              <string>ConnectGoogleDrive</string>
+              <string>ConnectBox</string>
             </field>
             <field name="component">
               <string>org.exoplatform.clouddrive.box.ecms.ConnectBoxActionComponent</string>

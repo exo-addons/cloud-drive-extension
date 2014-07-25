@@ -101,7 +101,9 @@ The `clouddrive.google.client.id` parameter is the `Client ID` of the service ac
 The `clouddrive.google.client.secret` parameter is `Client Secret` of the service account (available in your Google console, see above).
 The same way `clouddrive.box.client.id` and `clouddrive.box.client.secret` refer to Box's `client_id` and `client_secret`.
 
-By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled SSL connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
+By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled HTTPS connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
+
+For more details check [configuration section](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/README.md) on connectors page. 
 
 Single Sign-On support
 ----------------------

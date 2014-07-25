@@ -1,0 +1,95 @@
+/*
+ * Replace PROVIDER_ID and "ConnectTemplate" word with actual values.
+ *
+ * Below CSS classes refer not existing images from /icons subfolder. Place such graphics there and 
+ * correct styles' positioning and scaling (or remove it) for them.
+ */
+
+/*
+ * Icon for dedicated UI action "ConnectTemplate"
+ */
+.uiIconEcmsConnectTemplate {
+	background: url('icons/logo-gray-16x16.png') no-repeat scroll left center transparent !important;
+	height: 16px !important;
+	width: 16px !important;
+}
+
+/*
+ * Icon of a provider in connect dialog (where all available connectors visible)
+ */
+.uiIconEcmsConnectDialog-PROVIDER_ID {
+	background: url('icons/logo-gray-24x24.png') no-repeat scroll left center transparent !important;
+	height: 32px !important;
+	width: 32px !important;
+}
+
+/*
+ * File icon in file view.
+ */
+.uiIcon16x16CloudFile-PROVIDER_ID {
+	background: url("icons/logo-gray-16x16.png") no-repeat left center transparent !important;
+}
+
+/*
+ * Drive icon in side-bar tree.
+ */
+.uiIcon16x16CloudDrive-PROVIDER_ID {
+	left: 2px;
+	top: 4px;
+	-webkit-transform: scale(0.36);
+	-moz-transform: scale(0.36);
+	-o-transform: scale(0.36);
+	-ms-transform: scale(0.36);
+	transform: scale(0.36);
+	background: url("icons/logo-gray-16x16.png") no-repeat center center transparent !important;
+}
+
+/*
+ * Drive icon in Admin/List view.
+ */
+.uiIcon24x24CloudDrive-PROVIDER_ID {
+	left: -1px;
+	top: -3px;
+	-webkit-transform: scale(0.7);
+	-moz-transform: scale(0.7);
+	-o-transform: scale(0.7);
+	-ms-transform: scale(0.7);
+	transform: scale(0.7);
+	background: url("icons/logo-gray-16x16.png") no-repeat center center transparent !important;
+}
+
+/*
+ * Drive icon in Icon view.
+ */
+.uiIcon64x64CloudDrive-PROVIDER_ID {
+	left: 1px;
+	top: -20px;
+	-webkit-transform: scale(0.7);
+	-moz-transform: scale(0.7);
+	-o-transform: scale(0.7);
+	-ms-transform: scale(0.7);
+	transform: scale(0.7);
+	background: url("icons/logo-gray-32x32.png") no-repeat center center transparent !important;
+}
+
+/*************************** NodeType Icons for PROVIDER_ID documents ***********************/
+
+/*
+ * Below an example of how file mimetypes can be mapped to CSS classes of eXo ECMS.
+ * There are three sizes for an imagined type: application/x-exo.PROVIDER_ID.doc. 
+ * The ECMS will generate such class names and we provide a style for each of them to add specific icons to the 
+ * files in side-bar tree, Admin/List and Icon views. Place images in the /icons folder for actual
+ * graphics.
+ */
+
+.uiIcon16x16applicationx-exoPROVIDER_IDdoc {
+	background: url('icons/PROVIDER_ID-doc-16x16.png') center center no-repeat !important;
+}
+
+.uiIcon24x24applicationx-exoPROVIDER_IDdoc {
+	background: url('icons/PROVIDER_ID-doc-24x24.png') center center no-repeat !important;
+}
+
+.uiIcon64x64applicationx-exoPROVIDER_IDdoc {
+	background: url('icons/PROVIDER_ID-doc-64x64.png') center center no-repeat !important;
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 eXo Platform SAS.
+ * Copyright (C) 2014 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -16,7 +16,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.gdrive.ecms;
+package org.exoplatform.clouddrive.PROVIDER_ID.ecms;
 
 import org.exoplatform.clouddrive.ecms.BaseConnectActionComponent;
 import org.exoplatform.ecm.webui.component.explorer.control.listener.UIActionBarActionListener;
@@ -24,21 +24,25 @@ import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.config.annotation.EventConfig;
 import org.exoplatform.webui.event.Event;
 
+/**
+ * Template UI component for a menu action dedicated to a single provider. Its UI configuration will refer
+ * the action by "ConnectTemplate" key (see in webapp config), rename it for an actual name (e.g. based on provider ID).
+ */
 @ComponentConfig(
                  events = { @EventConfig(
-                                         listeners = ConnectGoogleDriveActionComponent.ConnectGoogleDriveActionListener.class) })
-public class ConnectGoogleDriveActionComponent extends BaseConnectActionComponent {
+                                         listeners = ConnectTemplateActionComponent.ConnectPROVIDER_IDActionListener.class) })
+public class ConnectTemplateActionComponent extends BaseConnectActionComponent {
 
   /**
-   * Google Drive id from configuration - gdrive.
+   * TemplateProvider ID from configuration.
    * */
-  protected static final String PROVIDER_ID = "gdrive";
+  protected static final String PROVIDER_ID = "YOUR PROVIDER_ID";
 
-  public static class ConnectGoogleDriveActionListener
+  public static class ConnectPROVIDER_IDActionListener
                                                       extends
-                                                      UIActionBarActionListener<ConnectGoogleDriveActionComponent> {
+                                                      UIActionBarActionListener<ConnectTemplateActionComponent> {
 
-    public void processEvent(Event<ConnectGoogleDriveActionComponent> event) throws Exception {
+    public void processEvent(Event<ConnectTemplateActionComponent> event) throws Exception {
     }
   }
 

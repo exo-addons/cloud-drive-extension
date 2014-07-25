@@ -1159,7 +1159,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * @param apiBuilder {@link API} API builder
    * @param provider {@link BoxProvider}
    * @param driveNode {@link Node} root of the drive
-   * @return {@link GoogleUser}
+   * @return {@link BoxUser}
    * @throws RepositoryException
    * @throws BoxException
    * @throws CloudDriveException
