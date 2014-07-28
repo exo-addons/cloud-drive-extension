@@ -26,6 +26,10 @@
 
   <!-- TODO Replace PROVIDER_* and "ConnectTemplate" with actual values -->
 
+  <component>
+    <type>org.exoplatform.clouddrive.PROVIDER_ID.rest.SampleService</type>
+  </component>
+
   <!-- PROVIDER_ID namespace for use within JCR -->
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>

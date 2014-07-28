@@ -16,7 +16,7 @@ Connector it is a portal extension that depends on Cloud Drive extension. As any
 
 Cloud Drive integrated with eXo Documents (eXo ECMS project) to make possible most of operations on remote cloud files as on local documents. Cloud Drive itself introduces an abstraction to represent documents from different souces in cloud in unificated form inside eXo. Thus files from Google Drive, Box.com, or any other connector are accessible through the single API which includes server-side Java API, RESTful services and client-side styles and Javascript. All this has a name - _Connector API_. When creating a new connector need implement this API following the conventions and then deploy the connector to the Platform. 
 
-To bootstrat the development there is a [_template_ connector](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/template): it is an empty connector with structure that already follow the conventions and has API stubs to implement for actual cloud provider.
+To bootstrat the development there is a [_template_ connector](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors/template): it is an empty connector with structure that already follow the conventions and has API stubs to implement for actual cloud provider.
 
 Architecture
 ============
@@ -281,6 +281,8 @@ Cloud Drive offers following kinds of RESTful web-services:
 
 A connector may need, but not required, to provide additional services used by its UI or other clients or apps. It is recommended to keep all related service endpoints with a path `/clouddrive/drive/PROVIDER_ID` (e.g. /clouddrive/drive/cmis). This path may be used in future for connectors/features discovery.
 
+Template project contains `SampleService` class which implements an abstract reading of file comments by a client script (`readComments()` in `cloudDrive-PROVIDER_ID.js` script).
+
 UI extensions
 =============
 
@@ -324,7 +326,7 @@ Where PROVIDER\_ID is for actual provider ID and VERSION for the connector versi
 
 Use eXo Platform [Add-ons Manager](https://github.com/exoplatform/addons-manager) or older Extensions manager script to install a connector. Changes of _configuration.properties_ should be performed manually by a person who administrate the server.
 
-A [_template_ connector](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/template) project already contains Maven modules with Cloud Drive dependencies and packaging. Copy template sub-folder to your new location and replace `PROVIDER_ID`, `PROVIDER_NAME` and `ConnectTemplate` with actual values in source files and configuration, rename respectively class names and variables: e.g. `cmis`, `CMIS` and `ConnectCMIS`. Fill the sources with a logic to work with your connector cloud services. Then build the connector and use its packaging artifact as a connector extension.
+A [_template_ connector](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors/template) project already contains Maven modules with Cloud Drive dependencies and packaging. Copy template sub-folder to your new location and replace `PROVIDER_ID`, `PROVIDER_NAME` and `ConnectTemplate` with actual values in source files and configuration, rename respectively class names and variables: e.g. `cmis`, `CMIS` and `ConnectCMIS`. Fill the sources with a logic to work with your connector cloud services. Then build the connector and use its packaging artifact as a connector extension.
 
 
 

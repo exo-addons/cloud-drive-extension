@@ -1,10 +1,9 @@
-eXo Cloud Drive extension
-=========================
+eXo Cloud Drive add-on
+======================
 
-eXo Platform portal extension providing integration with cloud drives such as Google Drive.
-Users must have a valid Google account to connect Google Drive.
+eXo Cloud Drive it is a portal extension to eXo Platform which is providing integration with remote cloud documents such as Google Drive or Box. Users must have a valid cloud account to connect his documents.
 
-Thanks to this extension it's possible connect cloud drives as folders in Documents app and then explose user files using features of WCM Document Explorer.
+Thanks to this extension it's possible connect cloud drives as folders in Documents app and then use user files using features of WCM Document Explorer.
 
 Currently supported cloud drives:
 * Google Drive
@@ -153,6 +152,12 @@ Since version 1.1.0-Beta5 there is Feature API in Cloud Drive extension. It is J
 
 Technical details in [Features API documentation](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/FEATURES_API.md).
 
+Create new connectors
+=====================
+
+Cloud Drive add-on is extensible and it's possible to create new connectors to support more cloud providers. Since version 1.1.0-RC2 internal architecture reorganized to offer better separation based on conventions and allow client modules in Javascript. 
+
+Follow [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md) documentation to understood conventions and build successfull connector.
 
 
 

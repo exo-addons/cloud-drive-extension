@@ -80,7 +80,7 @@
 					process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
 				}
 			} else {
-				process.reject("Null drive in hasChanges");
+				process.reject("Null drive in onChange()");
 			}
 
 			return process.promise();

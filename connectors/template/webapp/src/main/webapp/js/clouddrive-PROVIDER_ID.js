@@ -15,6 +15,34 @@
 		// Provider Id for Template provider
 		var PROVIDER_ID = "YOUR PROVIDER_ID";
 
+		var prefixUrl = utils.pageBaseUrl(location);
+
+		/**
+		 * Read comments of a file and resolve given jQuery Promise process with them.
+		 */
+		var readComments = function(process, workspace, path) {
+			var comments = cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/PROVIDER_ID", {
+			  "workspace" : workspace,
+			  "path" : path
+			});
+			comments.done(function(commentsList, status) {
+				if (status == 204) {
+					// TODO NO CONTENT means no drive found or drive not connected
+					// Reject promise with null data, this should be handled accordingly by the Deferred code.
+					process.reject();
+				} else {
+					// TODO resolve with commentsList
+					process.resolve(commentsList);
+				}
+			});
+			comments.fail(function(response, status, err) {
+				process.reject("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+			});
+		};
+
+		/**
+		 * Renew drive state object.
+		 */
 		var renewState = function(process, drive) {
 			var newState = cloudDrive.getState(drive);
 			newState.done(function(res) {
@@ -75,7 +103,8 @@
 								}
 							}
 						});
-						changes.fail(function(response, status, err) {
+						changes
+						    .fail(function(response, status, err) {
 							    clearTimeout(linkLive);
 							    // if not aborted by linkLive timer or browser
 							    if (err != "abort") {
@@ -99,7 +128,7 @@
 					process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
 				}
 			} else {
-				process.reject("Null drive in hasChanges");
+				process.reject("Null drive in onChange()");
 			}
 
 			return process.promise();
