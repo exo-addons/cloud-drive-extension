@@ -4,7 +4,7 @@ eXo Cloud Drive Connector API
 Cloud Drive add-on supports various cloud providers via extensible Connector API. A connector it is a complex of Java interfaces implemented by the connector code and client scripts, pages, styles, other files connected together by conventions. Connector API allows develop connectors to new cloud providers withour changing the core code.
 Cloud Drive add-on it is a [portal extension](http://docs.exoplatform.com/PLF40/PLFDevGuide.eXoPlatformExtensions.html) to Platform. Each _connector it is also a portal extension_ that depends on the core add-on extension.
 
-For existing embedded connectors check [connectors page](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/README.md).
+For existing embedded connectors check [connectors page](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors).
 Below it is described how to create a new connector using Connector API.
 
 Getting started
