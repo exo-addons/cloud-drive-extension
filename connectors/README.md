@@ -96,6 +96,10 @@ Third-party connectors, indeed, need a dedicated deployment to become available 
 
 If need disable one of embedded connectors, need remove its extension files from the Platform server. But take in account that connectors installed as part of Cloud Drive add-on, they are not separate portal extensions and cannot be removed by Platform Add-ons Manager (or it's predecessor Extension manager script). Connector files should be removed manually from server's folders (_lib_, _webapp_ etc.).
 
+Template connector
+==================
+
+It is not a connector that can be used in production, it is a template for development of new connectors. See [Connector API documentation](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md) for further details.
 
 
 
