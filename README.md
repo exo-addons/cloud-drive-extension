@@ -3,7 +3,7 @@ eXo Cloud Drive add-on
 
 eXo Cloud Drive it is a portal extension to eXo Platform which is providing integration with remote cloud documents such as Google Drive or Box. Users must have a valid cloud account to connect his documents.
 
-Thanks to this extension it's possible connect cloud drives as folders in Documents app and then use user files using features of WCM Document Explorer.
+Thanks to this extension it's possible connect cloud drives as folders in eXo Documents and then access user files using features of ECMS Document Explorer.
 
 Currently supported cloud drives:
 * Google Drive

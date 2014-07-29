@@ -1,7 +1,7 @@
 eXo Cloud Drive Connector API
 =============================
 
-Cloud Drive add-on supports various cloud providers via extensible Connector API. A connector it is a complex of Java interfaces implemented by the connector code and client scripts, pages, styles, other files connected together by conventions. Connector API allows develop connectors to new cloud providers withour changing the core code.
+Cloud Drive add-on supports various cloud providers via extensible Connector API. A connector it is a complex of Java interfaces implemented by the connector code and client scripts, pages, styles, other files connected together by conventions. Connector API allows develop connectors to new cloud providers without changing the core code.
 Cloud Drive add-on it is a [portal extension](http://docs.exoplatform.com/PLF40/PLFDevGuide.eXoPlatformExtensions.html) to Platform. Each _connector it is also a portal extension_ that depends on the core add-on extension.
 
 For existing embedded connectors check [connectors page](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors).
@@ -21,7 +21,7 @@ To bootstrat the development there is a [_template_ connector](https://github.co
 Architecture
 ============
 
-Being a portal extension, the Cloud Drive connector it is a plugin of the add-on's core component `CloudDriveService`. Plugin should be configured in the connector extension and implement `CloudDriveConnector` interface. It is a programmatical entry point for each connector. Static resources and configurations will be loaded by portal extension mechanism, the single thing that required to make them accessible it's follow the conventions of the portal and this Connector API. To make the plugin to work need implement major parts of the Java API and provide required configuration.
+Being a portal extension, the Cloud Drive connector it is a plugin of the add-on's core component `CloudDriveService`. Plugin should be configured in the connector extension and implement `CloudDriveConnector` interface. It is a programmatic entry point for each connector. Static resources and configurations will be loaded by portal extension mechanism, the single thing that required to make them accessible it's follow the conventions of the portal and this Connector API. To make the plugin to work need implement major parts of the Java API and provide required configuration.
 
 Below a diagram of Cloud Drive architecture. Connector API marked as red (major parts) and blue (optional parts). Major parts should be implemented by any connector. Optional, at the other hand, may be implemented for additional features like automatic synchronization, UI or other client customization.
 
@@ -244,7 +244,7 @@ Asynchronous commands support already implemented in `JCRLocalCloudDrive` as inn
 
 Another internal part to implement in a connector - `CloudFileAPI` interface. It is a set of methods required for drive synchronization between local nodes and cloud side. Basics already implemented in the inner class `AbstractFileAPI`, but connector needs to provide exact calls to a cloud API it represents. For some providers it's possible that several operations lead to a single method, but for others it's different calls. File API respect this fact by offering different methods for files and folders, but final implementation may realy on single logic internally. Implement `JCRLocalCloudDrive.createFileAPI()` method to return actual API instance.
 
-There is optional support of drive state in method `getState()` - a specific object that describe the drive's current state including changes notification and other internal mechanisms what may be required in others apps and clients. If connector doesn't support states it should return `null`. Returned object should support serialization to JSON in RESTful service to be successfully returned to a client. This means its class should be statically available and acts as a POJO (with getters).
+There is optional support of drive state via method `getState()` - a specific object that describe the drive's current state including changes notification and other internal mechanisms that may be required in others apps and clients. If connector doesn't support states it should return `null`. Returned object should support serialization to JSON in RESTful service to be successfully returned to a client. This means its class should be statically available and act as a POJO (with getters). There are not requirements to a state object type, thus any method can exist on it - it is useful to expose specific data to a client side.
 
 Actual cloud drive implementation also should provide `getUser()` method to return `CloudUser` instance of the drive. 
 
@@ -275,9 +275,9 @@ Web services
 ============
 
 Cloud Drive offers following kinds of RESTful web-services:
-* `/clouddrive/connect` - a service to connect a new drive and control its connection progress (used by Javascript API for Documents menu)
-* `/clouddrive/drive` - a service to get an info about a cloud drive and its files (used by Javascript API in Documents views)
-* `/clouddrive/features` - a service providing discovery of Cloud Drive features (see more in Features API).
+* `/clouddrive/connect` - a [service](https://github.com/exo-addons/cloud-drive-extension/blob/master/services/core/src/main/java/org/exoplatform/clouddrive/rest/ConnectService.java) to connect a new drive and control its connection progress (used by Javascript API for Documents menu)
+* `/clouddrive/drive` - a [service](https://github.com/exo-addons/cloud-drive-extension/blob/master/services/core/src/main/java/org/exoplatform/clouddrive/rest/DriveService.java) to get an info about a cloud drive and its files (used by Javascript API in Documents views)
+* `/clouddrive/features` - a [service](https://github.com/exo-addons/cloud-drive-extension/blob/master/services/core/src/main/java/org/exoplatform/clouddrive/rest/FeaturesService.java) providing discovery of Cloud Drive features (see more in Features API).
 
 A connector may need, but not required, to provide additional services used by its UI or other clients or apps. It is recommended to keep all related service endpoints with a path `/clouddrive/drive/PROVIDER_ID` (e.g. /clouddrive/drive/cmis). This path may be used in future for connectors/features discovery.
 

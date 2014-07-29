@@ -926,8 +926,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
     // XXX we force a full sync (a whole drive traversing) each defined period.
     // We do this for a case when provider will not provide a full history for files connected long time ago
-    // and
-    // weren't synced day by day (drive was rarely used).
+    // and weren't synced day by day (drive was rarely used).
     if (now.getTimeInMillis() - last.getTimeInMillis() < FULL_SYNC_PERIOD) {
       return new EventsSync();
     } else {
