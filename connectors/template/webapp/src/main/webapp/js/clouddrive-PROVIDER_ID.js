@@ -18,29 +18,6 @@
 		var prefixUrl = utils.pageBaseUrl(location);
 
 		/**
-		 * Read comments of a file and resolve given jQuery Promise process with them.
-		 */
-		var readComments = function(process, workspace, path) {
-			var comments = cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/PROVIDER_ID", {
-			  "workspace" : workspace,
-			  "path" : path
-			});
-			comments.done(function(commentsList, status) {
-				if (status == 204) {
-					// TODO NO CONTENT means no drive found or drive not connected
-					// Reject promise with null data, this should be handled accordingly by the Deferred code.
-					process.reject();
-				} else {
-					// TODO resolve with commentsList
-					process.resolve(commentsList);
-				}
-			});
-			comments.fail(function(response, status, err) {
-				process.reject("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
-			});
-		};
-
-		/**
 		 * Renew drive state object.
 		 */
 		var renewState = function(process, drive) {
@@ -133,7 +110,50 @@
 
 			return process.promise();
 		};
+
+		/**
+		 * Read comments of a file. This method returns jQuery Promise of the asynchronous request.
+		 */
+		this.fileComments = function(workspace, path) {
+			return cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/PROVIDER_ID", {
+			  "workspace" : workspace,
+			  "path" : path
+			});
+		};
 	}
 
-	return new TemplateClient();
+	var client = new TemplateClient();
+
+	// On DOM-ready handler to initialize custom UI (or any other specific work on a client)
+	if (window == top) {
+		try {
+			$(function() {
+				// Add an action to some button "Show File Comments"
+				$("#file_comments_button").click(function() {
+					var drive = cloudDrive.getContextDrive();
+					var file = cloudDrive.getContextFile();
+					if (drive && file) {
+						var comments = client.readComments(drive.workspace, file.path);
+						comments.done(function(commentsArray, status) {
+							if (status != 204) { // NO CONTENT means no drive found or drive not connected
+								// Append comments to a some invisible div on the page and then show it
+								var container = $("#file_comments_div");
+								$.each(commentsArray, function(i, c) {
+									$("<div class='myCloudFileComment'>" + c + "</div>").appendTo(container);
+								});
+								container.show();
+							} // else do nothing
+						});
+						comments.fail(function(response, status, err) {
+							utils.log("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+						});
+					}
+				});
+			});
+		} catch(e) {
+			utils.log("Error intializing Template client.", e);
+		}
+	}
+
+	return client;
 })($, cloudDrive, cloudDriveUtils);

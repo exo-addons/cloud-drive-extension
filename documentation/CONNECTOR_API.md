@@ -104,7 +104,7 @@ Each connector should be packaged as a portal extension with its configuration i
 Connector extension
 -------------------
 
-Cloud Drive connector should be a portal extension that simply can be installed and uninstalled. The core add-on already care about ECMS menu actions cleanup when Cloud Drive uninstalled. But if a new connector will add extra UI components what can be referenced by the Platform on startup or in runtime, the connector should care about a clenup of such components on uninstallation (this could be done on a server stop).
+Cloud Drive connector should be a portal extension that simply can be installed and uninstalled. The core add-on already care about ECMS menu actions cleanup when Cloud Drive uninstalled. But if a new connector will add extra UI components what can be referenced by the Platform on startup or in runtime, the connector should care about a cleanup of such components on uninstallation (this could be done on a server stop).
 
 All required configurations and resources should be packaged in the connector extension files. Connector dependencies should be outside the WAR file and deployed directly to _libraries_ folder of the Platform server (this already will be done by installation via eXo Add-ons Manager or extension installer script).
 
@@ -115,7 +115,7 @@ Cloud Drive connector consists of following artiracts:
 Configuration
 -------------
 
-Connector extension should depend on Cloud Drive extension in its `PortalContainerConfig` settings. The services JAR needs following configuration in `conf/configuration.xml` file, using `PortalContainerDefinitionChange$AddDependenciesAfter` type, to add itself as dependency to the Cloud Drive (replace PROVIDER_ID with your value):
+Connector extension should depend on Cloud Drive extension in its `PortalContainerConfig` settings. The services JAR needs following configuration in `conf/configuration.xml` file: use `PortalContainerDefinitionChange$AddDependenciesAfter` type to add itself as a dependency to the Cloud Drive (replace PROVIDER_ID with your value), priority should be higher of 1000:
 
 ```xml
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -294,7 +294,7 @@ package org.exoplatform.clouddrive.mycloud.rest;
 @Produces(MediaType.APPLICATION_JSON)
 public class SampleService implements ResourceContainer {
 
-  protected static final Log             LOG = ExoLogger.getLogger(CommentsService.class);
+  protected static final Log             LOG = ExoLogger.getLogger(SampleService.class);
 
   protected final CloudDriveFeatures     features;
 
@@ -305,7 +305,7 @@ public class SampleService implements ResourceContainer {
   protected final SessionProviderService sessionProviders;
 
   /**
-   * Constructor.
+   * Component constructor.
    * 
    * @param cloudDrives
    * @param features
@@ -323,7 +323,7 @@ public class SampleService implements ResourceContainer {
   }
 
   /**
-   * Return comments on a file existing on cloud side.
+   * Return comments of a file from cloud side.
    * 
    * @param uriInfo
    * @param workspace
@@ -397,6 +397,8 @@ Cloud Drive has following kinds of menu actions:
 * Connect actions: a common dialog where user can chose which provider to connect and menu actions dedicated to some connector. The last, dedicated actions, is optional and it's up to a connector to provider them or not. Indeed it's simply to provide such support as need only extend a Java class `BaseConnectActionComponent` and use provider ID in it: in internal method and for the class name (see sample below). 
 * Drive action to force synchronization or drive removal.
 * File actions to open file embedded or in a new page on cloud site.
+
+Note that minimal requirement for UI action to be properly uninstalled on the connector removal, it's implement `CloudDriveUIMenuAction` interface. All UI actions of this type will be correctly removed on the server stop and added back again on the start. This way the Cloud Drive can be safely uninstalled without causing ECMS UI damages.
 
 A sample UI extension to connect a dedicated provider (Box here):
 ```java
@@ -565,7 +567,7 @@ Where PROVIDER\_ID is for actual provider ID and VERSION for the connector versi
 
 Use eXo Platform [Add-ons Manager](https://github.com/exoplatform/addons-manager) or older Extensions manager script to install a connector. Changes of _configuration.properties_ should be performed manually by a person who administrate the server.
 
-A [_template_ connector](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors/template) project already contains Maven modules with Cloud Drive dependencies and packaging. Copy template sub-folder to your new location and replace `PROVIDER_ID`, `PROVIDER_NAME` and `ConnectTemplate` with actual values in source files and configuration, rename respectively package, class names and variables: e.g. `cmis`, `CMIS` and `ConnectCMIS`. Fill the sources with a logic to work with your connector cloud services. Then build the connector and use its packaging artifact as a connector extension.
+A [_template_ connector](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors/template) project already contains Maven modules with Cloud Drive dependencies and packaging. Copy template sub-folder to your new location and replace `PROVIDER_ID`, `PROVIDER_NAME` and `ConnectTemplate` with actual values in source files and configuration, rename respectively package, class names and variables: e.g. `cmis`, `CMIS` and `ConnectCMIS`. Fill the sources with a logic to work with your connector cloud services. Add required third-party libraries to the Maven dependencies and assembly of the packaging. Then build the connector and use its packaging artifact as a connector extension.
 
 
 
