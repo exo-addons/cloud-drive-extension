@@ -523,8 +523,7 @@ It is an example how a connector module can looks (simplified Template connector
 				if (drive.state) {
 					// Drive supports state - thus we can send connector specific data via it from Java API
 					// State it is a POJO in JavaAPI. Here it is a JSON object.
-
-          // For an example here we assume that cloud provider has events long-polling service that
+					// For an example here we assume that cloud provider has events long-polling service that
 					// return OK when changes happen (this logic based on Box connector client - replace
 					// response content and logic according your cloud service).
 					var changes = cloudDrive.ajaxGet(drive.state.url);
