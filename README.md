@@ -157,7 +157,7 @@ Create new connectors
 
 Cloud Drive add-on is extensible and it's possible to create new connectors to support more cloud providers. Since version 1.1.0-RC2 internal architecture reorganized to offer better separation based on conventions and allow client modules in Javascript. 
 
-Follow [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md) documentation to understood conventions and build successfull connector.
+Follow [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md) for understanding of development conventions and for required steps.
 
 
 
