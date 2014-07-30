@@ -80,8 +80,7 @@
 								}
 							}
 						});
-						changes
-						    .fail(function(response, status, err) {
+						changes.fail(function(response, status, err) {
 							    clearTimeout(linkLive);
 							    // if not aborted by linkLive timer or browser
 							    if (err != "abort") {
@@ -125,7 +124,7 @@
 	var client = new TemplateClient();
 
 	// On DOM-ready handler to initialize custom UI (or any other specific work on a client)
-	if (window == top) {
+	if (window == top) { // run only in window (not in iframe as gadgets may do)
 		try {
 			$(function() {
 				// Add an action to some button "Show File Comments"

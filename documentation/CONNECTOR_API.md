@@ -477,74 +477,124 @@ Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. 
 
 There are also `cloudDriveUtils` module which offers cookies management, CSS loading and unified logger. Refer to source code of modules for more information.
 
-It is an example how a connector module can looks (simplified Box connector):
+It is an example how a connector module can looks (simplified Template connector for My Cloud sample):
 ```javascript
 /**
- * Box support for eXo Cloud Drive.
+ * My Cloud support for eXo Cloud Drive.
  */
 (function($, cloudDrive, utils) {
-  /**
-	 * Box connector class.
-	 */
-	function Box() {
-		// Provider Id for Box
-		var PROVIDER_ID = "box";
 
-    /**
-     * Renew drive state object from the server.
-     */
+	/**
+	 * My Cloud connector class.
+	 */
+	function MyCloud() {
+		// Provider Id for Template provider
+		var PROVIDER_ID = "mycloud";
+
+		var prefixUrl = utils.pageBaseUrl(location);
+
+		/**
+		 * Renew drive state object.
+		 */
 		var renewState = function(process, drive) {
-		  var newState = cloudDrive.getState(drive);
+			var newState = cloudDrive.getState(drive);
 			newState.done(function(res) {
 				drive.state = res;
-				process.resolve(); // this will cause drive synchronization also
+				process.resolve(); // this will cause sync also
 			});
 			newState.fail(function(response, status, err) {
 				process.reject("Error getting drive state. " + err + " (" + status + ")");
 			});
 			return newState;
-    }
-    
-    /**
-     * Check if given Box drive has remote changes. Return jQuery Promise object that will be resolved when
-		 * some change will appear, or rejected on error.  
-		 * It is a method that Cloud Drive core client will look for when loading the connector module.
+		};
+
+		/**
+		 * Check if given drive has remote changes. Return jQuery Promise object that will be resolved
+		 * when some change will appear, or rejected on error. It is a method that Cloud Drive core
+		 * client will look for when loading the connector module.
+		 * 
+		 * Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an
+		 * actual change will happen in the drive.
 		 */
 		this.onChange = function(drive) {
 			var process = $.Deferred();
+
 			if (drive) {
 				if (drive.state) {
-				  var changes = cloudDrive.ajaxGet(drive.state.url);
+					// Drive supports state - thus we can send connector specific data via it from Java API
+					// State it is a POJO in JavaAPI. Here it is a JSON object.
+
+          // For an example here we assume that cloud provider has events long-polling service that
+					// return OK when changes happen (this logic based on Box connector client - replace
+					// response content and logic according your cloud service).
+					var changes = cloudDrive.ajaxGet(drive.state.url);
 					changes.done(function(info, status) {
-					  if (info.message) {
-							if (info.message == "new_change") {
-								process.resolve(); // this will cause drive synchronization
-							} else if (info.message == "reconnect") {
-								renewState(process, drive); // reconnect with current state URL
-							}
+						if (info.message == "new_change") {
+							process.resolve();
+						} else if (info.message == "reconnect") {
+							renewState(process, drive);
 						}
 					});
 					changes.fail(function(response, status, err) {
-				    if ((typeof err === "string" && err.indexOf("max_retries") >= 0)
-				        || (response && response.error.indexOf("max_retries") >= 0)) {
-					    renewState(process, drive); // need get new state URL and reconnect
-				    } else {
-					    process.reject("Long-polling changes request failed on " + drive.path + ". " + err + " (" + status + ") ");
-				    }
-					});	
-        } else {
+				    process.reject("Changes request failed. " + err + " (" + status + ") "
+						        + JSON.stringify(response));
+			    });
+				} else {
 					process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
 				}
 			} else {
 				process.reject("Null drive in onChange()");
 			}
+
 			return process.promise();
+		};
+
+		/**
+		 * Read comments of a file. This method returns jQuery Promise of the asynchronous request.
+		 */
+		this.fileComments = function(workspace, path) {
+			return cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/mycloud", {
+			  "workspace" : workspace,
+			  "path" : path
+			});
 		};
 	}
 
-	return new Box(); // return connector from the module
-})($, cloudDrive, cloudDriveUtils);
+	var client = new TemplateClient();
 
+	// On DOM-ready handler to initialize custom UI (or any other specific work on a client)
+	if (window == top) { // run only in window (not in iframe as gadgets may do)
+		try {
+			$(function() {
+				// Add an action to some button "Show File Comments"
+				$("#file_comments_button").click(function() {
+					var drive = cloudDrive.getContextDrive();
+					var file = cloudDrive.getContextFile();
+					if (drive && file) {
+						var comments = client.readComments(drive.workspace, file.path);
+						comments.done(function(commentsArray, status) {
+							if (status != 204) { // NO CONTENT means no drive found or drive not connected
+								// Append comments to a some invisible div on the page and then show it
+								var container = $("#file_comments_div");
+								$.each(commentsArray, function(i, c) {
+									$("<div class='myCloudFileComment'>" + c + "</div>").appendTo(container);
+								});
+								container.show();
+							} // else do nothing
+						});
+						comments.fail(function(response, status, err) {
+							utils.log("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+						});
+					}
+				});
+			});
+		} catch(e) {
+			utils.log("Error intializing Template client.", e);
+		}
+	}
+
+	return client;
+})($, cloudDrive, cloudDriveUtils);
 ```
 
 Drive state monitoring
