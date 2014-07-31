@@ -770,6 +770,17 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * A link (URL) to the Box file thumbnail image.
+   * 
+   * @param item {@link BoxItem}
+   * @return String with the file URL.
+   */
+  String getThumbnailLink(BoxItem item) {
+    // TODO use real thumbnails from Box
+    return getLink(item);
+  }
+  
   ChangesLink getChangesLink() throws BoxException, RefreshAccessException {
     if (changesLink == null || changesLink.isOutdated()) {
       updateChangesLink();

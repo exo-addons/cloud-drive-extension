@@ -311,11 +311,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String name = file.getName();
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
+      String thumbnailLink = api.getThumbnailLink(file);
       String createdBy = file.getCreatedBy().getLogin();
       String modifiedBy = file.getModifiedBy().getLogin();
 
       initFile(fileNode, id, name, findMimetype(name), link, embedLink, //
-               link, // downloadLink
+               thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
@@ -385,13 +386,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           String name = file.getName();
           String link = api.getLink(file);
           String embedLink = api.getEmbedLink(file);
+          String thumbnailLink = api.getThumbnailLink(file);
           String createdBy = file.getCreatedBy().getLogin();
           Calendar created = api.parseDate(file.getCreatedAt());
           modified = api.parseDate(file.getModifiedAt());
           String modifiedBy = file.getModifiedBy().getLogin();
 
           initFile(fileNode, id, name, findMimetype(name), link, embedLink, //
-                   link, // downloadLink
+                   thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
                    created,
@@ -456,13 +458,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         String name = file.getName();
         String link = api.getLink(file);
         String embedLink = api.getEmbedLink(file);
+        String thumbnailLink = api.getThumbnailLink(file);
         String createdBy = file.getCreatedBy().getLogin();
         Calendar created = api.parseDate(file.getCreatedAt());
         modified = api.parseDate(file.getModifiedAt());
         String modifiedBy = file.getModifiedBy().getLogin();
 
         initFile(fileNode, id, name, findMimetype(name), link, embedLink, //
-                 link, // downloadLink
+                 thumbnailLink, // downloadLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
@@ -485,13 +488,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         String name = file.getName();
         String link = api.getLink(file);
         String embedLink = api.getEmbedLink(file);
+        String thumbnailLink = api.getThumbnailLink(file);
         String createdBy = file.getCreatedBy().getLogin();
         String modifiedBy = file.getModifiedBy().getLogin();
         Calendar created = api.parseDate(file.getCreatedAt());
         Calendar modified = api.parseDate(file.getModifiedAt());
 
         initFile(destFileNode, id, name, findMimetype(name), link, embedLink, //
-                 link, // downloadLink
+                 thumbnailLink, // thumbnailLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
@@ -1408,9 +1412,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String createdBy = item.getCreatedBy().getLogin();
       String modifiedBy = item.getModifiedBy().getLogin();
 
-      String link, embedLink, downloadLink;
+      String link, embedLink, thumbnailLink;
       if (isFolder) {
-        link = embedLink = downloadLink = api.getLink(item);
+        link = embedLink = api.getLink(item);
+        thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFolder(node, id, name, type, // type=folder
                      link, // gf.getAlternateLink(),
@@ -1423,13 +1428,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       } else {
         // TODO for thumbnail we can use Thumbnail service
         // https://api.box.com/2.0/files/FILE_ID/thumbnail.png?min_height=256&min_width=256
-        link = downloadLink = api.getLink(item);
+        link = api.getLink(item);
         embedLink = api.getEmbedLink(item);
+        thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFile(node, id, name, type, // mimetype
                    link, // gf.getAlternateLink(),
                    embedLink, // gf.getEmbedLink(),
-                   downloadLink, // gf.getThumbnailLink(),
+                   thumbnailLink, // gf.getThumbnailLink(),
                    createdBy, // gf.getOwnerNames().get(0),
                    modifiedBy, // gf.getLastModifyingUserName(),
                    created,
@@ -1443,7 +1449,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    link,
                                    editLink(link),
                                    embedLink,
-                                   downloadLink,
+                                   thumbnailLink,
                                    type,
                                    createdBy,
                                    modifiedBy,

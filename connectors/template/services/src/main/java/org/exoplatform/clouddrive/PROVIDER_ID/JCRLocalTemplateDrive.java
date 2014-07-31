@@ -293,12 +293,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String name = "TODO"; // file.getName();
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
+      String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = "TODO"; // file.getCreatedBy().getLogin();
       String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
       String type = "TODO"; // file.getType();
 
       initFile(fileNode, id, name, type, link, embedLink, //
-               link, // downloadLink
+               thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
@@ -370,6 +371,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         String name = "TODO"; // file.getName();
         String link = api.getLink(file);
         String embedLink = api.getEmbedLink(file);
+        String thumbnailLink = link; // TODO need real thumbnail
         String createdBy = "TODO"; // file.getCreatedBy().getLogin();
         Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
         modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
@@ -377,7 +379,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         String type = "TODO"; // item.getType();
 
         initFile(fileNode, id, name, type, link, embedLink, //
-                 link, // downloadLink
+                 thumbnailLink, // downloadLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
@@ -435,6 +437,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String name = "TODO"; // file.getName();
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
+      String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = "TODO"; // file.getCreatedBy().getLogin();
       Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
       modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
@@ -442,7 +445,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String type = "TODO"; // folder.getType();
 
       initFile(fileNode, id, name, type, link, embedLink, //
-               link, // downloadLink
+               thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
@@ -460,6 +463,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String id = "TODO"; // file.getId();
       String name = "TODO"; // file.getName();
       String link = api.getLink(file);
+      String thumbnailLink = link; // TODO need real thumbnail
       String embedLink = api.getEmbedLink(file);
       String createdBy = "TODO"; // file.getCreatedBy().getLogin();
       String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
@@ -468,7 +472,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String type = "TODO"; // folder.getType();
 
       initFile(destFileNode, id, name, type, link, embedLink, //
-               link, // downloadLink
+               thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
@@ -1075,9 +1079,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     String createdBy = ""; // item.getCreatedBy().getLogin();
     String modifiedBy = ""; // item.getModifiedBy().getLogin();
 
-    String link, embedLink, downloadLink;
+    String link, embedLink, thumbnailLink;
     if (isFolder) {
-      link = embedLink = downloadLink = api.getLink(item);
+      link = embedLink = api.getLink(item);
+      thumbnailLink = null;
       if (changed) {
         initFolder(node, id, name, type, // type=folder
                    link, // gf.getAlternateLink(),
@@ -1088,13 +1093,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         initCloudItem(node, item);
       }
     } else {
-      link = downloadLink = api.getLink(item);
+      link = api.getLink(item);
       embedLink = api.getEmbedLink(item);
+      // TODO use real thumbnailLink if available or null
+      thumbnailLink = null;
       if (changed) {
         initFile(node, id, name, type, // mimetype
                  link,
                  embedLink,
-                 downloadLink,
+                 thumbnailLink,
                  createdBy,
                  modifiedBy,
                  created,
@@ -1109,7 +1116,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                  link,
                                  editLink(link),
                                  embedLink,
-                                 downloadLink,
+                                 thumbnailLink,
                                  type,
                                  createdBy,
                                  modifiedBy,
