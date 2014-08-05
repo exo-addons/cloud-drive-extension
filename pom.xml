@@ -133,6 +133,18 @@
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-cmis-services</artifactId>
+        <version>${project.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-cmis-webapp</artifactId>
+        <version>${project.version}</version>
+        <type>war</type>
+      </dependency>
       
       <!-- dependencies -->
       <dependency>
