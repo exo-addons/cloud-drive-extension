@@ -19,15 +19,13 @@
   02110-1301 USA, or see the FSF site: http://www.fsf.org.
 
 -->
-<gatein-resources
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
-    xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
+<gatein-resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
+  xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
   <!-- Javascript for Cloud Drive support of CMIS -->
   <module>
     <name>cloudDrive.cmis</name>
-    <load-group>cloudDriveGRP</load-group>
     <script>
       <path>/js/clouddrive-cmis.js</path>
     </script>
@@ -41,4 +39,19 @@
       <module>cloudDriveUtils</module>
     </depends>
   </module>
+
+  <!-- <portlet>
+    <name>CMISLoginPortlet</name>
+    <module>
+      <script>
+        <path>/js/mobile-notifications.js</path>
+      </script>
+      <depends>
+        <module>juzu-ajax</module>
+      </depends>
+      <depends>
+        <module>jquery</module>
+      </depends>
+    </module>
+  </portlet> -->
 </gatein-resources>

@@ -250,7 +250,7 @@ public class CMISAPI {
    * @throws CMISException if authentication failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
-  CMISAPI(String key, String clientSecret, String authCode, String redirectUri) throws CMISException,
+  CMISAPI(String key, String clientSecret, String authCode) throws CMISException,
       CloudDriveException {
 
     // TODO create Cloud API client and authenticate to it using given code.

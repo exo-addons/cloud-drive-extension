@@ -104,9 +104,7 @@
     </component-plugin>
   </external-component-plugins>
 
-  <!--
-  ResourceBundleService with texts for CMIS UI support.
-  -->
+  <!-- ResourceBundleService with texts for CMIS UI support. -->
   <external-component-plugins>
     <target-component>org.exoplatform.services.resources.ResourceBundleService</target-component>
     <component-plugin>
@@ -127,4 +125,7 @@
       </init-params>
     </component-plugin>
   </external-component-plugins>
+  
+  <!-- CMIS login page config -->
+  <import>war:/conf/clouddrive-cmis-conf/portal-configuration.xml</import>
 </configuration>

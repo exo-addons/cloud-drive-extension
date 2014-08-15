@@ -19,9 +19,8 @@
   02110-1301 USA, or see the FSF site: http://www.fsf.org.
 
 -->
-<web-app id="WebApp_ID" version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
-  
+<web-app version="3.0" metadata-complete="true" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
   <display-name>cloud-drive-cmis</display-name>
   <filter>
     <filter-name>ResourceRequestFilter</filter-name>
@@ -34,13 +33,26 @@
   <listener>
     <listener-class>org.exoplatform.container.web.PortalContainerConfigOwner</listener-class>
   </listener>
+  <context-param>
+    <param-name>juzu.inject</param-name>
+    <param-value>guice</param-value>
+  </context-param>
   <servlet>
     <servlet-name>GateInServlet</servlet-name>
     <servlet-class>org.gatein.wci.api.GateInServlet</servlet-class>
     <load-on-startup>0</load-on-startup>
   </servlet>
+  <servlet>
+    <servlet-name>AssetServlet</servlet-name>
+    <servlet-class>juzu.impl.asset.AssetServlet</servlet-class>
+    <load-on-startup>0</load-on-startup>
+  </servlet>
   <servlet-mapping>
     <servlet-name>GateInServlet</servlet-name>
     <url-pattern>/gateinservlet</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>AssetServlet</servlet-name>
+    <url-pattern>/assets/*</url-pattern>
   </servlet-mapping>
 </web-app>

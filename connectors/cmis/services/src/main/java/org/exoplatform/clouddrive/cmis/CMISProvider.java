@@ -32,8 +32,6 @@ public class CMISProvider extends CloudProvider {
 
   protected final String            authURL;
 
-  protected final String            redirectURL;
-
   protected final RepositoryService jcrService;
 
   /**
@@ -46,11 +44,9 @@ public class CMISProvider extends CloudProvider {
   public CMISProvider(String id,
                           String name,
                           String authURL,
-                          String redirectURL,
                           RepositoryService jcrService) {
     super(id, name);
     this.authURL = authURL;
-    this.redirectURL = redirectURL;
     this.jcrService = jcrService;
   }
 
@@ -69,13 +65,6 @@ public class CMISProvider extends CloudProvider {
     } else {
       return authURL;
     }
-  }
-
-  /**
-   * @return the redirectURL
-   */
-  public String getRedirectURL() {
-    return redirectURL;
   }
 
   /**

@@ -74,7 +74,7 @@ public class CMISConnector extends CloudDriveConnector {
     CMISAPI build() throws CMISException, CloudDriveException {
       if (code != null && code.length() > 0) {
         // build API based on OAuth2 code
-        return new CMISAPI(getClientId(), getClientSecret(), code, getProvider().getRedirectURL());
+        return new CMISAPI(getClientId(), getClientSecret(), code);
       } else {
         // build API based on locally stored tokens
         return new CMISAPI(getClientId(), getClientSecret(), accessToken, refreshToken, expirationTime);
@@ -83,9 +83,9 @@ public class CMISConnector extends CloudDriveConnector {
   }
 
   public CMISConnector(RepositoryService jcrService,
-                           SessionProviderService sessionProviders,
-                           NodeFinder finder,
-                           InitParams params) throws ConfigurationException {
+                       SessionProviderService sessionProviders,
+                       NodeFinder finder,
+                       InitParams params) throws ConfigurationException {
     super(jcrService, sessionProviders, finder, params);
   }
 
@@ -107,41 +107,23 @@ public class CMISConnector extends CloudDriveConnector {
     redirectURL.append("/portal/rest/clouddrive/connect/");
     redirectURL.append(getProviderId());
 
-    StringBuilder oauthURL = new StringBuilder();
-    oauthURL.append("https://");
-    oauthURL.append("www.YOURCLOUDHOST.com/api/oauth2/authorize?");
-    oauthURL.append("response_type=code&client_id=");
-    String clientId = getClientId();
-    try {
-      oauthURL.append(URLEncoder.encode(clientId, "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode client id " + clientId + ":" + e);
-      oauthURL.append(clientId);
-    }
-    oauthURL.append("&state=");
-    try {
-      oauthURL.append(URLEncoder.encode("_no_state", "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode _no_state:" + e);
-      oauthURL.append("_no_state");
-    }
-    oauthURL.append("&redirect_uri=");
-    // actual uri will be appended below to avoid double encoding in case of SSO
-
+    // Auth URL lead to a webpage on eXo side, it should ask for username/password and store somehow on the
+    // serverside for late use by the connect flow
     StringBuilder authURL = new StringBuilder();
+    authURL.append(getConnectorSchema());
+    authURL.append("://");
+    authURL.append(getConnectorHost());
+    authURL.append("/portal/rest/clouddrive/drive/");
+    authURL.append(getProviderId());
+    authURL.append("/authenticate?redirect_uri=");
     try {
-      oauthURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
+      authURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
     } catch (UnsupportedEncodingException e) {
       LOG.warn("Cannot encode redirect URL " + redirectURL.toString() + ":" + e);
-      oauthURL.append(redirectURL);
+      authURL.append(redirectURL);
     }
-    authURL.append(oauthURL);
 
-    return new CMISProvider(getProviderId(),
-                                getProviderName(),
-                                authURL.toString(),
-                                redirectURL.toString(),
-                                jcrService);
+    return new CMISProvider(getProviderId(), getProviderName(), authURL.toString(), jcrService);
   }
 
   @Override
@@ -150,10 +132,10 @@ public class CMISConnector extends CloudDriveConnector {
       CMISAPI driveAPI = new API().auth(code).build();
       Object apiUser = driveAPI.getCurrentUser();
       CMISUser user = new CMISUser("apiUser.getId()",
-                                           "apiUser.getName()",
-                                           "apiUser.getLogin()",
-                                           provider,
-                                           driveAPI);
+                                   "apiUser.getName()",
+                                   "apiUser.getLogin()",
+                                   provider,
+                                   driveAPI);
       return user;
     } else {
       throw new CloudDriveException("Access key should not be null or empty");
@@ -179,10 +161,10 @@ public class CMISConnector extends CloudDriveConnector {
     JCRLocalCloudDrive.checkTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(),
-                                                            getProvider(),
-                                                            driveNode,
-                                                            sessionProviders,
-                                                            jcrFinder);
+                                                    getProvider(),
+                                                    driveNode,
+                                                    sessionProviders,
+                                                    jcrFinder);
     return drive;
   }
 

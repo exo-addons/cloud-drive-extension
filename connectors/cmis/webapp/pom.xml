@@ -27,12 +27,12 @@
     <artifactId>exo-clouddrive-cmis</artifactId>
     <version>1.1.0-SNAPSHOT</version>
   </parent>
-  
+
   <artifactId>exo-clouddrive-cmis-webapp</artifactId>
   <packaging>war</packaging>
   <name>eXo Cloud Drive Extension :: Connectors :: CMIS :: Webapp</name>
   <description>eXo Cloud Drive CMIS connector exetension web application</description>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
@@ -40,8 +40,41 @@
       <scope>provided</scope>
       <type>jar</type>
     </dependency>
+
+    <dependency>
+      <groupId>org.exoplatform.commons</groupId>
+      <artifactId>commons-juzu</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-plugins-less</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.juzu</groupId>
+      <artifactId>juzu-plugins-portlet</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-all</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.portlet</groupId>
+      <artifactId>portlet-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
-  
+
   <build>
     <finalName>cloud-drive-cmis</finalName>
     <resources>
