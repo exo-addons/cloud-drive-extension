@@ -113,9 +113,9 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getConnectorSchema());
     authURL.append("://");
     authURL.append(getConnectorHost());
-    authURL.append("/portal/rest/clouddrive/drive/");
+    authURL.append("/portal/clouddrive/");
     authURL.append(getProviderId());
-    authURL.append("/authenticate?redirect_uri=");
+    authURL.append("/login?redirect_uri=");
     try {
       authURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
     } catch (UnsupportedEncodingException e) {

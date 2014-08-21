@@ -27,6 +27,10 @@
   <component>
     <type>org.exoplatform.clouddrive.cmis.rest.CMISWebService</type>
   </component>
+  
+  <component>
+    <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
+  </component>
 
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>
@@ -127,5 +131,5 @@
   </external-component-plugins>
   
   <!-- CMIS login page config -->
-  <import>war:/conf/clouddrive-cmis-conf/portal-configuration.xml</import>
+  <import>war:/conf/clouddrive-cmis/portal-configuration.xml</import>
 </configuration>

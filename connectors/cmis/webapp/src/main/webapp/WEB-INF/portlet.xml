@@ -32,10 +32,10 @@ http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
     <portlet-name>CMISLoginPortlet</portlet-name>
     <display-name xml:lang="EN">Cloud Drive CMIS Connector Login Page</display-name>
     <portlet-class>org.exoplatform.clouddrive.cmis.portlet.CMISLoginPortlet</portlet-class>
-    <!-- init-param>
+    <init-param>
       <name>juzu.app_name</name>
       <value>clouddrive.cmis.login</value>
-    </init-param -->
+    </init-param>
     <init-param>
       <name>juzu.run_mode</name>
       <value>dev</value>

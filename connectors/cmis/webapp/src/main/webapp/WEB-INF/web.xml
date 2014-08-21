@@ -42,17 +42,17 @@
     <servlet-class>org.gatein.wci.api.GateInServlet</servlet-class>
     <load-on-startup>0</load-on-startup>
   </servlet>
-  <servlet>
+  <!-- servlet>
     <servlet-name>AssetServlet</servlet-name>
     <servlet-class>juzu.impl.asset.AssetServlet</servlet-class>
     <load-on-startup>0</load-on-startup>
-  </servlet>
+  </servlet -->
   <servlet-mapping>
     <servlet-name>GateInServlet</servlet-name>
     <url-pattern>/gateinservlet</url-pattern>
   </servlet-mapping>
-  <servlet-mapping>
+  <!-- servlet-mapping>
     <servlet-name>AssetServlet</servlet-name>
     <url-pattern>/assets/*</url-pattern>
-  </servlet-mapping>
+  </servlet-mapping -->
 </web-app>

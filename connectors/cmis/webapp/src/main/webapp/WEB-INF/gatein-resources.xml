@@ -40,11 +40,11 @@
     </depends>
   </module>
 
-  <!-- <portlet>
+  <portlet>
     <name>CMISLoginPortlet</name>
     <module>
       <script>
-        <path>/js/mobile-notifications.js</path>
+        <path>/js/clouddrive-cmis-login.js</path>
       </script>
       <depends>
         <module>juzu-ajax</module>
@@ -53,5 +53,5 @@
         <module>jquery</module>
       </depends>
     </module>
-  </portlet> -->
+  </portlet>
 </gatein-resources>

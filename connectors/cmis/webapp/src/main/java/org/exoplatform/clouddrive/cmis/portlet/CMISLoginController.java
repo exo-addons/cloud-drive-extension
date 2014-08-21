@@ -18,10 +18,20 @@
  */
 package org.exoplatform.clouddrive.cmis.portlet;
 
+import juzu.Action;
 import juzu.Path;
+import juzu.Resource;
 import juzu.Response;
 import juzu.View;
+import juzu.impl.request.Request;
+import juzu.plugin.ajax.Ajax;
 import juzu.template.Template;
+
+import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -36,13 +46,59 @@ import javax.inject.Inject;
  */
 public class CMISLoginController {
 
+  private static final Log                                  LOG = ExoLogger.getLogger(CMISLoginController.class);
+
   @Inject
   @Path("login.gtmpl")
-  Template login;
+  Template                                                  login;
+
+  @Inject
+  @Path("userkey.gtmpl")
+  org.exoplatform.clouddrive.cmis.portlet.templates.userkey userKey;
+
+  @Inject
+  @Path("error.gtmpl")
+  Template                                                  error;
+
+  @Inject
+  CodeAuthentication                                        authService;
 
   @View
   public Response index() {
-    return login.ok();
+    Request request = Request.getCurrent();
+    Map<String, String[]> parameters = request.getParameters();
+    return login.with(parameters).ok();
+  }
+
+  @View
+  public Response error(String message) {
+    Request request = Request.getCurrent();
+    Map<String, String[]> parameters = request.getParameters();
+    return error.with().set("message", message).ok();
+  }
+
+  @Ajax
+  @Resource
+  public Response userKey(String user) {
+    // TODO transfer all parameters and redirect to redirect_url
+    return userKey.with().key("$"+user+"--key").ok();
+  }
+
+  @Action
+  public Response login(String user, String password) {
+    // TODO transfer all parameters and redirect to redirect_url
+    Request request = Request.getCurrent();
+    Map<String, String[]> parameters = request.getParameters();
+    String[] redirectURI = parameters.get("redirect_uri");
+    if (redirectURI != null && redirectURI.length > 0) {
+      return Response.redirect(redirectURI[0]);
+    } else {
+      // we don't have a redirect URI in the request - error
+      LOG.warn("Wrong login URL: redirect_uri not found for " + user);
+      // return Response.content(400, "Wrong login URL.");
+      return CMISLoginController_.error("Wrong login URL.");
+      // return error.with().set("message", "Wrong login URL.").ok();
+    }
   }
 
 }

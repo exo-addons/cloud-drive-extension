@@ -1,0 +1,7 @@
+<div id="cmis-error-body">
+<h1>Error</h1>
+Login failed with message: ${message}
+
+<a href="@{index()}">Back</a>
+</div>
+

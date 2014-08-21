@@ -17,26 +17,6 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 /**
- * CMIS connector login portlet.
+ * CMIS connector login support.
  */
-//@Application(defaultController = CMISLoginController.class)
-@Application
-@Portlet(name="CMISLoginPortlet")
-@Bindings({
-    @Binding(value = RepositoryService.class),
-    @Binding(value = SessionProviderService.class),
-    @Binding(value = NodeHierarchyCreator.class),
-    @Binding(value = CodeAuthentication.class)
-}
-)
-package org.exoplatform.clouddrive.cmis.portlet;
-import juzu.Application;
-import juzu.plugin.binding.Binding;
-import juzu.plugin.binding.Bindings;
-import juzu.plugin.portlet.Portlet;
-
-import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
-import org.exoplatform.services.jcr.RepositoryService;
-import org.exoplatform.services.jcr.ext.app.SessionProviderService;
-import org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator;
-
+package org.exoplatform.clouddrive.cmis.login;

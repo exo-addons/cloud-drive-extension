@@ -1,5 +1,15 @@
 <div id="cmis-login-body">
 <h1>CMIS Login...</h1>
-...
+<form id="cmis-login-form" method="get">
+   <input type="text" name="user" value=""/>
+   <input type="password" name="password" value=""/>
+   <input type="submit"/>
+</form>
+<div id="cmis-login-user"></div>
+<form id="cmis-login-post" action="@{login()}" method="post">
+   <input type="hidden" name="user" value=""/>
+   <input type="hidden" name="password" value=""/>
+   <input type="hidden" name="redirect_uri" value="test"/>
+</form>
 </div>
 
