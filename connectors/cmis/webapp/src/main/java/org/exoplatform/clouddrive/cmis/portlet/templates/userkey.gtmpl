@@ -1,3 +1,2 @@
 #{param name=key/}
-<span data-key="${key}">...</span>
-
+<span data-key="${key}"><span/>

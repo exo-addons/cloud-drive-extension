@@ -27,7 +27,7 @@
   <component>
     <type>org.exoplatform.clouddrive.cmis.rest.CMISWebService</type>
   </component>
-  
+
   <component>
     <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
   </component>
@@ -63,12 +63,50 @@
            Set JVM variables clouddrive.cmis.client.id and clouddrive.cmis.client.secret 
            in Platform's configuration.properties 
           -->
-          <property name="provider-client-id" value="${clouddrive.cmis.client.id}" />
-          <property name="provider-client-secret" value="${clouddrive.cmis.client.secret}" />
           <property name="connector-host" value="${clouddrive.service.host}" />
           <property name="connector-schema" value="${clouddrive.service.schema:http}" />
           <property name="login-sso" value="${clouddrive.login.sso:false}" />
+          <property name="cmis-predefined-services-config" value="${clouddrive.cmis.predefined.services.config}" />
         </properties-param>
+        <object-param>
+          <name>predefined-services</name>
+          <object type="org.exoplatform.clouddrive.CloudDriveConnector$PredefinedServices">
+            <field name="services">
+              <collection type="java.util.LinkedHashSet">
+                <value>
+                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                    <field name="name">
+                      <string>eXo SharePoint Demo</string>
+                    </field>
+                    <field name="url">
+                      <string>http://exosharepoint.no-ip.info/_vti_bin/cmis/rest?getrepositoryinfo</string>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                    <field name="name">
+                      <string>Public Alfresco Demo</string>
+                    </field>
+                    <field name="url">
+                      <string>http://cmis.alfresco.com/cmisatom</string>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                    <field name="name">
+                      <string>Public Nuxeo Demo</string>
+                    </field>
+                    <field name="url">
+                      <string>http://demo.nuxeo.com/nuxeo/atom/cmis</string>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>

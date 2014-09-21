@@ -18,12 +18,31 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
+import org.apache.chemistry.opencmis.client.api.ChangeEvent;
+import org.apache.chemistry.opencmis.client.api.ChangeEvents;
+import org.apache.chemistry.opencmis.client.api.CmisObject;
+import org.apache.chemistry.opencmis.client.api.Document;
+import org.apache.chemistry.opencmis.client.api.Folder;
+import org.apache.chemistry.opencmis.client.api.ItemIterable;
+import org.apache.chemistry.opencmis.client.api.Repository;
+import org.apache.chemistry.opencmis.client.api.Session;
+import org.apache.chemistry.opencmis.client.api.SessionFactory;
+import org.apache.chemistry.opencmis.client.bindings.CmisBindingFactory;
+import org.apache.chemistry.opencmis.client.bindings.spi.LinkAccess;
+import org.apache.chemistry.opencmis.client.runtime.SessionFactoryImpl;
+import org.apache.chemistry.opencmis.commons.SessionParameter;
+import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
+import org.apache.chemistry.opencmis.commons.enums.BaseTypeId;
+import org.apache.chemistry.opencmis.commons.enums.BindingType;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisConnectionException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisRuntimeException;
+import org.apache.chemistry.opencmis.commons.impl.Constants;
+import org.apache.chemistry.opencmis.commons.spi.CmisBinding;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.FileTrashRemovedException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -31,10 +50,13 @@ import org.exoplatform.services.log.Log;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * All calls to CMIS API here.
@@ -42,53 +64,23 @@ import java.util.Map;
  */
 public class CMISAPI {
 
-  protected static final Log LOG = ExoLogger.getLogger(CMISAPI.class);
+  protected static final Log LOG      = ExoLogger.getLogger(CMISAPI.class);
 
-  /**
-   * OAuth2 tokens storage base...
-   */
-  class StoredToken extends UserToken {
-
-    /**
-     * Sample method to call when have OAuth2 token from Cloud API.
-     * 
-     * @param apiToken
-     * @throws CloudDriveException
-     */
-    void store(Object apiToken) throws CloudDriveException {
-      // this.store(apiToken.getAccessToken(), apiToken.getRefreshToken(), apiToken.getExpiresIn());
-    }
-
-    /**
-     * Sample method to return authentication data.
-     * 
-     * @return
-     */
-    Map<String, Object> getAuthData() {
-      Map<String, Object> data = new HashMap<String, Object>();
-      data.put("ACCESS_TOKEN", getAccessToken());
-      data.put("REFRESH_TOKEN", getRefreshToken());
-      data.put("EXPIRES_IN", getExpirationTime());
-      data.put("TOKEN_TYPE", "bearer");
-      return data;
-    }
-  }
+  public static final String NO_STATE = "__no_state_set__";
 
   /**
    * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
    * request to the service. <br>
    * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
    * 
-   * TODO replace type Object to an actual type used by Cloud API for drive items.<br>
    */
-  class ItemsIterator extends ChunkIterator<Object> {
+  class ItemsIterator extends ChunkIterator<CmisObject> {
     final String folderId;
 
     /**
      * Parent folder.
-     * TODO Use read parent class.
      */
-    Object       parent;
+    Folder       parent;
 
     ItemsIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
@@ -97,35 +89,26 @@ public class CMISAPI {
       this.iter = nextChunk();
     }
 
-    protected Iterator<Object> nextChunk() throws CloudDriveException {
+    protected Iterator<CmisObject> nextChunk() throws CloudDriveException {
       try {
-        // TODO find parent if it is required for file calls...
-        // parent = client.getFoldersManager().getFolder(folderId, obj);
-
-        // TODO Get items and let progress indicator to know the available amount
-        // Collection items = parent.getItemCollection();
-        // available(totalSize);
-
-        // TODO use real type of the list
-        ArrayList<Object> oitems = new ArrayList<Object>();
-        // TODO put folders first, then files
-        // oitems.addAll(folders);
-        // oitems.addAll(files);
-        return oitems.iterator();
-      } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-        // TODO if OAuth2 related exception then check if need refresh tokens
-        // usually Cloud API has a dedicated exception to catch for OAuth2
-        // checkTokenState();
-
-        // if it is service or connectivity exception throw it as a provider specific
+        CmisObject obj = session().getObject(folderId);
+        if (isFolder(obj)) {
+          // it is folder
+          parent = (Folder) obj;
+          ItemIterable<CmisObject> children = parent.getChildren();
+          // TODO reorder folders first in the iterator?
+          return children.iterator();
+        } else {
+          // empty iterator
+          return new ArrayList<CmisObject>().iterator();
+        }
+      } catch (CmisRuntimeException e) {
         throw new CMISException("Error getting folder items: " + e.getMessage(), e);
       }
     }
 
     protected boolean hasNextChunk() {
-      // TODO implement actual logic for large folders fetching
+      // TODO implement pagination via cmis context
       return false;
     }
   }
@@ -135,40 +118,31 @@ public class CMISAPI {
    * request to the service. <br>
    * Iterator methods can throw {@link CMISException} in case of remote or communication errors.
    */
-  class EventsIterator extends ChunkIterator<Object> {
+  class ChangesIterator extends ChunkIterator<ChangeEvent> {
 
-    /**
-     * TODO optional position to fetch events
-     */
-    long         position;
+    String       changeToken;
 
-    List<Object> nextChunk;
+    ChangeEvents events;
 
-    EventsIterator(long position) throws CMISException, RefreshAccessException {
-      this.position = position;
+    ChangesIterator(String startChangeToken) throws CMISException, RefreshAccessException {
+      this.changeToken = startChangeToken;
 
       // fetch first
       this.iter = nextChunk();
     }
 
-    protected Iterator<Object> nextChunk() throws CMISException, RefreshAccessException {
+    protected Iterator<ChangeEvent> nextChunk() throws CMISException, RefreshAccessException {
       try {
-        // TODO implement actual logic here
+        // XXX includeProperties = false, maxNumItems = max possible value to fetch all at once
+        // TODO better pagination organization
+        ChangeEvents events = session().getContentChanges(changeToken, false, Integer.MAX_VALUE);
 
         // TODO remember position for next chunk and next iterators
-        // position = ec.getNextStreamPosition();
+        changeToken = events.getLatestChangeLogToken();
 
-        ArrayList<Object> events = new ArrayList<Object>();
-        // fill events collection or return iterator with them
-        return events.iterator();
-      } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-        // TODO if OAuth2 related exception then check if need refresh tokens
-        // usually Cloud API has a dedicated exception to catch for OAuth2
-        // checkTokenState();
-
-        throw new CMISException("Error requesting Events service: " + e.getMessage(), e);
+        return events.getChangeEvents().iterator();
+      } catch (CmisRuntimeException e) {
+        throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
       }
     }
 
@@ -176,12 +150,12 @@ public class CMISAPI {
      * {@inheritDoc}
      */
     protected boolean hasNextChunk() {
-      // TODO implement actual logic for large folders fetching
-      return false;
+      // TODO check if it work properly
+      return events.getHasMoreItems();
     }
-    
-    long getNextPosition() {
-      return position+1; // TODO find real next event position to read from the cloud 
+
+    String getLatestChangeLogToken() {
+      return changeToken;
     }
   }
 
@@ -235,28 +209,58 @@ public class CMISAPI {
     }
   }
 
-  private StoredToken token;
-
-  private DriveState  state;
-
-  private String      enterpriseId, enterpriseName, customDomain;
+  /**
+   * Client session lock.
+   */
+  private final Lock             lock         = new ReentrantLock();
 
   /**
-   * Create Template API from OAuth2 authentication code.
-   * 
-   * @param key {@link String} API key the same also as OAuth2 client_id
-   * @param clientSecret {@link String}
-   * @param authCode {@link String}
-   * @throws CMISException if authentication failed for any reason.
-   * @throws CloudDriveException if credentials store exception happen
+   * Client session parameters.
    */
-  CMISAPI(String key, String clientSecret, String authCode) throws CMISException,
-      CloudDriveException {
+  protected Map<String, String>  parameters   = new HashMap<String, String>();
 
-    // TODO create Cloud API client and authenticate to it using given code.
-    this.token = new StoredToken();
+  /**
+   * Current CMIS repository.
+   */
+  protected String               repositoryId;
 
-    // TODO if client support add a listener to save OAuth2 tokens in stored token object.
+  protected DriveState           state;
+
+  protected String               enterpriseId, enterpriseName, customDomain;
+
+  protected ThreadLocal<Session> localSession = new ThreadLocal<Session>();
+
+  /**
+   * Create API from user credentials.
+   * 
+   * @param serviceURL {@link String}
+   * @param user {@link String}
+   * @param password {@link String}
+   * @throws CMISException
+   * @throws CloudDriveException
+   */
+  CMISAPI(String serviceURL, String user, String password) throws CMISException, CloudDriveException {
+    // Prepare CMIS server parameters
+    Map<String, String> parameters = new HashMap<String, String>();
+
+    // User credentials.
+    parameters.put(SessionParameter.USER, user);
+    parameters.put(SessionParameter.PASSWORD, password);
+
+    // Connection settings.
+    parameters.put(SessionParameter.ATOMPUB_URL, serviceURL);
+    // TODO
+    // if (repository != null) {
+    // // Only necessary if there is more than one repository.
+    // parameter.put(SessionParameter.REPOSITORY_ID, repository);
+    // }
+    parameters.put(SessionParameter.BINDING_TYPE, BindingType.ATOMPUB.value());
+
+    // TODO session locale
+    // parameters.put(SessionParameter.LOCALE_ISO3166_COUNTRY, "");
+    // parameters.put(SessionParameter.LOCALE_ISO639_LANGUAGE, "de");
+
+    this.parameters = parameters;
 
     // TODO init drive state (optional)
     updateState();
@@ -266,94 +270,130 @@ public class CMISAPI {
   }
 
   /**
-   * Create Template API from existing user credentials.
+   * Update user credentials.
    * 
-   * @param key {@link String} API key the same also as OAuth2 client_id
-   * @param clientSecret {@link String}
-   * @param accessToken {@link String}
-   * @param refreshToken {@link String}
-   * @param expirationTime long, token expiration time on milliseconds
-   * @throws CloudDriveException if credentials store exception happen
-   */
-  CMISAPI(String key, String clientSecret, String accessToken, String refreshToken, long expirationTime) throws CloudDriveException {
-
-    // TODO create Cloud API client and authenticate it using stored token.
-
-    this.token = new StoredToken();
-    this.token.load(accessToken, refreshToken, expirationTime);
-
-    // TODO authenticate client using stored token.
-
-    // init user (enterprise etc.)
-    initUser();
-  }
-
-  /**
-   * Update OAuth2 token to a new one.
-   * 
-   * @param newToken {@link StoredToken}
+   * @param user {@link String}
+   * @param password {@link String}
    * @throws CloudDriveException
    */
-  void updateToken(UserToken newToken) throws CloudDriveException {
-    this.token.merge(newToken);
+  void updateUser(Map<String, String> parameters) throws CloudDriveException {
+    try {
+      lock.lock();
+      this.parameters = new HashMap<String, String>(parameters);
+    } finally {
+      lock.unlock();
+    }
   }
 
   /**
-   * Current OAuth2 token associated with this API instance.
-   * 
-   * @return {@link StoredToken}
+   * @return CMIS session parameters.
    */
-  StoredToken getToken() {
-    return token;
+  Map<String, String> getParamaters() {
+    try {
+      lock.lock();
+      return Collections.unmodifiableMap(parameters);
+    } finally {
+      lock.unlock();
+    }
   }
-
-  // Bellow a dummy list of possible methods the API can has. It's blank field here, implement everything you
-  // need for your connector following the proposed try-catch sample.
 
   /**
    * Currently connected cloud user.
    * 
-   * @return
+   * @return String
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  Object getCurrentUser() throws CMISException, RefreshAccessException {
+  String getUser() throws CMISException, RefreshAccessException {
     try {
-      // TODO get an user from cloud client
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error requesting current user: " + e.getMessage(), e);
+      lock.lock();
+      return parameters.get(SessionParameter.USER);
+    } finally {
+      lock.unlock();
     }
+  }
+
+  /**
+   * Password of currently connected cloud user.
+   * 
+   * @return String
+   * @throws CMISException
+   * @throws RefreshAccessException
+   */
+  String getPassword() throws CMISException, RefreshAccessException {
+    try {
+      lock.lock();
+      return parameters.get(SessionParameter.PASSWORD);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * CMIS service's AtomPub URL.
+   * 
+   * @return String
+   * @throws CMISException
+   * @throws RefreshAccessException
+   */
+  String getServiceURL() throws CMISException, RefreshAccessException {
+    try {
+      lock.lock();
+      return parameters.get(SessionParameter.ATOMPUB_URL);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * Available repositories for current user.
+   * 
+   * @return list of {@link Repository} objects
+   * @throws CMISException
+   */
+  List<Repository> getRepositories() throws CMISException {
+    return Collections.unmodifiableList(repositories());
+  }
+
+  /**
+   * Init current CMIS repository for late use.
+   * 
+   * @param repositoryId {@link String} repository name
+   */
+  void initRepository(String repositoryId) {
+    this.repositoryId = repositoryId;
+  }
+
+  /**
+   * Current CMIS repository.
+   * 
+   * @return the repository
+   */
+  String getRepository() {
+    return repositoryId;
   }
 
   /**
    * The drive root folder.
    * 
-   * @return {@link Object}
+   * @return {@link Folder}
    * @throws CMISException
    */
-  Object getRootFolder() throws CMISException {
+  Folder getRootFolder() throws CMISException {
     try {
-      // return drive root folder
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
+      Folder root = session().getRootFolder();
+      return root;
+    } catch (CmisRuntimeException e) {
       throw new CMISException("Error getting root folder: " + e.getMessage(), e);
+    }
+  }
+  
+  CmisObject getObject(String objectId) throws CMISException {
+    try {
+      CmisObject object = session().getObject(objectId);
+      return object;
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error getting object: " + e.getMessage(), e);
     }
   }
 
@@ -364,21 +404,29 @@ public class CMISAPI {
   /**
    * Link (URl) to a file for opening on provider site (UI).
    * 
-   * @param item {@link Object}
+   * @param item {@link CmisObject}
    * @return String with the file URL.
+   * @throws CMISException
    */
-  String getLink(Object item) {
-    return "http://..."; // TODO return actual link for an item
+  String getLink(CmisObject file) throws CMISException {
+    // XXX type Constants.MEDIATYPE_FEED assumed as better fit, need confirm this with the doc
+    String link = ((LinkAccess) session().getBinding().getNavigationService()).loadLink(repositoryId,
+                                                                                        file.getId(),
+                                                                                        Constants.REL_DOWN,
+                                                                                        Constants.MEDIATYPE_FEED);
+    return link;
   }
 
   /**
-   * Link (URL) to embed a file onto external app (in PLF).
+   * Link (URL) to embed a file onto external app (in PLF). It is the same as file link.
    * 
-   * @param item {@link Object}
+   * @param item {@link CmisObject}
    * @return String with the file embed URL.
+   * @throws CMISException
+   * @see {@link #getLink(CmisObject)}
    */
-  String getEmbedLink(Object item) {
-    return "http://..."; // TODO return actual link for an item
+  String getEmbedLink(CmisObject item) throws CMISException {
+    return getLink(item);
   }
 
   DriveState getState() throws CMISException, RefreshAccessException {
@@ -410,14 +458,14 @@ public class CMISAPI {
     }
   }
 
-  EventsIterator getEvents(long streamPosition) throws CMISException, RefreshAccessException {
-    return new EventsIterator(streamPosition);
+  ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
+    return new ChangesIterator(changeToken);
   }
 
-  Object createFile(String parentId, String name, Calendar created, InputStream data) throws CMISException,
-                                                                                     NotFoundException,
-                                                                                     RefreshAccessException,
-                                                                                     ConflictException {
+  Document createFile(String parentId, String name, Calendar created, InputStream data) throws CMISException,
+                                                                                       NotFoundException,
+                                                                                       RefreshAccessException,
+                                                                                       ConflictException {
     try {
       // TODO request the cloud API and create the file...
       return new Object();
@@ -434,7 +482,7 @@ public class CMISAPI {
     }
   }
 
-  Object createFolder(String parentId, String name, Calendar created) throws CMISException,
+  Folder createFolder(String parentId, String name, Calendar created) throws CMISException,
                                                                      NotFoundException,
                                                                      RefreshAccessException,
                                                                      ConflictException {
@@ -506,16 +554,16 @@ public class CMISAPI {
    * Trash a cloud file by given fileId.
    * 
    * @param id {@link String}
-   * @return {@link Object} of the file successfully moved to Trash in cloud side
+   * @return {@link Document} of the file successfully moved to Trash in cloud side
    * @throws CMISException
    * @throws FileTrashRemovedException if file was permanently removed.
    * @throws NotFoundException
    * @throws RefreshAccessException
    */
-  Object trashFile(String id) throws CMISException,
-                             FileTrashRemovedException,
-                             NotFoundException,
-                             RefreshAccessException {
+  Document trashFile(String id) throws CMISException,
+                               FileTrashRemovedException,
+                               NotFoundException,
+                               RefreshAccessException {
     try {
       // TODO request the cloud API and trash the file...
       return new Object();
@@ -536,13 +584,13 @@ public class CMISAPI {
    * Trash a cloud folder by given folderId.
    * 
    * @param id {@link String}
-   * @return {@link Object} of the folder successfully moved to Trash in cloud side
+   * @return {@link Folder} of the folder successfully moved to Trash in cloud side
    * @throws CMISException
    * @throws FileTrashRemovedException if folder was permanently removed.
    * @throws NotFoundException
    * @throws RefreshAccessException
    */
-  Object trashFolder(String id) throws CMISException,
+  Folder trashFolder(String id) throws CMISException,
                                FileTrashRemovedException,
                                NotFoundException,
                                RefreshAccessException {
@@ -562,10 +610,10 @@ public class CMISAPI {
     }
   }
 
-  Object untrashFile(String id, String name) throws CMISException,
-                                            NotFoundException,
-                                            RefreshAccessException,
-                                            ConflictException {
+  Document untrashFile(String id, String name) throws CMISException,
+                                              NotFoundException,
+                                              RefreshAccessException,
+                                              ConflictException {
     try {
       // TODO request the cloud API and untrash the file...
       return new Object();
@@ -582,7 +630,7 @@ public class CMISAPI {
     }
   }
 
-  Object untrashFolder(String id, String name) throws CMISException,
+  Folder untrashFolder(String id, String name) throws CMISException,
                                               NotFoundException,
                                               RefreshAccessException,
                                               ConflictException {
@@ -609,17 +657,17 @@ public class CMISAPI {
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed file or <code>null</code> if file already exists with
+   * @return {@link Document} of actually changed file or <code>null</code> if file already exists with
    *         such name and parent.
    * @throws CMISException
    * @throws NotFoundException
    * @throws RefreshAccessException
    * @throws ConflictException
    */
-  Object updateFile(String parentId, String id, String name, Calendar modified) throws CMISException,
-                                                                               NotFoundException,
-                                                                               RefreshAccessException,
-                                                                               ConflictException {
+  Document updateFile(String parentId, String id, String name, Calendar modified) throws CMISException,
+                                                                                 NotFoundException,
+                                                                                 RefreshAccessException,
+                                                                                 ConflictException {
 
     try {
       // TODO request the cloud API and update the file...
@@ -637,9 +685,9 @@ public class CMISAPI {
     }
   }
 
-  Object updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws CMISException,
-                                                                                                        NotFoundException,
-                                                                                                        RefreshAccessException {
+  Document updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws CMISException,
+                                                                                                          NotFoundException,
+                                                                                                          RefreshAccessException {
     try {
       // TODO request the cloud API and update the file content...
       return new Object();
@@ -665,14 +713,14 @@ public class CMISAPI {
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed folder or <code>null</code> if folder already exists with
+   * @return {@link Folder} of actually changed folder or <code>null</code> if folder already exists with
    *         such name and parent.
    * @throws CMISException
    * @throws NotFoundException
    * @throws RefreshAccessException
    * @throws ConflictException
    */
-  Object updateFolder(String parentId, String id, String name, Calendar modified) throws CMISException,
+  Folder updateFolder(String parentId, String id, String name, Calendar modified) throws CMISException,
                                                                                  NotFoundException,
                                                                                  RefreshAccessException,
                                                                                  ConflictException {
@@ -700,16 +748,16 @@ public class CMISAPI {
    * @param parentId {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
-   * @return {@link Object} of actually copied file.
+   * @return {@link Document} of actually copied file.
    * @throws CMISException
    * @throws NotFoundException
    * @throws RefreshAccessException
    * @throws ConflictException
    */
-  Object copyFile(String id, String parentId, String name) throws CMISException,
-                                                          NotFoundException,
-                                                          RefreshAccessException,
-                                                          ConflictException {
+  Document copyFile(String id, String parentId, String name) throws CMISException,
+                                                            NotFoundException,
+                                                            RefreshAccessException,
+                                                            ConflictException {
     try {
       // TODO request the cloud API and copy the file...
       return new Object();
@@ -732,13 +780,13 @@ public class CMISAPI {
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
-   * @return {@link Object} of actually copied folder.
+   * @return {@link Folder} of actually copied folder.
    * @throws CMISException
    * @throws NotFoundException
    * @throws RefreshAccessException
    * @throws ConflictException
    */
-  Object copyFolder(String id, String parentId, String name) throws CMISException,
+  Folder copyFolder(String id, String parentId, String name) throws CMISException,
                                                             NotFoundException,
                                                             RefreshAccessException,
                                                             ConflictException {
@@ -792,22 +840,101 @@ public class CMISAPI {
     }
   }
 
-  // ********* internal *********
-
-  /**
-   * Check if need new access token from user (refresh token already expired).
-   * 
-   * @throws RefreshAccessException if client failed to refresh the access token and need new new token
-   */
-  private void checkTokenState() throws RefreshAccessException {
-    // TODO do actual check in cloud API or other way to ensure OAuth2 refresh token is up to date
-    if (true) {
-      // we need new access token (refresh token already expired here)
-      throw new RefreshAccessException("Authentication failure. Reauthenticate.");
+  RepositoryInfo getRepositoryInfo() throws CMISException {
+    try {
+      return session().getRepositoryInfo();
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error getting repository info: " + e.getMessage(), e);
     }
   }
 
+  boolean isFolder(CmisObject object) {
+    if (object.getBaseTypeId().equals(BaseTypeId.CMIS_FOLDER)) {
+      return true;
+    }
+    return false;
+  }
+
+  boolean isDocument(CmisObject object) {
+    if (object.getBaseTypeId().equals(BaseTypeId.CMIS_DOCUMENT)) {
+      return true;
+    }
+    return false;
+  }
+  
+  boolean isRelationship(CmisObject object) {
+    if (object.getBaseTypeId().equals(BaseTypeId.CMIS_RELATIONSHIP)) {
+      return true;
+    }
+    return false;
+  }
+
+  // ********* internal *********
+
   private void initUser() throws CMISException, RefreshAccessException, NotFoundException {
     // TODO additional and optional ops to init current user and its enterprise or group from cloud services
+  }
+
+  /**
+   * List of repositories available on CMIS service.
+   * 
+   * @return list of {@link Repository} objects
+   * @throws CMISException
+   */
+  private List<Repository> repositories() throws CMISException {
+    try {
+      lock.lock();
+      SessionFactory sessionFactory = SessionFactoryImpl.newInstance();
+      return sessionFactory.getRepositories(parameters);
+    } catch (CmisConnectionException e) {
+      // The server is unreachable
+      throw new CMISException("CMIS server is unreachable", e);
+    } catch (CmisRuntimeException e) {
+      // The user/password have probably been rejected by the server.
+      throw new CMISException("CMIS user rejected", e);
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * Create CMIS session.
+   * 
+   * @return {@link Session}
+   * @throws CMISException
+   */
+  private Session session() throws CMISException {
+    Session session = localSession.get();
+    if (session != null) {
+      // TODO should we check if session still live (not closed)?
+      return session;
+    } else {
+      for (Repository r : repositories()) {
+        if (r.getName().equals(repositoryId)) {
+          session = r.createSession();
+          localSession.set(session);
+          return session;
+        }
+      }
+    }
+    throw new CMISException("CMIS repository not found: " + repositoryId);
+  }
+
+  /**
+   * Create CMIS binding instance (low-level API but with fine grained control).<br>
+   * TODO not used!
+   * 
+   * @return {@link CmisBinding}
+   * @throws CMISException
+   */
+  private CmisBinding binding() throws CMISException {
+    CmisBindingFactory factory = CmisBindingFactory.newInstance();
+
+    Map<String, String> sessionParameters = new HashMap<String, String>(parameters);
+    if (repositoryId != null) {
+      sessionParameters.put(SessionParameter.REPOSITORY_ID, repositoryId);
+    }
+
+    return factory.createCmisAtomPubBinding(parameters);
   }
 }

@@ -112,7 +112,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       // sync stream
       // TODO run first sync here
       setChangeId(eventsInit.getNextStreamPosition());
-      rootNode.setProperty("box:streamHistory", "");
+      rootNode.setProperty("box:streamHistory", ""); // empty history
     }
 
     protected BoxFolder fetchChilds(String fileId, Node parent) throws CloudDriveException,
@@ -196,13 +196,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     protected BoxFolder syncChilds(String folderId, Node parent) throws RepositoryException,
                                                                 CloudDriveException {
+      
       ItemsIterator items = api.getFolderItems(folderId);
       iterators.add(items);
       while (items.hasNext() && !Thread.currentThread().isInterrupted()) {
         BoxItem item = items.next();
-
-        // remove from map of local to mark the item as existing
-        List<Node> existing = nodes.remove(item.getId());
 
         JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
         if (localItem.isChanged()) {
@@ -210,10 +208,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
           // cleanup of this file located in another place (usecase of rename/move)
           // XXX this also assumes that Box doesn't support linking of files to other folders
+          // remove from map of local to mark the item as existing
+          List<Node> existing = nodes.remove(item.getId());
           if (existing != null) {
+            String path = localItem.getPath();
             for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
               Node enode = eiter.next();
-              String path = localItem.getPath();
               String epath = enode.getPath();
               if (!epath.equals(path) && notInRange(epath, removed)) {
                 removed.add(epath);

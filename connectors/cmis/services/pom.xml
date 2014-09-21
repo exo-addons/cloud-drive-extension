@@ -38,13 +38,13 @@
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-clouddrive-services-core</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
       <type>jar</type>
     </dependency>
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-clouddrive-services-ecms</artifactId>
-      <scope>provided</scope>
+      <scope>compile</scope>
       <type>jar</type>
     </dependency>
     
@@ -110,6 +110,7 @@
     <dependency>
       <groupId>org.apache.chemistry.opencmis</groupId>
       <artifactId>chemistry-opencmis-client-impl</artifactId>
+      <scope>compile</scope>
       <type>jar</type>
     </dependency>
     <!-- dependency>

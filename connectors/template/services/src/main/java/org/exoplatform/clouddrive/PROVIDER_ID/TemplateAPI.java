@@ -140,9 +140,7 @@ public class TemplateAPI {
     /**
      * TODO optional position to fetch events
      */
-    long         position;
-
-    List<Object> nextChunk;
+    long position;
 
     EventsIterator(long position) throws TemplateException, RefreshAccessException {
       this.position = position;
@@ -179,9 +177,11 @@ public class TemplateAPI {
       // TODO implement actual logic for large folders fetching
       return false;
     }
-    
-    long getNextPosition() {
-      return position+1; // TODO find real next event position to read from the cloud 
+
+    long getChangeId() {
+      // TODO find real next event position to read from the cloud provider,
+      // if not available then apply local incremental ID which will let guess the position for sycn
+      return position + 1;
     }
   }
 

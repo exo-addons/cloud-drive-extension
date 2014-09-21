@@ -61,7 +61,7 @@ When need to provide an additional logic for your connector in client browser, i
 
 **CSS style file**
 
-To provide branded styles for your connector and its files you may need load a CSS to the browser when connected drive is open in Documents app. Cloud Drive client automaticaly loads connector styles from the web app of the extension by its name, no special action required. As mentioned above web app name should be `cloud-drive-PROVIDER_ID`. Then CSS file will be loaded by path: "/cloud-drive-PROVIDER_ID/skin/cloud-drive.css".
+To provide branded styles for your connector and its files you may need load a CSS to the browser when connected drive is open in Documents app. Cloud Drive client automaticaly loads connector styles from the web app of the extension by its name, no special action required. As mentioned above web app name should be `cloud-drive-PROVIDER_ID`. Then CSS file will be loaded by path: "/cloud-drive-PROVIDER_ID/skin/clouddrive.css".
 
 **CSS class names**
 

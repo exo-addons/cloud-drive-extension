@@ -51,7 +51,7 @@ http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
       <keywords>Cloud Drive - CMIS</keywords>
     </portlet-info>
 
-    <portlet-preferences>
+    <!-- portlet-preferences>
       <preference>
         <name>view</name>
         <value>normal</value>
@@ -62,6 +62,6 @@ http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
         <value>false</value>
         <read-only>false</read-only>
       </preference>
-    </portlet-preferences>
+    </portlet-preferences -->
   </portlet>
 </portlet-app>

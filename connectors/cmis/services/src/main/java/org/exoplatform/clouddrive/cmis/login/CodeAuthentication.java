@@ -24,6 +24,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import java.util.Random;
+import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.RepositoryException;
@@ -43,48 +44,133 @@ public class CodeAuthentication {
   /**
    * Lifetime of an identity in milliseconds.
    */
-  public static final long   IDENTITY_LIFETIME = 1000 * 10;
+  public static final long   IDENTITY_LIFETIME = 1000 * 60; // TODO 10sec
 
   protected static final Log LOG               = ExoLogger.getLogger(CodeAuthentication.class);
 
-  class Identity {
+  public class Identity {
     final String user;
 
     final String password;
 
+    final String serviceURL;
+
+    String       serviceContext;
+
     final long   created;
 
-    Identity(String user, String password) {
+    Identity(String serviceURL, String user, String password) {
       super();
+      this.serviceURL = serviceURL;
       this.user = user;
       this.password = password;
       this.created = System.currentTimeMillis();
     }
 
+    void setContext(String serviceContext) {
+      this.serviceContext = serviceContext;
+    }
+
     Object getCodeSource() {
+      StringBuilder src = new StringBuilder();
+      src.append(user);
+
       int passPart = random.nextInt(password.length() - 1);
       if (passPart == 0) {
         passPart = 1;
       }
-      String jcrName;
+      src.append(password.substring(0, passPart));
+
       try {
         // we rely on JCR repo name for better uniqueness
-        jcrName = jcrService.getCurrentRepository().getConfiguration().getName();
+        src.append(jcrService.getCurrentRepository().getConfiguration().getName());
       } catch (RepositoryException e) {
         LOG.warn("Error getting current JCR repository", e);
-        jcrName = "?";
+        src.append('?');
       }
-      return user + password.substring(0, passPart) + jcrName + created;
+
+      src.append(serviceURL);
+      src.append(serviceContext);
+      src.append(created);
+      return src.toString();
+    }
+
+    /**
+     * @return the user
+     */
+    public String getUser() {
+      return user;
+    }
+
+    /**
+     * @return the password
+     */
+    public String getPassword() {
+      return password;
+    }
+
+    /**
+     * @return the serviceContext
+     */
+    public String getServiceContext() {
+      return serviceContext;
+    }
+
+    /**
+     * @param serviceContext the serviceContext to set
+     */
+    public void setServiceContext(String serviceContext) {
+      this.serviceContext = serviceContext;
+    }
+
+    /**
+     * @return the serviceURL
+     */
+    public String getServiceURL() {
+      return serviceURL;
+    }
+
+    /**
+     * @return the created
+     */
+    public long getCreated() {
+      return created;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj) {
+      return this == obj;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void finalize() throws Throwable {
+      exchanged.values().remove(this); // self-cleanup
+      super.finalize();
     }
   }
 
-  private final Random                              random     = new Random();
+  private final Random                              random    = new Random();
 
   private final IDGeneratorService                  idGenerator;
 
   private final RepositoryService                   jcrService;
 
-  private final ConcurrentHashMap<String, Identity> identities = new ConcurrentHashMap<String, Identity>();
+  /**
+   * Authentication codes before {@link #exchangeCode(String)} invocation.
+   */
+  private final ConcurrentHashMap<String, Identity> codes     = new ConcurrentHashMap<String, Identity>();
+
+  /**
+   * Authentication codes after {@link #exchangeCode(String)} but before
+   * {@link #setCodeContext(String, String)} invocation.
+   */
+  private final ConcurrentHashMap<String, Identity> exchanged = new ConcurrentHashMap<String, Identity>();
 
   /**
    * 
@@ -94,12 +180,23 @@ public class CodeAuthentication {
     this.jcrService = jcrService;
   }
 
-  public String authenticate(String user, String password) {
-    Identity id = new Identity(user, password);
+  /**
+   * Create user identity for given user name, password and a service URL. This identity will be stored
+   * internally and an authentication code will be returned to the caller. Later this code can be exchanged on
+   * the identity in {@link #exchangeCode(String)}.
+   * 
+   * @param serviceURL {@link String}
+   * @param user  {@link String}
+   * @param password  {@link String}
+   * @see #exchangeCode(String)
+   * @return  {@link String}
+   */
+  public String authenticate(String serviceURL, String user, String password) {
+    Identity id = new Identity(serviceURL, user, password);
     String code = idGenerator.generateStringID(id.getCodeSource());
     Identity prevId;
     int counter = 0;
-    while ((prevId = identities.putIfAbsent(code, id)) != null) {
+    while ((prevId = codes.putIfAbsent(code, id)) != null) {
       // such code already exists, generate a new one
       if (counter >= 1000) {
         LOG.error("Cannot find a free code for user " + user);
@@ -107,27 +204,76 @@ public class CodeAuthentication {
       }
       counter++;
       if (prevId.user.equals(user)) {
-        identities.remove(code, prevId);
+        codes.remove(code, prevId);
       }
-      id = new Identity(user, password);
+      id = new Identity(serviceURL, user, password);
       code = idGenerator.generateStringID(id.getCodeSource());
     }
 
-    // TODO invoke outdated codes cleanup
     return code;
   }
 
+  @Deprecated
   public boolean hasCode(String code) {
-    return identities.containsKey(code);
+    Identity id = codes.get(code);
+    if (id != null && System.currentTimeMillis() - id.created < IDENTITY_LIFETIME) {
+      return true;
+    }
+    return false;
   }
 
-  public Identity exchangeCode(String code) {
-    Identity id = identities.remove(code);
-    if (System.currentTimeMillis() - id.created < IDENTITY_LIFETIME) {
+  /**
+   * Exchange given code on user identity associated with this code in
+   * {@link #authenticate(String, String, String)}. User identity after this method may be not fully
+   * initialized as for its context. Identity context is optional and can be initialized by
+   * {@link #setCodeContext(String, String)} method once, after that call identity will be fully removed from
+   * the authenticator.<br>
+   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be thrown.
+   * 
+   * @param code {@link String}
+   * @return {@link Identity} of an user
+   * @see #setCodeContext(String, String)
+   * @throws AuthenticationException if code doesn't match any user
+   */
+  public Identity exchangeCode(String code) throws AuthenticationException {
+    Identity id = codes.remove(code);
+    if (id != null && System.currentTimeMillis() - id.created < IDENTITY_LIFETIME) {
+      exchanged.put(code, id);
       return id;
+    }
+    throw new AuthenticationException("Invalid code");
+  }
+
+  /**
+   * Set identity context for a code. The code may be already exchanged by {@link #exchangeCode(String)},
+   * after this it will be fully removed from the authenticator.<br>
+   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be thrown.
+   * 
+   * @param code {@link String}
+   * @param context {@link String}
+   * @see #exchangeCode(String)
+   * @throws AuthenticationException
+   */
+  public void setCodeContext(String code, String context) throws AuthenticationException {
+    Identity id = codes.get(code);
+    if (id != null && System.currentTimeMillis() - id.created < IDENTITY_LIFETIME) {
+      id.setContext(context);
     } else {
-      return null;
+      id = exchanged.remove(code);
+      if (id != null) {
+        id.setContext(context);
+      } else {
+        throw new AuthenticationException("Invalid code");
+      }
     }
   }
 
+  @Deprecated
+  public boolean hasCodeContext(String code) {
+    Identity id = codes.get(code);
+    if (id != null && System.currentTimeMillis() - id.created < IDENTITY_LIFETIME) {
+      return id.getServiceContext() != null;
+    }
+    return false;
+  }
 }

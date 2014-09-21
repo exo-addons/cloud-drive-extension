@@ -41,12 +41,8 @@ import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -83,9 +79,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     @Override
     protected void fetchFiles() throws CloudDriveException, RepositoryException {
-      // call Events service before the actual fetch of cloud files,
-      // this will provide us a proper streamPosition to start sync from later
-      EventsIterator eventsInit = api.getEvents(-1);
+      // Obtain connectChangeId before the actual fetch of cloud files,
+      // this will provide us a proper connectChangeId to start sync from later.
+      long connectChangeId = api.getEvents(-1).getChangeId();
 
       Object root = fetchChilds("ROOT_ID", rootNode); // TODO use actual ID
       initCloudItem(rootNode, root); // init parent
@@ -94,7 +90,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       rootNode.setProperty("ecd:url", api.getLink(root));
 
       // sync stream
-      setChangeId(eventsInit.getNextPosition());
+      setChangeId(connectChangeId);
       rootNode.setProperty("YOUR_PROVIDE_ID:streamHistory", "");
     }
 
@@ -148,17 +144,12 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       // real all local nodes of this drive
       readLocalNodes();
 
-      // call Events service before the actual fetch of cloud files,
-      // this will provide us a proper streamPosition to start sync from later
-      EventsIterator eventsInit = api.getEvents(-1);
+      // remember full sync position (same logic as in Connect command)
+      long syncChangeId = api.getEvents(-1).getChangeId();
 
       // sync with cloud
       Object root = syncChilds("ROOT_ID", rootNode); // TODO use actual ID
       initCloudItem(rootNode, root); // init parent
-
-      // sync stream
-      setChangeId(eventsInit.getNextPosition());
-      rootNode.setProperty("PROVIDER_ID:changesHistory", "");
 
       // remove local nodes of files not existing remotely, except of root
       nodes.remove("ROOT_ID"); // TODO use actual ID
@@ -174,6 +165,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
           }
         }
       }
+
+      // update sync position
+      setChangeId(syncChangeId);
     }
 
     protected Object syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
@@ -222,7 +216,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
       super.exec();
 
-      // at this point we know all changes already applied - we don't need history anymore
+      // at this point we know all changes already applied - we don't need history anymore in super class
       fileHistory.clear();
       try {
         jcrListener.disable();
@@ -588,39 +582,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     /**
      * Internal API.
      */
-    protected final TemplateAPI                    api;
-
-    /**
-     * Currently applied history of the drive storage.
-     */
-    protected final Set<String>                    history    = new LinkedHashSet<String>();
-
-    /**
-     * New history with currently applied event ids.
-     */
-    protected final Set<String>                    newHistory = new LinkedHashSet<String>();
-
-    /**
-     * Applied items in latest state mapped by item id.
-     */
-    protected final Map<String, JCRLocalCloudFile> applied    = new LinkedHashMap<String, JCRLocalCloudFile>();
-
-    /**
-     * Undeleted events by item id.
-     */
-    protected final Map<String, Object>            undeleted  = new LinkedHashMap<String, Object>();
-
-    /**
-     * Ids of removed items.
-     */
-    protected final Set<String>                    removedIds = new LinkedHashSet<String>();
+    protected final TemplateAPI api;
 
     /**
      * Events from drive to apply.
      */
-    protected EventsIterator                       events;
+    protected EventsIterator    events;
 
-    protected Object                               nextEvent;
+    protected Object            nextEvent;
 
     /**
      * Create command for Template synchronization.
@@ -640,23 +609,19 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     protected void syncFiles() throws CloudDriveException, RepositoryException {
       // TODO implement real sync algorithm based on events from cloud API
 
-      long localStreamPosition = getChangeId();
+      long localChangeId = getChangeId();
 
       // buffer all items,
       // apply them in proper order (taking in account parent existence),
       // remove already applied (check by event id in history),
       // apply others to local nodes
       // save just applied events as history
-      events = api.getEvents(localStreamPosition);
+      events = api.getEvents(localChangeId);
       iterators.add(events);
 
-      // Local history, it contains something applied in previous sync, it can be empty if it was full sync.
-      for (String es : rootNode.getProperty("PROVIDER_ID:changesHistory").getString().split(";")) {
-        history.add(es);
-      }
-
-      while (hasNextEvent()) {
-        Object event = nextEvent();
+      // loop over events and respect this thread interrupted status to cancel the command correctly
+      while (events.hasNext() && !Thread.currentThread().isInterrupted()) {
+        Object event = events.next();
         Object item = new Object(); // event.getItem();
         String eventType = "TODO"; // event.getEventType();
 
@@ -686,35 +651,29 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         }
       }
 
-      if (false) { // TODO if sync via events not possible - then we can run Full Sync
-        // EventsSync cannot solve all changes, need run FullSync
-        LOG.warn("Not all events applied for cloud sync. Running full sync.");
+      if (!Thread.currentThread().isInterrupted()) {
+        if (false) { // TODO if sync via events not possible - then we can run Full Sync
+          // EventsSync cannot solve all changes, need run FullSync
+          LOG.warn("Not all events applied for cloud sync. Running full sync.");
 
-        // rollback everything from this sync
-        rollback(rootNode);
+          // rollback everything from this sync
+          rollback(rootNode);
 
-        // we need full sync in this case
-        FullSync fullSync = new FullSync();
-        fullSync.execLocal();
+          // we need full sync in this case
+          FullSync fullSync = new FullSync();
+          fullSync.execLocal();
 
-        changed.clear();
-        changed.addAll(fullSync.getFiles());
-        removed.clear();
-        removed.addAll(fullSync.getRemoved());
-      } else {
-        // save history
-        // TODO consider for saving the history of several hours or even a day
-        StringBuilder newHistoryData = new StringBuilder();
-        for (Iterator<String> eriter = newHistory.iterator(); eriter.hasNext();) {
-          newHistoryData.append(eriter.next());
-          if (eriter.hasNext()) {
-            newHistoryData.append(';');
-          }
+          changed.clear();
+          changed.addAll(fullSync.getFiles());
+          removed.clear();
+          removed.addAll(fullSync.getRemoved());
+        } else {
+          // TODO for next syncs needs you may need to save the history
+          // consider for saving the history of several hours or even a day
+
+          // update sync position
+          setChangeId(events.getChangeId());
         }
-        rootNode.setProperty("PROVIDER_ID:changesHistory", newHistoryData.toString());
-
-        // update sync position
-        setChangeId(events.getNextPosition());
       }
     }
 
@@ -735,78 +694,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       return items.parent;
     }
 
-    protected Object readEvent() throws CloudDriveException {
-      while (events.hasNext()) {
-        Object next = events.next();
-
-        // keep in new history all we get from the cloud API, it can be received in next sync also
-        newHistory.add("TODO next.getId()");
-
-        if (!history.contains("TODO next.getId()")) {
-          return next;
-        }
-      }
-      return null;
-    }
-
-    protected boolean hasNextEvent() throws CloudDriveException {
-      if (nextEvent != null) {
-        return true;
-      }
-      nextEvent = readEvent();
-      if (nextEvent != null) {
-        return true;
-      }
-      return false;
-    }
-
-    protected Object nextEvent() throws NoSuchElementException, CloudDriveException {
-      Object event = null;
-      if (nextEvent != null) {
-        event = nextEvent;
-        nextEvent = null;
-      } else {
-        event = readEvent();
-      }
-
-      if (event != null) {
-        return event;
-      }
-
-      throw new NoSuchElementException("No more events.");
-    }
-
-    protected Object undeleted(String itemId) {
-      return undeleted.get(itemId);
-    }
-
-    protected void undelete(Object item) {
-      undeleted.put("TODO item.getId()", item);
-    }
-
     protected void apply(JCRLocalCloudFile local) {
       if (local.isChanged()) {
-        applied.put(local.getId(), local);
         removed.remove(local.getPath());
-        removedIds.remove(local.getId());
         changed.add(local);
       }
     }
 
-    protected JCRLocalCloudFile applied(String itemId) {
-      return applied.get(itemId);
-    }
-
-    protected JCRLocalCloudFile remove(String itemId, String itemPath) {
+    protected void remove(String itemId, String itemPath) {
       if (itemPath != null) {
         removed.add(itemPath);
       }
-      removedIds.add(itemId);
-      return applied.remove(itemId);
-    }
-
-    protected boolean isRemoved(String itemId) {
-      return removedIds.contains(itemId);
     }
   }
 

@@ -24,15 +24,34 @@ import juzu.Resource;
 import juzu.Response;
 import juzu.View;
 import juzu.impl.request.Request;
-import juzu.plugin.ajax.Ajax;
 import juzu.template.Template;
 
+import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudDriveService;
+import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.clouddrive.ProviderNotAvailableException;
+import org.exoplatform.clouddrive.cmis.CMISUser;
+import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
+import org.exoplatform.commons.juzu.ajax.Ajax;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.gatein.common.util.Base64;
 
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.inject.Inject;
 
 /**
@@ -46,59 +65,178 @@ import javax.inject.Inject;
  */
 public class CMISLoginController {
 
-  private static final Log                                  LOG = ExoLogger.getLogger(CMISLoginController.class);
+  private static final Log                                     LOG           = ExoLogger.getLogger(CMISLoginController.class);
+
+  private static final String                                  KEY_ALGORITHM = "RSA";
 
   @Inject
   @Path("login.gtmpl")
-  Template                                                  login;
+  org.exoplatform.clouddrive.cmis.portlet.templates.login      login;
 
   @Inject
   @Path("userkey.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.userkey userKey;
+  org.exoplatform.clouddrive.cmis.portlet.templates.userkey    userKey;
+
+  @Inject
+  @Path("repository.gtmpl")
+  org.exoplatform.clouddrive.cmis.portlet.templates.repository repository;
 
   @Inject
   @Path("error.gtmpl")
-  Template                                                  error;
+  org.exoplatform.clouddrive.cmis.portlet.templates.error      error;
 
   @Inject
-  CodeAuthentication                                        authService;
+  CodeAuthentication                                           authService;
+
+  @Inject
+  CloudDriveService                                            cloudDrives;
+
+  private final ConcurrentHashMap<String, PrivateKey>          keys          = new ConcurrentHashMap<String, PrivateKey>();
 
   @View
   public Response index() {
     Request request = Request.getCurrent();
     Map<String, String[]> parameters = request.getParameters();
-    return login.with(parameters).ok();
+    try {
+      return login.with(parameters).set("provider", cloudDrives.getProvider("cmis")).ok();
+    } catch (ProviderNotAvailableException e) {
+      LOG.error("Login error: provider not available", e);
+      return CMISLoginController_.error("CMIS provider not available");
+    }
   }
 
   @View
   public Response error(String message) {
     Request request = Request.getCurrent();
     Map<String, String[]> parameters = request.getParameters();
-    return error.with().set("message", message).ok();
+    return error.with().message(message).ok();
   }
 
   @Ajax
   @Resource
   public Response userKey(String user) {
-    // TODO transfer all parameters and redirect to redirect_url
-    return userKey.with().key("$"+user+"--key").ok();
+    return userKey.with().key(createKey(user)).ok();
   }
 
-  @Action
-  public Response login(String user, String password) {
-    // TODO transfer all parameters and redirect to redirect_url
-    Request request = Request.getCurrent();
-    Map<String, String[]> parameters = request.getParameters();
-    String[] redirectURI = parameters.get("redirect_uri");
-    if (redirectURI != null && redirectURI.length > 0) {
-      return Response.redirect(redirectURI[0]);
+  @Ajax
+  @Resource
+  public Response loginUser(String serviceURL, String user, String password) throws CMISLoginException {
+    if (serviceURL != null && serviceURL.length() > 0) {
+      if (user != null && user.length() > 0) {
+        if (password != null && password.length() > 0) {
+          String passwordText = decodePassword(user, password);
+          String code = authService.authenticate(serviceURL, user, passwordText);
+          try {
+            CloudProvider cmisProvider = cloudDrives.getProvider("cmis");
+            CMISUser cmisUser = (CMISUser) cloudDrives.authenticate(cmisProvider, code);
+            return repository.with().code(code).repositories(cmisUser.getRepositories()).ok();
+          } catch (ProviderNotAvailableException e) {
+            LOG.error("Login error: provider not available", e);
+            return error.with().set("message", "CMIS provider not available").ok();
+          } catch (CloudDriveException e) {
+            LOG.error("Login error: authentication error", e);
+            return error.with().set("message", "CMIS authentication error for " + user).ok();
+          }
+        } else {
+          LOG.warn("Wrong login: password required for " + user);
+          return error.with().set("message", "Password required").ok();
+        }
+      } else {
+        LOG.warn("Wrong login: user required for " + serviceURL);
+        return error.with().set("message", "User required").ok();
+      }
     } else {
-      // we don't have a redirect URI in the request - error
-      LOG.warn("Wrong login URL: redirect_uri not found for " + user);
-      // return Response.content(400, "Wrong login URL.");
-      return CMISLoginController_.error("Wrong login URL.");
-      // return error.with().set("message", "Wrong login URL.").ok();
+      LOG.warn("Wrong login: serviceURL required");
+      return error.with().set("message", "Service URL required").ok();
     }
   }
 
+  @Action
+  public Response loginRepository(String code, String repository) throws CMISLoginException {
+    // TODO transfer all parameters and redirect to redirect_url
+    Request request = Request.getCurrent();
+    Map<String, String[]> parameters = request.getParameters();
+    String[] redirects = parameters.get("redirect_uri");
+    if (redirects != null && redirects.length > 0) {
+      try {
+        authService.setCodeContext(code, repository);
+      } catch (AuthenticationException e) {
+        LOG.warn("Authentication error. " + e.getMessage());
+        return CMISLoginController_.error("Authentication error. " + e.getMessage());
+      }
+      String redirectURL = redirects[0];
+      if (redirectURL.indexOf('?') > 0) {
+        redirectURL += "&code=" + code;
+      } else {
+        redirectURL += "?code=" + code;
+      }
+      return Response.redirect(redirectURL);
+    } else {
+      // we don't have a redirect URI in the request - error
+      LOG.warn("Wrong login URL: redirect_uri not found");
+      // return Response.content(400, "Wrong login URL.");
+      return CMISLoginController_.error("Wrong login URL.");
+    }
+  }
+
+  // ***************** internals *****************
+
+  /**
+   * Create key-pair. Store private key in the controller. Return public key from the method (should be return
+   * to an user).
+   * 
+   * @param user {@link String}
+   * @return String public key in string encoded in Base64.
+   */
+  private String createKey(String user) {
+    try {
+      KeyPairGenerator keyGen = KeyPairGenerator.getInstance(KEY_ALGORITHM);
+      keyGen.initialize(1024, SecureRandom.getInstance("SHA1PRNG"));
+      KeyPair keyPair = keyGen.genKeyPair();
+      PublicKey publicKey = keyPair.getPublic();
+      PrivateKey privateKey = keyPair.getPrivate();
+
+      keys.put(user, privateKey);
+      // TODO cleanup
+      // StringBuilder retString = new StringBuilder();
+      // for (int i = 0; i < key.length; ++i) {
+      // retString.append(Integer.toHexString(0x0100 + (key[i] & 0x00FF)).substring(1));
+      // }
+      return Base64.encodeBytes(publicKey.getEncoded());
+    } catch (NoSuchAlgorithmException e) {
+      LOG.error("Error creating " + KEY_ALGORITHM + " key pair for user " + user, e);
+      throw new IllegalStateException("Error creating key for user " + user, e);
+    }
+  }
+
+  private String decodePassword(String user, String password) throws CMISLoginException {
+    PrivateKey userKey = keys.get(user);
+    if (userKey != null) {
+      try {
+        Cipher cipher = Cipher.getInstance(KEY_ALGORITHM);
+        // decode the plain text using the private key
+        cipher.init(Cipher.DECRYPT_MODE, userKey);
+        return new String(cipher.doFinal(password.getBytes()));
+      } catch (NoSuchAlgorithmException e) {
+        LOG.error("Error creating " + KEY_ALGORITHM + " cipher for user " + user, e);
+        throw new IllegalStateException("Error decoding password for user " + user, e);
+      } catch (NoSuchPaddingException e) {
+        LOG.error("Error creating " + KEY_ALGORITHM + " cipher for user " + user, e);
+        throw new IllegalStateException("Error decoding password for user " + user, e);
+      } catch (InvalidKeyException e) {
+        LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + user, e);
+        throw new CMISLoginException("Error decoding password for user " + user, e);
+      } catch (IllegalBlockSizeException e) {
+        LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
+        throw new CMISLoginException("Error decoding password for user " + user, e);
+      } catch (BadPaddingException e) {
+        LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
+        throw new CMISLoginException("Error decoding password for user " + user, e);
+      }
+    } else {
+      // TODO throw new CMISLoginException("User key not found for " + user);
+      LOG.warn("User key not found for " + user + ". Use password as plain text.");
+      return password;
+    }
+  }
 }

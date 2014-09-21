@@ -21,6 +21,12 @@ package org.exoplatform.clouddrive.cmis;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.services.jcr.RepositoryService;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
@@ -30,9 +36,90 @@ import javax.jcr.RepositoryException;
  */
 public class CMISProvider extends CloudProvider {
 
+  public static class AtomPub {
+    String name;
+
+    String url;
+
+    int    hashCode;
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String name) {
+      this.hashCode = 0;
+      this.name = name;
+    }
+
+    /**
+     * @param url the url to set
+     */
+    public void setUrl(String url) {
+      this.hashCode = 0;
+      this.url = url;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+      return name;
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl() {
+      return url;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+      if (hashCode == 0 && url != null) {
+        int hc = 1;
+        if (name != null) {
+          hc = 17 + name.hashCode();
+        } else {
+          hc = 19;
+        }
+        hc = hc * 31 + url.hashCode();
+        hashCode = hc;
+      }
+
+      return hashCode;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object obj) {
+      if (obj instanceof AtomPub) {
+        return (name != null ? name.equals(((AtomPub) obj).getName()) : true)
+            && (url.equals(((AtomPub) obj).getUrl()));
+      }
+      return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+      return name != null ? name + ": " + url : url;
+    }
+  }
+
+  protected static final Log        LOG        = ExoLogger.getLogger(CMISProvider.class);
+
   protected final String            authURL;
 
   protected final RepositoryService jcrService;
+
+  protected Set<AtomPub>            predefined = new LinkedHashSet<AtomPub>();
 
   /**
    * @param id
@@ -41,10 +128,7 @@ public class CMISProvider extends CloudProvider {
    * @param redirectURL
    * @param jcrService
    */
-  public CMISProvider(String id,
-                          String name,
-                          String authURL,
-                          RepositoryService jcrService) {
+  public CMISProvider(String id, String name, String authURL, RepositoryService jcrService) {
     super(id, name);
     this.authURL = authURL;
     this.jcrService = jcrService;
@@ -58,7 +142,7 @@ public class CMISProvider extends CloudProvider {
     if (jcrService != null) {
       try {
         String currentRepo = jcrService.getCurrentRepository().getConfiguration().getName();
-        return authURL.replace("NO_STATE", currentRepo); // TODO use real const for NO_STATE
+        return authURL.replace(CMISAPI.NO_STATE, currentRepo);
       } catch (RepositoryException e) {
         throw new CloudDriveException(e);
       }
@@ -76,4 +160,17 @@ public class CMISProvider extends CloudProvider {
     return true;
   }
 
+  public Set<AtomPub> getPredefinedAtompubServices() {
+    return Collections.unmodifiableSet(predefined);
+  }
+
+  protected void initPredefined(Set<?> predefined) {
+    for (Object obj : predefined) {
+      if (obj instanceof AtomPub) {
+        this.predefined.add((AtomPub) obj);
+      } else {
+        LOG.warn("Not supported predefined service: " + predefined.getClass().getName());
+      }
+    }
+  }
 }

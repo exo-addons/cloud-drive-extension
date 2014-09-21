@@ -26,15 +26,31 @@
     @Binding(value = RepositoryService.class),
     @Binding(value = SessionProviderService.class),
     @Binding(value = NodeHierarchyCreator.class),
+    @Binding(value = CloudDriveService.class),
     @Binding(value = CodeAuthentication.class)
 }
 )
+//@Assets(
+//    location = AssetLocation.SERVER,
+//    scripts = {
+//        @Script(src = "js/jquery-ui.js", id="jquery-ui", depends = {"jquery"} ),
+//        @Script(src = "js/bootstrap.js", id="bootstrap", depends = {"jquery"} ),
+//        @Script(src = "js/clouddrive-cmis-login.js", depends = {"juzu-ajax", "jquery", "jquery-ui", "bootstrap"} )
+//    },
+//    stylesheets = {
+//        @Stylesheet(src = "skin/jquery-ui.css"),
+//        @Stylesheet(src = "skin/clouddrive-cmis-login.css")
+//    }
+//)
+
 package org.exoplatform.clouddrive.cmis.portlet;
+
 import juzu.Application;
 import juzu.plugin.binding.Binding;
 import juzu.plugin.binding.Bindings;
 import juzu.plugin.portlet.Portlet;
 
+import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;

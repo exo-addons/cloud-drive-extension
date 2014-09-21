@@ -7,6 +7,9 @@ import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConfigurationException;
 import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
+import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
+import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.container.xml.InitParams;
@@ -15,6 +18,7 @@ import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -30,37 +34,36 @@ import javax.jcr.RepositoryException;
  */
 public class CMISConnector extends CloudDriveConnector {
 
+  protected static final String CONFIG_PREDEFINED = "";
+
   /**
    * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
    */
   class API {
-    String code, refreshToken, accessToken;
 
-    long   expirationTime;
+    String serviceUrl, user, password;
 
     /**
-     * Authenticate to the API with OAuth2 code returned on callback url.
+     * Authenticate to the API with user and password.
      * 
-     * @param code String
-     * @return this API
+     * @param user {@link String}
+     * @param password {@link String}
+     * @return {@link API}
      */
-    API auth(String code) {
-      this.code = code;
+    API auth(String user, String password) {
+      this.user = user;
+      this.password = password;
       return this;
     }
 
     /**
-     * Authenticate to the API with locally stored tokens.
+     * Set CMIS service URL.
      * 
-     * @param refreshToken
-     * @param accessToken
-     * @param expirationTime
-     * @return this API
+     * @param serviceUrl {@link String}
+     * @return {@link API}
      */
-    API load(String refreshToken, String accessToken, long expirationTime) {
-      this.refreshToken = refreshToken;
-      this.accessToken = accessToken;
-      this.expirationTime = expirationTime;
+    API serviceUrl(String serviceUrl) {
+      this.serviceUrl = serviceUrl;
       return this;
     }
 
@@ -72,21 +75,38 @@ public class CMISConnector extends CloudDriveConnector {
      * @throws CloudDriveException if cannot load local tokens
      */
     CMISAPI build() throws CMISException, CloudDriveException {
-      if (code != null && code.length() > 0) {
-        // build API based on OAuth2 code
-        return new CMISAPI(getClientId(), getClientSecret(), code);
-      } else {
-        // build API based on locally stored tokens
-        return new CMISAPI(getClientId(), getClientSecret(), accessToken, refreshToken, expirationTime);
+      if (user == null || password == null) {
+        throw new CloudDriveException("Cannot create API: user required");
       }
+      if (serviceUrl == null) {
+        throw new CloudDriveException("Cannot create API: service URL required");
+      }
+      return new CMISAPI(serviceUrl, user, password);
     }
   }
+
+  class AuthFlow {
+    final CMISUser user;
+
+    final Identity identity;
+
+    AuthFlow(CMISUser user, Identity identity) {
+      this.user = user;
+      this.identity = identity;
+    }
+  }
+
+  private final CodeAuthentication                  codeAuth;
+
+  private final ConcurrentHashMap<String, AuthFlow> users = new ConcurrentHashMap<String, AuthFlow>();
 
   public CMISConnector(RepositoryService jcrService,
                        SessionProviderService sessionProviders,
                        NodeFinder finder,
-                       InitParams params) throws ConfigurationException {
+                       InitParams params,
+                       CodeAuthentication codeAuth) throws ConfigurationException {
     super(jcrService, sessionProviders, finder, params);
+    this.codeAuth = codeAuth;
   }
 
   /**
@@ -115,7 +135,14 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getConnectorHost());
     authURL.append("/portal/clouddrive/");
     authURL.append(getProviderId());
-    authURL.append("/login?redirect_uri=");
+    authURL.append("/login?state=");
+    try {
+      authURL.append(URLEncoder.encode(CMISAPI.NO_STATE, "UTF-8"));
+    } catch (UnsupportedEncodingException e) {
+      LOG.warn("Cannot encode state " + CMISAPI.NO_STATE + ":" + e);
+      authURL.append(CMISAPI.NO_STATE);
+    }
+    authURL.append("&redirect_uri=");
     try {
       authURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
     } catch (UnsupportedEncodingException e) {
@@ -123,22 +150,66 @@ public class CMISConnector extends CloudDriveConnector {
       authURL.append(redirectURL);
     }
 
-    return new CMISProvider(getProviderId(), getProviderName(), authURL.toString(), jcrService);
+    CMISProvider provider = new CMISProvider(getProviderId(),
+                                             getProviderName(),
+                                             authURL.toString(),
+                                             jcrService);
+
+    provider.initPredefined(predefinedServices.getServices());
+    return provider;
   }
 
+  /**
+   * Authenticate an user by a code and return {@link CMISUser} instance. CMIS connector requires custom two
+   * step authentication instead of OAuth2 flow. This two-step flow is similar to OAuth2 where user does
+   * authentication to the service and then authorizes via OAuth2 protocol. This is done to support other
+   * parts of Cloud Drive add-on.<br>
+   * On first call of this method (first step), given code will be exchanged on user identity and
+   * {@link CMISUser} instance will be created. This user instance will be stored in the connector mapped by
+   * the code. At the same time the user identity should be late initialized with a context (CMIS repository
+   * to connect by the user). If the identity will not be initialized before a second call (second step), this
+   * method will fail with {@link CloudDriveException}.<br>
+   * CMIS connector doesn't manage the user identity initialization or any other extra steps. This should be
+   * done outside this connector (e.g. via dedicated authenticator).
+   * 
+   * @param code {@link String} authentication code
+   * @return {@link CMISUser}
+   */
   @Override
-  protected CloudUser authenticate(String code) throws CloudDriveException {
+  protected CMISUser authenticate(String code) throws CloudDriveException {
     if (code != null && code.length() > 0) {
-      CMISAPI driveAPI = new API().auth(code).build();
-      Object apiUser = driveAPI.getCurrentUser();
-      CMISUser user = new CMISUser("apiUser.getId()",
-                                   "apiUser.getName()",
-                                   "apiUser.getLogin()",
-                                   provider,
-                                   driveAPI);
-      return user;
+      AuthFlow userFlow = users.remove(code);
+      if (userFlow == null) {
+        // exchange the code on identity and create an user
+        try {
+          Identity userId = codeAuth.exchangeCode(code);
+          CMISAPI driveAPI = new API().auth(userId.getUser(), userId.getPassword())
+                                      .serviceUrl(userId.getServiceURL())
+                                      .build();
+          CMISUser user = new CMISUser(driveAPI.getUser(), //
+                                       driveAPI.getUser(), // TODO real name?
+                                       driveAPI.getUser(), // TODO real email
+                                       provider,
+                                       driveAPI);
+          // we ignore something mapped previously as it is almost not possible due to uniqueness of the code
+          users.put(code, new AuthFlow(user, userId));
+          return user;
+        } catch (AuthenticationException e) {
+          throw new CloudDriveException("Authentication failed: " + e.getMessage(), e);
+        }
+      } else {
+        // complete the user by setting the code context (CMIS repository here)
+        CMISUser user = userFlow.user;
+        String context = userFlow.identity.getServiceContext();
+        if (context != null) {
+          user.api().initRepository(context);
+        } else {
+          throw new CloudDriveException("CMIS repository not defined");
+        }
+        return user;
+      }
     } else {
-      throw new CloudDriveException("Access key should not be null or empty");
+      throw new CloudDriveException("Access code should not be null or empty");
     }
   }
 
