@@ -19,6 +19,7 @@
 package org.exoplatform.clouddrive.cmis;
 
 import org.apache.chemistry.opencmis.client.api.Repository;
+import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 
@@ -81,24 +82,25 @@ public class CMISUser extends CloudUser {
   public CMISProvider getProvider() {
     return (CMISProvider) super.getProvider();
   }
-  
+
   /**
-   * Identifiers of available CMIS repositories for this user.
+   * Available CMIS repositories for this user.
    * 
-   * @return List of repository ids.
-   * @throws CMISException 
+   * @return List of repositories.
+   * @throws CloudDriveAccessException
+   * @throws CMISException
    */
-  public List<String> getRepositories() throws CMISException {
-    List<Repository> cmisRepos = api().getRepositories();
-    List<String> repoIds = new ArrayList<String>();
-    for (Repository r : cmisRepos) {
-      repoIds.add(r.getId());
-    }
-    return repoIds;
+  public List<Repository> getRepositories() throws CloudDriveAccessException, CMISException {
+    return api().getRepositories();
+    // TODO List<String> repoIds = new ArrayList<String>();
+    // for (Repository r : cmisRepos) {
+    // repoIds.add(r.getId());
+    // }
+    // return repoIds;
   }
-  
+
   /**
-   * Set current CMIS repository for operations of this user. 
+   * Set current CMIS repository for operations of this user.
    * 
    * @param repositoryId {@link String}
    */

@@ -55,6 +55,7 @@
 		});
 
 		var $loginData = $("#cmis-login-data");
+		var $error = $("#cmis-login-error");
 
 		$("#service-url-predefined a").click(function() {
 			$loginData.find(":input[name='service-url']").val($(this).attr("data-url"));
@@ -63,6 +64,7 @@
 		$loginData.find("input").keypress(function(event) {
 			if (event.which == 13) {
 				event.preventDefault();
+				$error.empty();
 				$loginData.submit();
 			}
 		});
@@ -82,8 +84,9 @@
 					var key = $("#cmis-login-key span").attr("data-key");
 					if (key) {
 						console.log("key: " + key);
+						var $repository = $("#cmis-login-repository")
 						// TODO encrypt user and password
-						$("#cmis-login-repository").jzLoad("CMISLoginController.loginUser()", {
+						$repository.jzLoad("CMISLoginController.loginUser()", {
 						  "serviceURL" : serviceURL,
 						  "user" : user,
 						  "password" : password
@@ -112,7 +115,15 @@
 								$loginData.toggle("blind");
 								$login.show();
 							} else {
-								console.log("WARN: code not found");
+								var $message = $repository.find(".error-message-text");
+								if ($message.length > 0) {
+									console.log("ERROR: " + $message.text());
+									$error.empty();
+									$message.detach().appendTo($error);	
+									$message.show();
+								} else {
+									console.log("WARN: code not found");
+								}
 							}
 						});
 					} else {

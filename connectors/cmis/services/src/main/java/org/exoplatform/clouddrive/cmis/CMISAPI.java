@@ -22,27 +22,45 @@ import org.apache.chemistry.opencmis.client.api.ChangeEvent;
 import org.apache.chemistry.opencmis.client.api.ChangeEvents;
 import org.apache.chemistry.opencmis.client.api.CmisObject;
 import org.apache.chemistry.opencmis.client.api.Document;
+import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
 import org.apache.chemistry.opencmis.client.api.ItemIterable;
+import org.apache.chemistry.opencmis.client.api.ObjectId;
 import org.apache.chemistry.opencmis.client.api.Repository;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.client.api.SessionFactory;
 import org.apache.chemistry.opencmis.client.bindings.CmisBindingFactory;
 import org.apache.chemistry.opencmis.client.bindings.spi.LinkAccess;
+import org.apache.chemistry.opencmis.client.bindings.spi.atompub.AtomPubParser;
 import org.apache.chemistry.opencmis.client.runtime.SessionFactoryImpl;
+import org.apache.chemistry.opencmis.commons.PropertyIds;
 import org.apache.chemistry.opencmis.commons.SessionParameter;
+import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.BaseTypeId;
 import org.apache.chemistry.opencmis.commons.enums.BindingType;
+import org.apache.chemistry.opencmis.commons.enums.UnfileObject;
+import org.apache.chemistry.opencmis.commons.enums.VersioningState;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisBaseException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisConnectionException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisConstraintException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisContentAlreadyExistsException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisNameConstraintViolationException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisObjectNotFoundException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisPermissionDeniedException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisRuntimeException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisStreamNotSupportedException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisUnauthorizedException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisUpdateConflictException;
 import org.apache.chemistry.opencmis.commons.impl.Constants;
 import org.apache.chemistry.opencmis.commons.spi.CmisBinding;
+import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.FileTrashRemovedException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive.LocalFile;
 import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
@@ -52,9 +70,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -74,7 +94,7 @@ public class CMISAPI {
    * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
    * 
    */
-  class ItemsIterator extends ChunkIterator<CmisObject> {
+  class ChildrenIterator extends ChunkIterator<CmisObject> {
     final String folderId;
 
     /**
@@ -82,7 +102,7 @@ public class CMISAPI {
      */
     Folder       parent;
 
-    ItemsIterator(String folderId) throws CloudDriveException {
+    ChildrenIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
 
       // fetch first
@@ -97,6 +117,12 @@ public class CMISAPI {
           parent = (Folder) obj;
           ItemIterable<CmisObject> children = parent.getChildren();
           // TODO reorder folders first in the iterator?
+          // TODO accurate available number
+          // long total = children.getTotalNumItems();
+          // if (total == -1) {
+          // total = children.getPageNumItems();
+          // }
+          available(children.getPageNumItems());
           return children.iterator();
         } else {
           // empty iterator
@@ -140,7 +166,16 @@ public class CMISAPI {
         // TODO remember position for next chunk and next iterators
         changeToken = events.getLatestChangeLogToken();
 
-        return events.getChangeEvents().iterator();
+        List<ChangeEvent> changes = events.getChangeEvents();
+
+        // TODO accurate available number
+        // long total = events.getTotalNumItems();
+        // if (total == -1) {
+        // total = changes.size();
+        // }
+        available(changes.size());
+
+        return changes.iterator();
       } catch (CmisRuntimeException e) {
         throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
       }
@@ -350,8 +385,9 @@ public class CMISAPI {
    * 
    * @return list of {@link Repository} objects
    * @throws CMISException
+   * @throws RefreshAccessException
    */
-  List<Repository> getRepositories() throws CMISException {
+  List<Repository> getRepositories() throws CMISException, RefreshAccessException {
     return Collections.unmodifiableList(repositories());
   }
 
@@ -378,8 +414,9 @@ public class CMISAPI {
    * 
    * @return {@link Folder}
    * @throws CMISException
+   * @throws RefreshAccessException
    */
-  Folder getRootFolder() throws CMISException {
+  Folder getRootFolder() throws CMISException, RefreshAccessException {
     try {
       Folder root = session().getRootFolder();
       return root;
@@ -387,18 +424,40 @@ public class CMISAPI {
       throw new CMISException("Error getting root folder: " + e.getMessage(), e);
     }
   }
-  
-  CmisObject getObject(String objectId) throws CMISException {
+
+  CmisObject getObject(String objectId) throws CMISException, NotFoundException, CloudDriveAccessException {
     try {
       CmisObject object = session().getObject(objectId);
       return object;
+    } catch (CmisObjectNotFoundException e) {
+      throw new NotFoundException("Error reading object: " + e.getMessage(), e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error reading object: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error reading object: " + e.getMessage(), e);
+    } catch (CmisStreamNotSupportedException e) {
+      throw new RefreshAccessException("Permission denied for document content reading: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document reading: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for reading document: " + e.getMessage(), e);
     } catch (CmisRuntimeException e) {
-      throw new CMISException("Error getting object: " + e.getMessage(), e);
+      throw new CMISException("Error reading document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error reading document: " + e.getMessage(), e);
     }
   }
 
-  ItemsIterator getFolderItems(String folderId) throws CloudDriveException {
-    return new ItemsIterator(folderId);
+  ChildrenIterator getFolderItems(String folderId) throws CloudDriveException {
+    return new ChildrenIterator(folderId);
+  }
+
+  ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
+    return new ChangesIterator(changeToken);
   }
 
   /**
@@ -407,14 +466,50 @@ public class CMISAPI {
    * @param item {@link CmisObject}
    * @return String with the file URL.
    * @throws CMISException
+   * @throws RefreshAccessException
    */
-  String getLink(CmisObject file) throws CMISException {
+  String getLink(CmisObject file) throws CMISException, RefreshAccessException {
     // XXX type Constants.MEDIATYPE_FEED assumed as better fit, need confirm this with the doc
-    String link = ((LinkAccess) session().getBinding().getNavigationService()).loadLink(repositoryId,
-                                                                                        file.getId(),
-                                                                                        Constants.REL_DOWN,
-                                                                                        Constants.MEDIATYPE_FEED);
-    return link;
+    // TODO org.apache.chemistry.opencmis.client.bindings.spi.atompub.CmisAtomPubConstants.LINK_HREF,
+
+    LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
+
+    String linkSelfEntry = link.loadLink(repositoryId,
+                                         file.getId(),
+                                         Constants.REL_SELF,
+                                         Constants.MEDIATYPE_ENTRY);
+
+    String linkContent = link.loadContentLink(repositoryId, file.getId());
+
+    // String prefix = "OBJ LINK (" + file.getId() + " " + file.getName() + ") ";
+    // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
+    // LOG.info(prefix + " linkContent: " + linkContent);
+
+    return linkContent != null ? linkContent : linkSelfEntry;
+  }
+
+  /**
+   * Link (URl) to a folder for downloading from provider site.
+   * 
+   * @param item {@link Document}
+   * @return String with the file URL.
+   * @throws CMISException
+   * @throws RefreshAccessException
+   */
+  String getLink(Folder file) throws CMISException, RefreshAccessException {
+    LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
+
+    String linkSelfEntry = link.loadLink(repositoryId,
+                                         file.getId(),
+                                         Constants.REL_SELF,
+                                         Constants.MEDIATYPE_ENTRY);
+
+    String linkContent = link.loadContentLink(repositoryId, file.getId());
+    // String prefix = "FOLDER LINK (" + file.getId() + " " + file.getName() + ") ";
+    // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
+    // LOG.info(prefix + " linkContent: " + linkContent);
+
+    return linkSelfEntry;
   }
 
   /**
@@ -423,10 +518,37 @@ public class CMISAPI {
    * @param item {@link CmisObject}
    * @return String with the file embed URL.
    * @throws CMISException
+   * @throws RefreshAccessException
    * @see {@link #getLink(CmisObject)}
    */
-  String getEmbedLink(CmisObject item) throws CMISException {
+  String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
     return getLink(item);
+  }
+
+  /**
+   * Link (URL) to embed a folder onto external app (in PLF). It is the same as file link.
+   * 
+   * @param folder {@link Folder}
+   * @return String with the file embed URL.
+   * @throws CMISException
+   * @throws RefreshAccessException
+   * @see {@link #getLink(CmisObject)}
+   */
+  String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
+    return getLink(folder);
+  }
+
+  /**
+   * Link (URL) to embed a document onto external app (in PLF). It is the same as document link.
+   * 
+   * @param doc {@link Document}
+   * @return String with the file embed URL.
+   * @throws CMISException
+   * @throws RefreshAccessException
+   * @see {@link #getLink(CmisObject)}
+   */
+  String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
+    return getLink(doc);
   }
 
   DriveState getState() throws CMISException, RefreshAccessException {
@@ -458,47 +580,118 @@ public class CMISAPI {
     }
   }
 
-  ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
-    return new ChangesIterator(changeToken);
-  }
-
-  Document createFile(String parentId, String name, Calendar created, InputStream data) throws CMISException,
-                                                                                       NotFoundException,
-                                                                                       RefreshAccessException,
-                                                                                       ConflictException {
+  Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
+                                                                                          NotFoundException,
+                                                                                          ConflictException,
+                                                                                          CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and create the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      CmisObject obj;
+      try {
+        obj = session.getObject(parentId);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Parent not found: " + parentId, e);
+      }
+      if (isFolder(obj)) {
+        Folder parent = (Folder) obj;
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+        Map<String, Object> properties = new HashMap<String, Object>();
+        properties.put(PropertyIds.OBJECT_TYPE_ID, BaseTypeId.CMIS_DOCUMENT.value());
+        properties.put(PropertyIds.NAME, name);
+        // created date not used as CMIS will set its own one
+        // properties.put(PropertyIds.CREATION_DATE, created);
 
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error creating cloud file: " + e.getMessage(), e);
+        // content length = -1 if it is unknown
+        ContentStream contentStream = session.getObjectFactory()
+                                             .createContentStream(name, -1, mimeType, data);
+        return parent.createDocument(properties, contentStream, VersioningState.MAJOR);
+      } else {
+        throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
+      }
+    } catch (CmisUpdateConflictException e) {
+      // conflict actual for update/deletion/move
+      throw new ConflictException("Document update conflict for '" + name + "'", e);
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error creating document: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable to create document with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to create document '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error creating document: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error creating document: " + e.getMessage(), e);
+    } catch (CmisStreamNotSupportedException e) {
+      throw new RefreshAccessException("Permission denied for document content upload: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document creation: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for create document: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error creating document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error creating document: " + e.getMessage(), e);
     }
   }
 
-  Folder createFolder(String parentId, String name, Calendar created) throws CMISException,
-                                                                     NotFoundException,
-                                                                     RefreshAccessException,
-                                                                     ConflictException {
+  Folder createFolder(String parentId, String name) throws CMISException,
+                                                   NotFoundException,
+                                                   ConflictException,
+                                                   CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and create the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error creating cloud folder: " + e.getMessage(), e);
+      CmisObject obj;
+      try {
+        obj = session.getObject(parentId);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Parent not found: " + parentId, e);
+      }
+      if (isFolder(obj)) {
+        Map<String, Object> properties = new HashMap<String, Object>();
+        properties.put(PropertyIds.OBJECT_TYPE_ID, BaseTypeId.CMIS_FOLDER.value());
+        properties.put(PropertyIds.NAME, name);
+        // created date not used as CMIS will set its own one
+        Folder parent = (Folder) obj;
+        return parent.createFolder(properties);
+      } else {
+        throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
+      }
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error creating folder: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable create folder with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable create folder '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error creating folder: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error creating folder: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for folder creation: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized to create folder: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error creating folder: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error creating folder: " + e.getMessage(), e);
     }
   }
 
@@ -508,21 +701,43 @@ public class CMISAPI {
    * @param id {@link String}
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  void deleteFile(String id) throws CMISException, NotFoundException, RefreshAccessException {
+  void deleteDocument(String id) throws CMISException,
+                                NotFoundException,
+                                ConflictException,
+                                CloudDriveAccessException {
+    Session session = session();
+    String name = "";
     try {
-      // TODO request the cloud API and remove the file...
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error deleteing cloud file: " + e.getMessage(), e);
+      CmisObject obj = session.getObject(id);
+      name = obj.getName();
+      obj.delete(true);
+    } catch (CmisObjectNotFoundException e) {
+      throw new NotFoundException("Document not found: " + id, e);
+    } catch (CmisUpdateConflictException e) {
+      // conflict actual for update/deletion/move
+      throw new ConflictException("Document removal conflict for '" + name + "'", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable delete document '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error deleting document: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error deleting document: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document removal: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized to delete document: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error deleting document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error deleting document: " + e.getMessage(), e);
     }
   }
 
@@ -532,216 +747,316 @@ public class CMISAPI {
    * @param id {@link String}
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  void deleteFolder(String id) throws CMISException, NotFoundException, RefreshAccessException {
+  void deleteFolder(String id) throws CMISException,
+                              NotFoundException,
+                              ConflictException,
+                              CloudDriveAccessException {
+    Session session = session();
+    String name = "";
     try {
-      // TODO request the cloud API and remove the folder...
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error deleteing cloud folder: " + e.getMessage(), e);
+      CmisObject obj = session.getObject(id);
+      name = obj.getName();
+      if (isFolder(obj)) {
+        Folder folder = (Folder) obj;
+        folder.deleteTree(true, UnfileObject.DELETE, false);
+      } else {
+        throw new CMISException("Not a folder: " + id + ", " + name);
+      }
+    } catch (CmisObjectNotFoundException e) {
+      throw new NotFoundException("Error deleting folder: " + e.getMessage(), e);
+    } catch (CmisUpdateConflictException e) {
+      throw new ConflictException("Folder removal conflict for '" + name + "'", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to delete folder '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error deleting folder: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error deleting folder: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for folder removal: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for deleting folder: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error deleting folder: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error deleting folder: " + e.getMessage(), e);
     }
   }
 
   /**
-   * Trash a cloud file by given fileId.
+   * Update document name (if differs with remote) and its content stream.
    * 
    * @param id {@link String}
-   * @return {@link Document} of the file successfully moved to Trash in cloud side
+   * @param name {@link String}
+   * @param data {@link InputStream} content stream
+   * @param mimeType {@link String} mime-type of the content stream
+   * @param local {@link LocalFile} access to local file for move operation support
+   * @return {@link Document} of actually changed document
    * @throws CMISException
-   * @throws FileTrashRemovedException if file was permanently removed.
    * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  Document trashFile(String id) throws CMISException,
-                               FileTrashRemovedException,
-                               NotFoundException,
-                               RefreshAccessException {
+  Document updateContent(String id, String name, InputStream data, String mimeType, LocalFile local) throws CMISException,
+                                                                                                    NotFoundException,
+                                                                                                    ConflictException,
+                                                                                                    CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and trash the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      CmisObject obj;
+      try {
+        obj = session.getObject(id);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Document not found: " + id, e);
+      }
+      if (isDocument(obj)) {
+        Document document = (Document) obj;
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+        // update name to local
+        if (!document.getName().equals(name)) {
+          Map<String, Object> properties = new HashMap<String, Object>();
+          properties.put(PropertyIds.NAME, name);
 
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
+          // update document properties
+          ObjectId objId = document.updateProperties(properties, true);
+          if (objId != null && objId instanceof Document) {
+            document = (Document) objId;
+          }
+        }
 
-      throw new CMISException("Error trashing cloud file: " + e.getMessage(), e);
+        // content length = -1 if it is unknown
+        ContentStream contentStream = session.getObjectFactory()
+                                             .createContentStream(name, -1, mimeType, data);
+        Document updatedDocument = document.setContentStream(contentStream, true);
+        if (updatedDocument != null) {
+          document = updatedDocument;
+        }
+
+        return document; // resulting document updated to reflect remote changes
+      } else {
+        throw new CMISException("Object not a document: " + id + ", " + obj.getName());
+      }
+    } catch (CmisContentAlreadyExistsException e) {
+      // conflict actual for setContentStream only
+      throw new ConflictException("Document content already exists for '" + name
+          + "' and overwrite not requested", e);
+    } catch (CmisUpdateConflictException e) {
+      // conflict actual for update/deletion/move
+      throw new ConflictException("Conflict of document updating for '" + name + "'", e);
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error updating document: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable to update document with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to update document '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error updating cloud document: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error updating cloud document: " + e.getMessage(), e);
+    } catch (CmisStreamNotSupportedException e) {
+      throw new RefreshAccessException("Permission denied for document content update: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document updating: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for updating document: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error updating document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error updating document: " + e.getMessage(), e);
     }
   }
 
   /**
-   * Trash a cloud folder by given folderId.
-   * 
-   * @param id {@link String}
-   * @return {@link Folder} of the folder successfully moved to Trash in cloud side
-   * @throws CMISException
-   * @throws FileTrashRemovedException if folder was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   */
-  Folder trashFolder(String id) throws CMISException,
-                               FileTrashRemovedException,
-                               NotFoundException,
-                               RefreshAccessException {
-    try {
-      // TODO request the cloud API and untrash the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error untrashing cloud folder: " + e.getMessage(), e);
-    }
-  }
-
-  Document untrashFile(String id, String name) throws CMISException,
-                                              NotFoundException,
-                                              RefreshAccessException,
-                                              ConflictException {
-    try {
-      // TODO request the cloud API and untrash the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error untrashing cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  Folder untrashFolder(String id, String name) throws CMISException,
-                                              NotFoundException,
-                                              RefreshAccessException,
-                                              ConflictException {
-    try {
-      // TODO request the cloud API and untrash the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error untrashing cloud folder: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Update file name or/and parent and set given modified date.
+   * Update CMIS object name and parent (if object was moved locally).
    * 
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
-   * @param modified {@link Calendar}
-   * @return {@link Document} of actually changed file or <code>null</code> if file already exists with
+   * @param data {@link InputStream} content stream or <code>null</code> if content should not be updated
+   * @param mimeType {@link String} mime-type of the content stream or <code>null</code> if content not
+   *          provided
+   * @param local {@link LocalFile} access to local file for move operation support
+   * @return {@link CmisObject} of actually changed object or <code>null</code> if it already exists with
    *         such name and parent.
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
    * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  Document updateFile(String parentId, String id, String name, Calendar modified) throws CMISException,
-                                                                                 NotFoundException,
-                                                                                 RefreshAccessException,
-                                                                                 ConflictException {
-
+  CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
+                                                                                   NotFoundException,
+                                                                                   ConflictException,
+                                                                                   CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and update the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      CmisObject result = null;
+      CmisObject obj;
+      try {
+        obj = session.getObject(id);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Object not found: " + id, e);
+      }
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // update name
+      if (!obj.getName().equals(name)) {
+        Map<String, Object> properties = new HashMap<String, Object>();
+        properties.put(PropertyIds.NAME, name);
 
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
+        // update object properties
+        ObjectId objId = obj.updateProperties(properties, true);
+        if (objId != null && objId instanceof CmisObject) {
+          obj = result = (CmisObject) objId;
+        }
+      }
 
-      throw new CMISException("Error updating cloud file: " + e.getMessage(), e);
-    }
-  }
+      if (isFileable(obj)) {
+        FileableCmisObject fileable = (FileableCmisObject) obj;
 
-  Document updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws CMISException,
-                                                                                                          NotFoundException,
-                                                                                                          RefreshAccessException {
-    try {
-      // TODO request the cloud API and update the file content...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+        // update parent if required
+        // go through actual parents to find should we move/add the file to another parent
+        boolean move = true;
+        List<Folder> parents = fileable.getParents();
+        Set<String> parentIds = new HashSet<String>();
+        for (Folder p : parents) {
+          String pid = p.getId();
+          parentIds.add(pid);
+          if (pid.equals(parentId)) {
+            move = false;
+            break;
+          }
+        }
+        if (move) {
+          try {
+            obj = session.getObject(parentId);
+          } catch (CmisObjectNotFoundException e) {
+            throw new NotFoundException("Parent not found: " + parentId, e);
+          }
+          if (isFolder(obj)) {
+            Folder parent = (Folder) obj;
+            Folder srcParent;
+            if (parents.size() > 1) {
+              // need lookup in local drive and compare with remote to find the srcParent
+              String rpid = local.findRemoteParent(id, parentIds);
+              if (rpid != null) {
+                try {
+                  obj = session.getObject(rpid);
+                } catch (CmisObjectNotFoundException e) {
+                  throw new NotFoundException("Source parent not found: " + rpid, e);
+                }
+                if (isFolder(obj)) {
+                  srcParent = (Folder) obj;
+                } else {
+                  throw new CMISException("Source parent not a folder: " + rpid + ", " + obj.getName());
+                }
+              } else {
+                // if all remote parents are local also,
+                // we only can use multi-filing to add this document to the required parent
+                if (session.getRepositoryInfo().getCapabilities().isMultifilingSupported()) {
+                  fileable.addToFolder(parent, true);
+                  return fileable; // and return from here
+                } else {
+                  throw new CMISException("Cannot move document without source folder and with disabled multi-filing: "
+                      + id + ", " + name);
+                }
+              }
+            } else {
+              // obviously it's source parent
+              srcParent = parents.get(0);
+            }
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+            FileableCmisObject moved = fileable.move(srcParent, parent);
+            if (moved != null) {
+              result = moved;
+            }
+          } else {
+            throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
+          }
+        }
 
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error updating cloud file content: " + e.getMessage(), e);
+        return result; // resulting object updated to reflect remote changes
+      } else {
+        throw new CMISException("Object not a document: " + id + ", " + obj.getName());
+      }
+    } catch (CmisUpdateConflictException e) {
+      // conflict actual for update/deletion/move
+      throw new ConflictException("Conflict of object updating for '" + name + "'", e);
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error updating object: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable to update object with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to update object '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error updating object: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error updating object: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for object updating: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized to update object: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error updating object: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error updating object: " + e.getMessage(), e);
     }
   }
 
   /**
-   * Update folder name or/and parent and set given modified date. If folder was actually updated (name or/and
+   * Update folder name or/and its parent. If folder was actually updated (name or/and
    * parent changed) this method return updated folder object or <code>null</code> if folder already exists
    * with such name and parent.
    * 
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
-   * @param modified {@link Calendar}
+   * @param local {@link LocalFile} access to local folder for move operation support
    * @return {@link Folder} of actually changed folder or <code>null</code> if folder already exists with
    *         such name and parent.
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
    * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  Folder updateFolder(String parentId, String id, String name, Calendar modified) throws CMISException,
-                                                                                 NotFoundException,
-                                                                                 RefreshAccessException,
-                                                                                 ConflictException {
-    try {
-      // TODO request the cloud API and update the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error updating cloud folder: " + e.getMessage(), e);
+  Folder updateFolder(String parentId, String id, String name, LocalFile local) throws CMISException,
+                                                                               NotFoundException,
+                                                                               ConflictException,
+                                                                               CloudDriveAccessException {
+    CmisObject obj = updateObject(parentId, id, name, local);
+    if (obj == null || isFolder(obj)) {
+      return (Folder) obj;
+    } else {
+      throw new CMISException("Object not a folder: " + id + ", " + obj.getName());
     }
   }
 
   /**
-   * Copy file to a new one. If file was successfully copied this method return new file object.
+   * Copy document to a new one. If file was successfully copied this method return new document object.
    * 
    * 
    * @param id {@link String}
@@ -751,31 +1066,104 @@ public class CMISAPI {
    * @return {@link Document} of actually copied file.
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
    * @throws ConflictException
+   * @throws CloudDriveAccessException
    */
-  Document copyFile(String id, String parentId, String name) throws CMISException,
-                                                            NotFoundException,
-                                                            RefreshAccessException,
-                                                            ConflictException {
+  Document copyDocument(String id, String parentId, String name) throws CMISException,
+                                                                NotFoundException,
+                                                                ConflictException,
+                                                                CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and copy the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error copying cloud file: " + e.getMessage(), e);
+      CmisObject obj;
+      try {
+        obj = session.getObject(parentId);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Parent not found: " + parentId, e);
+      }
+      if (isFolder(obj)) {
+        Folder parent = (Folder) obj;
+        try {
+          obj = session.getObject(id);
+        } catch (CmisObjectNotFoundException e) {
+          throw new NotFoundException("Source not found: " + parentId, e);
+        }
+        if (isDocument(obj)) {
+          return copyDocument((Document) obj, parent, name);
+        } else {
+          throw new CMISException("Source not a document: " + id + ", " + obj.getName());
+        }
+      } else {
+        throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
+      }
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
     }
   }
 
   /**
-   * Copy folder to a new one. If folder was successfully copied this method return new folder object.
+   * Copy document to a new one using CMIS objects. If file was successfully copied this method return new
+   * document object.
+   * 
+   * @param source {@link Document}
+   * @param parent {@link Folder}
+   * @param name {@link String}
+   * @param modified {@link Calendar}
+   * @return {@link Document} of actually copied file.
+   * @throws CMISException
+   * @throws NotFoundException
+   * @throws ConflictException
+   * @throws CloudDriveAccessException
+   */
+  Document copyDocument(Document source, Folder parent, String name) throws CMISException,
+                                                                    NotFoundException,
+                                                                    ConflictException,
+                                                                    CloudDriveAccessException {
+    try {
+      Map<String, Object> properties = new HashMap<String, Object>();
+      properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
+      properties.put(PropertyIds.NAME, name);
+      return parent.createDocumentFromSource(source, properties, VersioningState.MAJOR);
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable to copy document with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to copy document '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisStreamNotSupportedException e) {
+      throw new RefreshAccessException("Permission denied for document content copying: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document copying: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for copying document: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Copy folder to a new one. If folder was successfully copied this method return new folder object. Notable
+   * that CMIS doesn't support folder copying natively and this method does recursive traversing of the source
+   * and create new folder
+   * with sub-folders from it. This may cause not full copy of a folder in general
+   * case (permissions or other metadata may not be copied).
    * 
    * @param id {@link String}
    * @param parentId {@link String}
@@ -783,64 +1171,113 @@ public class CMISAPI {
    * @return {@link Folder} of actually copied folder.
    * @throws CMISException
    * @throws NotFoundException
-   * @throws RefreshAccessException
    * @throws ConflictException
+   * @throws CloudDriveAccessException
+   * 
+   * @see #copyFolder(Folder, Folder, String)
    */
   Folder copyFolder(String id, String parentId, String name) throws CMISException,
                                                             NotFoundException,
-                                                            RefreshAccessException,
-                                                            ConflictException {
+                                                            ConflictException,
+                                                            CloudDriveAccessException {
+    Session session = session();
     try {
-      // TODO request the cloud API and copy the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error copying cloud folder: " + e.getMessage(), e);
+      CmisObject obj;
+      try {
+        obj = session.getObject(parentId);
+      } catch (CmisObjectNotFoundException e) {
+        throw new NotFoundException("Parent not found: " + parentId, e);
+      }
+      if (isFolder(obj)) {
+        Folder parent = (Folder) obj;
+        try {
+          obj = session.getObject(id);
+        } catch (CmisObjectNotFoundException e) {
+          throw new NotFoundException("Source not found: " + parentId, e);
+        }
+        if (isFolder(obj)) {
+          Folder source = (Folder) obj;
+          return copyFolder(source, parent, name);
+        } else {
+          throw new CMISException("Source not a folder: " + id + ", " + obj.getName());
+        }
+      } else {
+        throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
+      }
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
     }
   }
 
-  Object readFile(String id) throws CMISException, NotFoundException, RefreshAccessException {
+  /**
+   * Copy folder to a new one using CMIS objects. If folder was successfully copied this method return new
+   * folder object. <br>
+   * Notable that CMIS doesn't support folder copy and this method does traversing of the source and create
+   * new folder with sub-folders and only copy documents from them. This may cause not full copy of a folder
+   * in general case (permissions or other metadata may not be copied).
+   * 
+   * @param id {@link String}
+   * @param parentId {@link String}
+   * @param name {@link String}
+   * @return {@link Folder} of actually copied folder.
+   * @throws CMISException
+   * @throws NotFoundException
+   * @throws ConflictException
+   * @throws CloudDriveAccessException
+   */
+  Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
+                                                              NotFoundException,
+                                                              ConflictException,
+                                                              CloudDriveAccessException {
     try {
-      // TODO request the cloud API and read the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error reading cloud file: " + e.getMessage(), e);
+      Map<String, Object> properties = new HashMap<String, Object>(2);
+      properties.put(PropertyIds.NAME, source.getName());
+      properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
+      Folder copyFolder = parent.createFolder(properties);
+      // copy child documents recursively
+      for (CmisObject child : source.getChildren()) {
+        if (isDocument(child)) {
+          copyDocument((Document) child, parent, child.getName());
+        } else if (child instanceof Folder) {
+          copyFolder((Folder) child, parent, child.getName());
+        }
+      }
+      return copyFolder;
+    } catch (CmisObjectNotFoundException e) {
+      // this can be a rice condition when parent just deleted or similar happened remotely
+      throw new NotFoundException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisNameConstraintViolationException e) {
+      // name constraint considered as conflict (requires another name)
+      // TODO check cyclic loop not possible due to infinite error - change name - error - change...
+      throw new ConflictException("Unable to copy document with name '" + name
+          + "' due to repository constraints", e);
+    } catch (CmisConstraintException e) {
+      // repository/object level constraint considered as critical error (cancels operation)
+      throw new CMISException("Unable to copy document '" + name + "' due to repository constraints", e);
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisStreamNotSupportedException e) {
+      throw new RefreshAccessException("Permission denied for document content copying: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for document copying: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for copying document: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error copying document: " + e.getMessage(), e);
     }
   }
 
-  Object readFolder(String id) throws CMISException, NotFoundException, RefreshAccessException {
-    try {
-      // TODO request the cloud API and read the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new CMISException("Error reading cloud folder: " + e.getMessage(), e);
-    }
-  }
-
-  RepositoryInfo getRepositoryInfo() throws CMISException {
+  RepositoryInfo getRepositoryInfo() throws CMISException, RefreshAccessException {
     try {
       return session().getRepositoryInfo();
     } catch (CmisRuntimeException e) {
@@ -861,9 +1298,16 @@ public class CMISAPI {
     }
     return false;
   }
-  
+
   boolean isRelationship(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_RELATIONSHIP)) {
+      return true;
+    }
+    return false;
+  }
+
+  boolean isFileable(CmisObject object) {
+    if (object instanceof FileableCmisObject) {
       return true;
     }
     return false;
@@ -879,9 +1323,10 @@ public class CMISAPI {
    * List of repositories available on CMIS service.
    * 
    * @return list of {@link Repository} objects
-   * @throws CMISException
+   * @throws CMISException when runtime or connection error happens
+   * @throws RefreshAccessException if user credentials rejected (and need try renew them)
    */
-  private List<Repository> repositories() throws CMISException {
+  private List<Repository> repositories() throws CMISException, RefreshAccessException {
     try {
       lock.lock();
       SessionFactory sessionFactory = SessionFactoryImpl.newInstance();
@@ -889,9 +1334,11 @@ public class CMISAPI {
     } catch (CmisConnectionException e) {
       // The server is unreachable
       throw new CMISException("CMIS server is unreachable", e);
-    } catch (CmisRuntimeException e) {
+    } catch (CmisUnauthorizedException e) {
       // The user/password have probably been rejected by the server.
-      throw new CMISException("CMIS user rejected", e);
+      throw new RefreshAccessException("CMIS user rejected", e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error reading CMIS repositories list", e);
     } finally {
       lock.unlock();
     }
@@ -902,15 +1349,16 @@ public class CMISAPI {
    * 
    * @return {@link Session}
    * @throws CMISException
+   * @throws RefreshAccessException
    */
-  private Session session() throws CMISException {
+  private Session session() throws CMISException, RefreshAccessException {
     Session session = localSession.get();
     if (session != null) {
       // TODO should we check if session still live (not closed)?
       return session;
     } else {
       for (Repository r : repositories()) {
-        if (r.getName().equals(repositoryId)) {
+        if (r.getId().equals(repositoryId)) {
           session = r.createSession();
           localSession.set(session);
           return session;

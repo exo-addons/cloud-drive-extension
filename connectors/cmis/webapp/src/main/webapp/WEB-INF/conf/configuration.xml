@@ -79,7 +79,7 @@
                       <string>eXo SharePoint Demo</string>
                     </field>
                     <field name="url">
-                      <string>http://exosharepoint.no-ip.info/_vti_bin/cmis/rest?getrepositoryinfo</string>
+                      <string>http://exosharepoint.no-ip.info:8000/_vti_bin/cmis/rest?getRepositories</string>
                     </field>
                   </object>
                 </value>

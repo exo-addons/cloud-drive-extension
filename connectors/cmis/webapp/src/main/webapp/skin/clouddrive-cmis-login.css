@@ -5,21 +5,21 @@
 @import "jquery-ui.structure.css";
 @import "jquery-ui.theme.css";
 
-/*#cmis-login-body .requiredMessage {
- margin: 25px 10px 0;
- }
+#cmis-login-wrapper .error-message {
+	margin: 25px 10px 0;
+}
 
- #cmis-login-body .requiredMessage .alert {
- background: none repeat scroll 0 0 transparent;
- border: medium none;
- box-shadow: none;
- padding: 0;
- color: #c09853;
- }
+#cmis-login-wrapper .error-message .alert {
+	background: none repeat scroll 0 0 transparent;
+	border: medium none;
+	box-shadow: none;
+	padding: 0;
+	color: #c09853;
+}
 
- #cmis-login-body .requiredMessage .alert>i {
- margin-top: 0px;
- }*/
+#cmis-login-wrapper .error-message .alert > i {
+	margin-top: 0px;
+}
 
 label.login-error {
 	position: relative;

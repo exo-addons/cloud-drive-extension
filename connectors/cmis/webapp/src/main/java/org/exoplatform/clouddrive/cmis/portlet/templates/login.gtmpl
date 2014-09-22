@@ -5,11 +5,7 @@
 			<h1 class="text-centered">Login CMIS repository</h1>
 		</div>
 		<div id="cmis-login-wrapper" class="span6 offset3">
-			<!-- div class="requiredMessage" id="requiredMessage">
-				<div class="alert alert-warning" style="display: none;">
-					<i class="uiIconWarning"></i>Form has errors. Required fields highlighted.
-				</div>
-			</div -->
+			<div id="cmis-login-error" class="error-message"><div></div></div>
 			<form id="cmis-login-data" action="javascript:void(0)">
 				<fieldset class="form-centered">
 					<p class="help-block">Authenticate to select CMIS repository for login.</p>
@@ -26,7 +22,7 @@
 									  for(service in provider.predefinedAtompubServices) {
 											if (service.name) {
 									%>
-									<li><a href="#" data-url="${service.url}">${service.name} (${service.url})</a></li>
+									<li><a href="#" data-url="${service.url}">${service.name}</a></li>
 									<%
 									  	} else {
 									%>

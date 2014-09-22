@@ -24,8 +24,8 @@ import juzu.Resource;
 import juzu.Response;
 import juzu.View;
 import juzu.impl.request.Request;
-import juzu.template.Template;
 
+import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.CloudProvider;
@@ -65,33 +65,37 @@ import javax.inject.Inject;
  */
 public class CMISLoginController {
 
-  private static final Log                                     LOG           = ExoLogger.getLogger(CMISLoginController.class);
+  private static final Log                                       LOG           = ExoLogger.getLogger(CMISLoginController.class);
 
-  private static final String                                  KEY_ALGORITHM = "RSA";
+  private static final String                                    KEY_ALGORITHM = "RSA";
 
   @Inject
   @Path("login.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.login      login;
+  org.exoplatform.clouddrive.cmis.portlet.templates.login        login;
 
   @Inject
   @Path("userkey.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.userkey    userKey;
+  org.exoplatform.clouddrive.cmis.portlet.templates.userkey      userKey;
 
   @Inject
   @Path("repository.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.repository repository;
+  org.exoplatform.clouddrive.cmis.portlet.templates.repository   repository;
 
   @Inject
   @Path("error.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.error      error;
+  org.exoplatform.clouddrive.cmis.portlet.templates.error        error;
 
   @Inject
-  CodeAuthentication                                           authService;
+  @Path("errormessage.gtmpl")
+  org.exoplatform.clouddrive.cmis.portlet.templates.errormessage errorMessage;
 
   @Inject
-  CloudDriveService                                            cloudDrives;
+  CodeAuthentication                                             authService;
 
-  private final ConcurrentHashMap<String, PrivateKey>          keys          = new ConcurrentHashMap<String, PrivateKey>();
+  @Inject
+  CloudDriveService                                              cloudDrives;
+
+  private final ConcurrentHashMap<String, PrivateKey>            keys          = new ConcurrentHashMap<String, PrivateKey>();
 
   @View
   public Response index() {
@@ -118,42 +122,61 @@ public class CMISLoginController {
     return userKey.with().key(createKey(user)).ok();
   }
 
+  Response errorMessage(String message) {
+    return errorMessage.with().message(message).ok();
+  }
+
   @Ajax
   @Resource
-  public Response loginUser(String serviceURL, String user, String password) throws CMISLoginException {
+  public Response loginUser(String serviceURL, String user, String password) {
     if (serviceURL != null && serviceURL.length() > 0) {
       if (user != null && user.length() > 0) {
         if (password != null && password.length() > 0) {
-          String passwordText = decodePassword(user, password);
-          String code = authService.authenticate(serviceURL, user, passwordText);
           try {
+            String passwordText = decodePassword(user, password);
+            String code = authService.authenticate(serviceURL, user, passwordText);
             CloudProvider cmisProvider = cloudDrives.getProvider("cmis");
             CMISUser cmisUser = (CMISUser) cloudDrives.authenticate(cmisProvider, code);
             return repository.with().code(code).repositories(cmisUser.getRepositories()).ok();
+          } catch (InvalidKeyException e) {
+            LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + user, e);
+            return errorMessage("Invalid password key of user " + user);
+          } catch (IllegalBlockSizeException e) {
+            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
+            return errorMessage("Error processing password of user " + user);
+          } catch (BadPaddingException e) {
+            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
+            return errorMessage("Error processing password of user " + user);
+          } catch (IllegalStateException e) {
+            LOG.error("Login error: authentication initialization error", e);
+            return errorMessage("Authentication initialization error for " + user);
           } catch (ProviderNotAvailableException e) {
             LOG.error("Login error: provider not available", e);
-            return error.with().set("message", "CMIS provider not available").ok();
+            return errorMessage("CMIS provider not available");
+          } catch (CloudDriveAccessException e) {
+            LOG.warn("Login failure: " + e.getMessage());
+            return errorMessage("CMIS authentication failure for " + user
+                + ". Ensure you are using correct username and password and try again.");
           } catch (CloudDriveException e) {
             LOG.error("Login error: authentication error", e);
-            return error.with().set("message", "CMIS authentication error for " + user).ok();
+            return errorMessage("CMIS authentication error for " + user);
           }
         } else {
           LOG.warn("Wrong login: password required for " + user);
-          return error.with().set("message", "Password required").ok();
+          return errorMessage("Password required");
         }
       } else {
         LOG.warn("Wrong login: user required for " + serviceURL);
-        return error.with().set("message", "User required").ok();
+        return errorMessage("User required");
       }
     } else {
       LOG.warn("Wrong login: serviceURL required");
-      return error.with().set("message", "Service URL required").ok();
+      return errorMessage("Service URL required");
     }
   }
 
   @Action
-  public Response loginRepository(String code, String repository) throws CMISLoginException {
-    // TODO transfer all parameters and redirect to redirect_url
+  public Response loginRepository(String code, String repository) {
     Request request = Request.getCurrent();
     Map<String, String[]> parameters = request.getParameters();
     String[] redirects = parameters.get("redirect_uri");
@@ -209,7 +232,9 @@ public class CMISLoginController {
     }
   }
 
-  private String decodePassword(String user, String password) throws CMISLoginException {
+  private String decodePassword(String user, String password) throws InvalidKeyException,
+                                                             IllegalBlockSizeException,
+                                                             BadPaddingException {
     PrivateKey userKey = keys.get(user);
     if (userKey != null) {
       try {
@@ -223,15 +248,6 @@ public class CMISLoginController {
       } catch (NoSuchPaddingException e) {
         LOG.error("Error creating " + KEY_ALGORITHM + " cipher for user " + user, e);
         throw new IllegalStateException("Error decoding password for user " + user, e);
-      } catch (InvalidKeyException e) {
-        LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + user, e);
-        throw new CMISLoginException("Error decoding password for user " + user, e);
-      } catch (IllegalBlockSizeException e) {
-        LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
-        throw new CMISLoginException("Error decoding password for user " + user, e);
-      } catch (BadPaddingException e) {
-        LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
-        throw new CMISLoginException("Error decoding password for user " + user, e);
       }
     } else {
       // TODO throw new CMISLoginException("User key not found for " + user);

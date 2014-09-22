@@ -3,9 +3,9 @@
 <div id="cmis-login-code" user-code="${code}"></div>
 <select name="repository" class="form-control">
 <%
-  for(repositoryId in repositories) {
+  for(r in repositories) {
 %>
-<option>${repositoryId}</option>
+<option value="${r.id}">${r.name ? r.name : r.id}</option>
 <%
   }
 %>
