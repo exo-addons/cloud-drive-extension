@@ -161,7 +161,7 @@ public class CMISAPI {
       try {
         // XXX includeProperties = false, maxNumItems = max possible value to fetch all at once
         // TODO better pagination organization
-        events = session(true).getContentChanges(changeToken, true, Integer.MAX_VALUE);
+        events = session(true).getContentChanges(changeToken, true, Integer.MAX_VALUE);//session(true).getContentChanges(changeToken, true).iterator().hasNext()
 
         List<ChangeEvent> changes = events.getChangeEvents();
 

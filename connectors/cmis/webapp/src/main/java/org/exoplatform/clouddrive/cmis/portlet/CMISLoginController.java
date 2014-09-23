@@ -87,7 +87,7 @@ public class CMISLoginController {
 
   @Inject
   @Path("errormessage.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.errormessage errorMessage;
+  org.exoplatform.clouddrive.cmis.portlet.templates.errormessage errormessage;
 
   @Inject
   CodeAuthentication                                             authService;
@@ -123,7 +123,7 @@ public class CMISLoginController {
   }
 
   Response errorMessage(String message) {
-    return errorMessage.with().message(message).ok();
+    return errormessage.with().message(message).ok();
   }
 
   @Ajax
