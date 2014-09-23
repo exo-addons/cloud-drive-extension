@@ -122,8 +122,8 @@ public class CMISLoginController {
     return userKey.with().key(createKey(user)).ok();
   }
 
-  Response errorMessage(String message) {
-    return message.with().message(message).ok();
+  Response errorMessage(String text) {
+    return message.with().message(text).ok();
   }
 
   @Ajax
