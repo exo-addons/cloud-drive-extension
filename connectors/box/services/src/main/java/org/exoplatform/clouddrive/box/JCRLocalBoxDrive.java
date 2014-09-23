@@ -209,6 +209,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           // cleanup of this file located in another place (usecase of rename/move)
           // XXX this also assumes that Box doesn't support linking of files to other folders
           // remove from map of local to mark the item as existing
+          // TODO why remove from nodes only if changed, need do this for all traversed!
           List<Node> existing = nodes.remove(item.getId());
           if (existing != null) {
             String path = localItem.getPath();

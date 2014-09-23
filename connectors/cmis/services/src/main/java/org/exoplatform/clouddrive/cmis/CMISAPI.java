@@ -26,12 +26,12 @@ import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
 import org.apache.chemistry.opencmis.client.api.ItemIterable;
 import org.apache.chemistry.opencmis.client.api.ObjectId;
+import org.apache.chemistry.opencmis.client.api.OperationContext;
 import org.apache.chemistry.opencmis.client.api.Repository;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.client.api.SessionFactory;
 import org.apache.chemistry.opencmis.client.bindings.CmisBindingFactory;
 import org.apache.chemistry.opencmis.client.bindings.spi.LinkAccess;
-import org.apache.chemistry.opencmis.client.bindings.spi.atompub.AtomPubParser;
 import org.apache.chemistry.opencmis.client.runtime.SessionFactoryImpl;
 import org.apache.chemistry.opencmis.commons.PropertyIds;
 import org.apache.chemistry.opencmis.commons.SessionParameter;
@@ -146,12 +146,12 @@ public class CMISAPI {
    */
   class ChangesIterator extends ChunkIterator<ChangeEvent> {
 
-    String       changeToken;
+    String       startChangeToken, changeToken;
 
     ChangeEvents events;
 
     ChangesIterator(String startChangeToken) throws CMISException, RefreshAccessException {
-      this.changeToken = startChangeToken;
+      this.startChangeToken = changeToken = startChangeToken;
 
       // fetch first
       this.iter = nextChunk();
@@ -161,19 +161,24 @@ public class CMISAPI {
       try {
         // XXX includeProperties = false, maxNumItems = max possible value to fetch all at once
         // TODO better pagination organization
-        ChangeEvents events = session().getContentChanges(changeToken, false, Integer.MAX_VALUE);
-
-        // TODO remember position for next chunk and next iterators
-        changeToken = events.getLatestChangeLogToken();
+        events = session(true).getContentChanges(changeToken, true, Integer.MAX_VALUE);
 
         List<ChangeEvent> changes = events.getChangeEvents();
+
+        // TODO remember position for next chunk and next iterators
+        int changesLen = changes.size();
+        String latestChangeToken = events.getLatestChangeLogToken();
+        if (latestChangeToken == null && changesLen > 0) {
+          latestChangeToken = changes.get(changesLen - 1).getProperties().get("ChangeToken").toString();
+        }
+        changeToken = latestChangeToken;
 
         // TODO accurate available number
         // long total = events.getTotalNumItems();
         // if (total == -1) {
         // total = changes.size();
         // }
-        available(changes.size());
+        available(changesLen);
 
         return changes.iterator();
       } catch (CmisRuntimeException e) {
@@ -186,9 +191,16 @@ public class CMISAPI {
      */
     protected boolean hasNextChunk() {
       // TODO check if it work properly
-      return events.getHasMoreItems();
+      // TODO SP return true even if nothing new there: return events.getHasMoreItems();
+      return !startChangeToken.equals(changeToken) && changeToken != null;
     }
 
+    /**
+     * Can be <code>null</code>. And it will be :)
+     * 
+     * @return
+     */
+    @Deprecated
     String getLatestChangeLogToken() {
       return changeToken;
     }
@@ -1279,7 +1291,7 @@ public class CMISAPI {
 
   RepositoryInfo getRepositoryInfo() throws CMISException, RefreshAccessException {
     try {
-      return session().getRepositoryInfo();
+      return session(true).getRepositoryInfo();
     } catch (CmisRuntimeException e) {
       throw new CMISException("Error getting repository info: " + e.getMessage(), e);
     }
@@ -1352,14 +1364,30 @@ public class CMISAPI {
    * @throws RefreshAccessException
    */
   private Session session() throws CMISException, RefreshAccessException {
+    return session(false);
+  }
+
+  /**
+   * Create CMIS session.
+   * 
+   * @param forceNew boolean if <code>true</code> then session will be recreated, otherwise will try use
+   *          cached in thread-local variable.
+   * @return {@link Session}
+   * @throws CMISException
+   * @throws RefreshAccessException
+   */
+  private Session session(boolean forceNew) throws CMISException, RefreshAccessException {
     Session session = localSession.get();
-    if (session != null) {
+    if (session != null && !forceNew) {
       // TODO should we check if session still live (not closed)?
       return session;
     } else {
       for (Repository r : repositories()) {
         if (r.getId().equals(repositoryId)) {
           session = r.createSession();
+          OperationContext context = session.createOperationContext();
+          context.setCacheEnabled(false);
+          session.setDefaultContext(context);
           localSession.set(session);
           return session;
         }

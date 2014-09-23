@@ -94,6 +94,7 @@
 							var code = $("#cmis-login-code").attr("user-code");
 							if (code) {
 								console.log("code: " + code);
+								$error.empty();
 								var $login = $("#cmis-login-form");
 								$login.find("select").keypress(function(event) {
 									if (event.which == 13) {
