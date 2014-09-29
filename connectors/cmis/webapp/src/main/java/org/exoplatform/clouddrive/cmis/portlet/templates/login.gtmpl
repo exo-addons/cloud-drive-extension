@@ -5,7 +5,9 @@
 			<h1 class="text-centered">Login CMIS repository</h1>
 		</div>
 		<div id="cmis-login-wrapper" class="span6 offset3">
-			<div id="cmis-login-error" class="error-message"><div></div></div>
+			<div id="cmis-login-error" class="error-message">
+				<div class="alert alert-warning" style="display: none;"></div>
+			</div>
 			<form id="cmis-login-data" action="javascript:void(0)">
 				<fieldset class="form-centered">
 					<p class="help-block">Authenticate to select CMIS repository for login.</p>
@@ -56,9 +58,8 @@
 							<label class="control-label error login-error" style="display: none;" for="password"></label>
 						</div>
 					</div>
-					<div class="control-group text-centered">
+					<div class="control-group text-centered form-buttons">
 						<div class="controls">
-							<!-- uiAction -->
 							<button type=submit class="btn btn-primary">Authenticate</button>
 							<button type="button" class="btn" onclick="window.close();">Cancel</button>
 						</div>
@@ -80,7 +81,7 @@
 						</div>
 						<input type="hidden" name="code" value="" />
 						<!-- input type="hidden" name="redirect_uri" value="test"/ -->
-						<div class="control-group text-centered">
+						<div class="control-group text-centered form-buttons">
 							<div class="controls">
 								<button type="submit" class="btn btn-primary">Login</button>
 								<button type="button" class="btn" onclick="window.close();">Cancel</button>

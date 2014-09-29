@@ -1,6 +1,6 @@
 /**
  * CMIS connector login support for eXo Cloud Drive.
- * 
+ *
  */
 (function($) {
 
@@ -20,42 +20,43 @@
 		// setup validator
 		var $message = $("#requiredMessage");
 		var validator = $("#cmis-login-data, #cmis-login-repository").validate({
-		  focusInvalid : false,
-		  errorClass : "error",
-		  validClass : "success",
-		  rules : {
-		    "service-url" : {
-		      required : true,
-		      url : true
-		    },
-		    "user" : {
-			    required : true
-		    },
-		    "password" : {
-			    required : true
-		    },
-		    "repository" : {
-			    required : true
-		    }
-		  },
-		  showErrors : function(errorMap, errorList) {
-			  // reset all error labels before
-			  $("#cmis-login-data, #cmis-login-repository").find(".control-group").removeClass("error");
-			  // and set error for not valid only
-			  for (var i = 0; i < errorList.length; i++) {
-				  $(errorList[i].element).parent().parent().addClass("error");
-			  }
-			  // show default labels (validator work)
-			  this.defaultShowErrors();
-		  }/*
-				 * , invalidHandler : function(event, validator) { // show global warning on the form var
-				 * errors = validator.numberOfInvalids(); if (errors) { $message.show(); $("html,
-				 * body").animate({ scrollTop : $message.offset().top }, 200); } else { $message.hide(); } }
-				 */
+			focusInvalid : false,
+			errorClass : "error",
+			validClass : "success",
+			rules : {
+				"service-url" : {
+					required : true,
+					url : true
+				},
+				"user" : {
+					required : true
+				},
+				"password" : {
+					required : true
+				},
+				"repository" : {
+					required : true
+				}
+			},
+			showErrors : function(errorMap, errorList) {
+				// reset all error labels before
+				$("#cmis-login-data, #cmis-login-repository").find(".control-group").removeClass("error");
+				// and set error for not valid only
+				for (var i = 0; i < errorList.length; i++) {
+					$(errorList[i].element).parent().parent().addClass("error");
+				}
+				// show default labels (validator work)
+				this.defaultShowErrors();
+			}/*
+			 * , invalidHandler : function(event, validator) { // show global warning on the form var
+			 * errors = validator.numberOfInvalids(); if (errors) { $message.show(); $("html,
+			 * body").animate({ scrollTop : $message.offset().top }, 200); } else { $message.hide(); } }
+			 */
 		});
 
 		var $loginData = $("#cmis-login-data");
-		var $error = $("#cmis-login-error");
+		var $login = $("#cmis-login-form");
+		var $error = $("#cmis-login-error div.alert-warning");
 
 		$("#service-url-predefined a").click(function() {
 			$loginData.find(":input[name='service-url']").val($(this).attr("data-url"));
@@ -67,6 +68,10 @@
 				$error.empty();
 				$loginData.submit();
 			}
+		});
+
+		$login.submit(function() {
+			$login.find("button.btn.btn-primary").attr("disabled", "disabled");
 		});
 
 		$loginData.submit(function(event) {
@@ -84,46 +89,58 @@
 					var key = $("#cmis-login-key span").attr("data-key");
 					if (key) {
 						console.log("key: " + key);
-						var $repository = $("#cmis-login-repository")
+						var $repository = $("#cmis-login-repository");
+						var cursorCss = $loginData.css("cursor");
+						$loginData.css("cursor", "wait");
+						$loginData.find("button.btn.btn-primary").attr("disabled", "disabled");
 						// TODO encrypt user and password
 						$repository.jzLoad("CMISLoginController.loginUser()", {
-						  "serviceURL" : serviceURL,
-						  "user" : user,
-						  "password" : password
+							"serviceURL" : serviceURL,
+							"user" : user,
+							"password" : password
 						}, function(response, status, jqXHR) {
-							var code = $("#cmis-login-code").attr("user-code");
-							if (code) {
-								console.log("code: " + code);
+							$loginData.css("cursor", cursorCss);
+							$loginData.find("button.btn.btn-primary").removeAttr("disabled");
+							if (status == "error") {
+								var message = jqXHR.statusText + " (" + jqXHR.status + ")";
+								console.log("ERROR: submit failed " + message + ". " + jqXHR.responseText);
 								$error.empty();
-								var $login = $("#cmis-login-form");
-								$login.find("select").keypress(function(event) {
-									if (event.which == 13) {
-										event.preventDefault();
-										$login.submit();
-									}
-								});
-								$login.find("input[name='code']").val(code);
-								var params = window.location.search;
-								if (params.length > 0) {
-									if (params.indexOf("?") == 0) {
-										params = params.substring(1);
-									}
-									$login.attr("action", $login.attr("action") + "&" + params);
-								} else {
-									console.log("No additional form params");
-								}
-								// toggle to the repository form
-								$loginData.toggle("blind");
-								$login.show();
+								$("<i class='uiIconError'></i><span>" + message + "</span>").appendTo($error);
+								$error.show();
 							} else {
-								var $message = $repository.find(".error-message-text");
-								if ($message.length > 0) {
-									console.log("ERROR: " + $message.text());
+								var code = $("#cmis-login-code").attr("user-code");
+								if (code) {
+									console.log("code: " + code);
 									$error.empty();
-									$message.detach().appendTo($error);	
-									$message.show();
+									$login.find("select").keypress(function(event) {
+										if (event.which == 13) {
+											event.preventDefault();
+											$login.submit();
+										}
+									});
+									$login.find("input[name='code']").val(code);
+									var params = window.location.search;
+									if (params.length > 0) {
+										if (params.indexOf("?") == 0) {
+											params = params.substring(1);
+										}
+										$login.attr("action", $login.attr("action") + "&" + params);
+									} else {
+										console.log("No additional form params");
+									}
+									// toggle to the repository form
+									$loginData.toggle("blind");
+									$login.show();
 								} else {
-									console.log("WARN: code not found");
+									var $message = $repository.find(".error-message-text");
+									if ($message.length > 0) {
+										console.log("ERROR: " + $message.text());
+										$error.empty();
+										$message.detach().appendTo($error);
+										$error.show();
+									} else {
+										console.log("WARN: code not found");
+									}
 								}
 							}
 						});

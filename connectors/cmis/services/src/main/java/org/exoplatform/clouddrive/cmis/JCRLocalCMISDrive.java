@@ -327,54 +327,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
           if (changes.hasNext()) {
             readLocalNodes(); // read all local nodes to nodes list
-            // syncNext(); // process changes
-
             while (changes.hasNext() && !Thread.currentThread().isInterrupted()) {
               ChangeEvent change = changes.next();
               ChangeType changeType = change.getChangeType();
-              CmisObject item = api.getObject(change.getObjectId());
+              String id = change.getObjectId();
 
-              String id = item.getId();
-              String name = item.getName();
-
-              boolean isFolder = api.isFolder(item);
-
-              // get parents
-              // TODO check if file deleted has parents or it is empty
-              Set<String> parentIds = new LinkedHashSet<String>();
-              if (isFolder) {
-                Folder p = ((Folder) item).getFolderParent();
-                if (p != null) {
-                  parentIds.add(p.getId());
-                } else {
-                  // else it's root folder
-                  if (LOG.isDebugEnabled()) {
-                    LOG.debug("Found change of folder without parent. Skipping it: " + id + " " + name);
-                  }
-                  continue;
-                }
-              } else if (api.isRelationship(item)) {
-                if (LOG.isDebugEnabled()) {
-                  LOG.debug("Found change of relationship. Skipping it: " + id + " " + name);
-                }
-                continue;
-              } else {
-                // else we have fileable item
-                List<Folder> ps = ((FileableCmisObject) item).getParents();
-                if (ps.size() == 0) {
-                  // item has no parent, it can be undefined item or root folder - we skip it
-                  if (LOG.isDebugEnabled()) {
-                    LOG.debug("Found change of fileable item without parent. Skipping it: " + id + " " + name);
-                  }
-                  continue;
-                } else {
-                  for (Folder p : ps) {
-                    parentIds.add(p.getId());
-                  }
-                }
-              }
-
-              if (ChangeType.DELETED.equals(changeType)) { // || parents.size() == 0
+              if (ChangeType.DELETED.equals(changeType)) {
                 if (hasRemoved(id)) {
                   cleanRemoved(id);
                   if (LOG.isDebugEnabled()) {
@@ -387,8 +345,49 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 }
                 // even in case of local removal we check for all parents to merge possible removals done in
                 // parallel locally and remotely
-                deleteFile(id, parentIds);
+                // XXX empty remote parents means item fully removed in the CMIS repo
+                // TODO check if DELETED happes in case of multi-filed file unfiling
+                deleteFile(id, new HashSet<String>());  
               } else {
+                CmisObject item = api.getObject(change.getObjectId());
+                String name = item.getName();
+                boolean isFolder = api.isFolder(item);
+
+                // get parents
+                Set<String> parentIds = new LinkedHashSet<String>();
+                if (isFolder) {
+                  Folder p = ((Folder) item).getFolderParent();
+                  if (p != null) {
+                    parentIds.add(p.getId());
+                  } else {
+                    // else it's root folder
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("Found change of folder without parent. Skipping it: " + id + " " + name);
+                    }
+                    continue;
+                  }
+                } else if (api.isRelationship(item)) {
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug("Found change of relationship. Skipping it: " + id + " " + name);
+                  }
+                  continue;
+                } else {
+                  // else we have fileable item
+                  List<Folder> ps = ((FileableCmisObject) item).getParents();
+                  if (ps.size() == 0) {
+                    // item has no parent, it can be undefined item or root folder - we skip it
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("Found change of fileable item without parent. Skipping it: " + id + " "
+                          + name);
+                    }
+                    continue;
+                  } else {
+                    for (Folder p : ps) {
+                      parentIds.add(p.getId());
+                    }
+                  }
+                }
+
                 if (hasUpdated(id)) {
                   cleanUpdated(id);
                   if (LOG.isDebugEnabled()) {

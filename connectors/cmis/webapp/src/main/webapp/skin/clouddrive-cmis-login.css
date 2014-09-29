@@ -5,6 +5,15 @@
 @import "jquery-ui.structure.css";
 @import "jquery-ui.theme.css";
 
+.uiIconError {
+	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat scroll left top transparent;
+	padding-left: 20px;
+}
+.uiIconWarning {
+	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat -20px top transparent;
+	padding-left: 20px;
+}
+
 #cmis-login-wrapper .error-message {
 	margin: 25px 10px 0;
 }
@@ -57,4 +66,8 @@ button.btn.dropdown-toggle {
 .form-centered {
 	width: 320px;
 	margin: 0 auto;
+}
+
+div.form-buttons {
+	marging-top : 10px;
 }
