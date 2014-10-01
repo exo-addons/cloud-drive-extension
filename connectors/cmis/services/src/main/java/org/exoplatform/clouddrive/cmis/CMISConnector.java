@@ -202,7 +202,7 @@ public class CMISConnector extends CloudDriveConnector {
         CMISUser user = userFlow.user;
         String context = userFlow.identity.getServiceContext();
         if (context != null) {
-          user.api().initRepository(context);
+          user.setCurrentRepository(context);
         } else {
           throw new CloudDriveException("CMIS repository not defined");
         }

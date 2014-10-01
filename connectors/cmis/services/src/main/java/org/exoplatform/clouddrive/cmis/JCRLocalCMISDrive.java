@@ -297,19 +297,19 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * An implementation of sync based on an CMIS change log.
      */
-    class ChangesAlgorithm {
+    protected class ChangesAlgorithm {
 
       /**
        * Changes from drive to apply.
        */
-      ChangesIterator changes;
+      protected ChangesIterator changes;
 
       /**
        * Existing files being synchronized with cloud.
        */
-      final Set<Node> synced = new HashSet<Node>();
+      protected final Set<Node> synced = new HashSet<Node>();
 
-      void syncFiles() throws CloudDriveException, RepositoryException {
+      protected void syncFiles() throws CloudDriveException, RepositoryException {
         String remoteChangeToken = api.getRepositoryInfo().getLatestChangeLogToken();
         String localChangeToken = getChangeToken(rootNode);
 
@@ -347,7 +347,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 // parallel locally and remotely
                 // XXX empty remote parents means item fully removed in the CMIS repo
                 // TODO check if DELETED happes in case of multi-filed file unfiling
-                deleteFile(id, new HashSet<String>());  
+                deleteFile(id, new HashSet<String>());
               } else {
                 CmisObject item = api.getObject(change.getObjectId());
                 String name = item.getName();
@@ -404,7 +404,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
             if (!Thread.currentThread().isInterrupted()) {
               // update sync position
-              setChangeToken(rootNode, remoteChangeToken);
+              setChangeToken(rootNode, remoteChangeToken); // TODO changes.getLatestChangeLogToken()
               setChangeId(changeId);
             }
           }
@@ -418,7 +418,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * @param parentIds set of Ids of parents (folders)
        * @throws RepositoryException
        */
-      void deleteFile(String fileId, Set<String> parentIds) throws RepositoryException {
+      protected void deleteFile(String fileId, Set<String> parentIds) throws RepositoryException {
         List<Node> existing = nodes.get(fileId);
         if (existing != null) {
           // remove existing file,
@@ -470,7 +470,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * @throws RepositoryException
        * @throws InterruptedException
        */
-      void updateFile(CmisObject item, Set<String> parentIds, boolean isFolder) throws CloudDriveException,
+      protected void updateFile(CmisObject item, Set<String> parentIds, boolean isFolder) throws CloudDriveException,
                                                                                RepositoryException {
         String id = item.getId();
         String name = item.getName();
@@ -547,7 +547,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     protected class TraversingAlgorithm {
 
-      void syncFiles() throws RepositoryException, CloudDriveException {
+      protected void syncFiles() throws RepositoryException, CloudDriveException {
         String changeToken = api.getRepositoryInfo().getLatestChangeLogToken(); // can be null
         String localChangeToken = getChangeToken(rootNode); // can be EMPTY_TOKEN, this means it was null
         long changeId = System.currentTimeMillis(); // time of the begin
@@ -593,7 +593,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         }
       }
 
-      Folder syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
+      protected Folder syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
 
         // TODO will api return multi-filed file in each related folder?
         ChildrenIterator items = api.getFolderItems(folderId);
@@ -649,7 +649,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     protected final CMISAPI api;
 
-    Sync() {
+    protected Sync() {
       super();
       this.api = getUser().api();
     }
@@ -673,11 +673,16 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
               + "Check if it is possible to enable Change Log for your repository.");
         }
       } catch (CMISException e) {
-        LOG.warn("Error reading CMIS capability: Change Log support. "
-            + "Full sync will be used instead of the more efficient based on Change Log.", e);
+        // We log the error and try fix the drive consistency by full sync (below).
+        // SP for instance, sends documents ids in chnage log without its suffix (-512), but then, it's not
+        // possible get the object by id without the suffix - this causes error CmisInvalidArgumentException.
+        LOG.warn("Synchronization error: failed to read CMIS Change Log. Full sync will be initiated for "
+            + title(), e);
       }
 
       // by default we use algorithm based on full repository traversing
+      LOG.info("Full synchronization initiated instead of the more efficient based on CMIS Change Log: "
+          + title());
       new TraversingAlgorithm().syncFiles();
     }
   }

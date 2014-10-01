@@ -7,11 +7,11 @@
 
 .uiIconError {
 	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat scroll left top transparent;
-	padding-left: 20px;
+	margin-left: 20px;
 }
 .uiIconWarning {
 	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat -20px top transparent;
-	padding-left: 20px;
+	margin-left: 20px;
 }
 
 #cmis-login-wrapper .error-message {

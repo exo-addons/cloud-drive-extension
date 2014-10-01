@@ -26,19 +26,24 @@ import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
 import org.apache.chemistry.opencmis.client.api.ItemIterable;
 import org.apache.chemistry.opencmis.client.api.ObjectId;
+import org.apache.chemistry.opencmis.client.api.ObjectType;
 import org.apache.chemistry.opencmis.client.api.OperationContext;
 import org.apache.chemistry.opencmis.client.api.Repository;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.client.api.SessionFactory;
 import org.apache.chemistry.opencmis.client.bindings.CmisBindingFactory;
 import org.apache.chemistry.opencmis.client.bindings.spi.LinkAccess;
+import org.apache.chemistry.opencmis.client.runtime.OperationContextImpl;
 import org.apache.chemistry.opencmis.client.runtime.SessionFactoryImpl;
 import org.apache.chemistry.opencmis.commons.PropertyIds;
 import org.apache.chemistry.opencmis.commons.SessionParameter;
 import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
+import org.apache.chemistry.opencmis.commons.definitions.PropertyDefinition;
 import org.apache.chemistry.opencmis.commons.enums.BaseTypeId;
 import org.apache.chemistry.opencmis.commons.enums.BindingType;
+import org.apache.chemistry.opencmis.commons.enums.ChangeType;
+import org.apache.chemistry.opencmis.commons.enums.IncludeRelationships;
 import org.apache.chemistry.opencmis.commons.enums.UnfileObject;
 import org.apache.chemistry.opencmis.commons.enums.VersioningState;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisBaseException;
@@ -74,6 +79,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -94,15 +100,15 @@ public class CMISAPI {
    * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
    * 
    */
-  class ChildrenIterator extends ChunkIterator<CmisObject> {
-    final String folderId;
+  protected class ChildrenIterator extends ChunkIterator<CmisObject> {
+    protected final String folderId;
 
     /**
      * Parent folder.
      */
-    Folder       parent;
+    protected Folder       parent;
 
-    ChildrenIterator(String folderId) throws CloudDriveException {
+    protected ChildrenIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
 
       // fetch first
@@ -111,11 +117,11 @@ public class CMISAPI {
 
     protected Iterator<CmisObject> nextChunk() throws CloudDriveException {
       try {
-        CmisObject obj = session().getObject(folderId);
+        CmisObject obj = session().getObject(folderId, objectContext);
         if (isFolder(obj)) {
           // it is folder
           parent = (Folder) obj;
-          ItemIterable<CmisObject> children = parent.getChildren();
+          ItemIterable<CmisObject> children = parent.getChildren(folderContext);
           // TODO reorder folders first in the iterator?
           // TODO accurate available number
           // long total = children.getTotalNumItems();
@@ -144,13 +150,15 @@ public class CMISAPI {
    * request to the service. <br>
    * Iterator methods can throw {@link CMISException} in case of remote or communication errors.
    */
-  class ChangesIterator extends ChunkIterator<ChangeEvent> {
+  protected class ChangesIterator extends ChunkIterator<ChangeEvent> {
 
-    String       startChangeToken, changeToken;
+    protected String            startChangeToken, changeToken;
 
-    ChangeEvents events;
+    protected List<ChangeEvent> changes;
 
-    ChangesIterator(String startChangeToken) throws CMISException, RefreshAccessException {
+    // TODO cleanup: ChangeEvents events;
+
+    protected ChangesIterator(String startChangeToken) throws CMISException, RefreshAccessException {
       this.startChangeToken = changeToken = startChangeToken;
 
       // fetch first
@@ -161,9 +169,12 @@ public class CMISAPI {
       try {
         // XXX includeProperties = false, maxNumItems = max possible value to fetch all at once
         // TODO better pagination organization
-        events = session().getContentChanges(changeToken, true, Long.MAX_VALUE);//session(true).getContentChanges(changeToken, true).iterator().hasNext()
 
-        List<ChangeEvent> changes = events.getChangeEvents();
+        // session(true).getContentChanges(changeToken,
+        // true).iterator().hasNext()
+        ChangeEvents events = session().getContentChanges(changeToken, true, Long.MAX_VALUE);
+
+        changes = events.getChangeEvents();
 
         // TODO remember position for next chunk and next iterators
         int changesLen = changes.size();
@@ -196,12 +207,35 @@ public class CMISAPI {
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean hasNext() throws CloudDriveException {
+      boolean hasNext = super.hasNext();
+      // avoid appearing UPDATED of later DELETED objects
+      if (hasNext && !ChangeType.DELETED.equals(next.getChangeType())) {
+        for (ChangeEvent che : changes) {
+          if (next.getObjectId().equals(che.getObjectId()) && ChangeType.DELETED.equals(che.getChangeType())) {
+            try {
+              // skip this UPDATED as it was DELETED in this changes set
+              next();
+              hasNext = hasNext();
+            } catch (NoSuchElementException e) {
+              hasNext = false;
+            }
+            break;
+          }
+        }
+      }
+      return hasNext;
+    }
+
+    /**
      * Can be <code>null</code>. And it will be :)
      * 
      * @return
      */
-    @Deprecated
-    String getLatestChangeLogToken() {
+    protected String getLatestChangeLogToken() {
       return changeToken;
     }
   }
@@ -210,13 +244,13 @@ public class CMISAPI {
    * Sample drive state POJO.
    */
   public static class DriveState {
-    final String type;
+    protected final String type;
 
-    final String url;
+    protected final String url;
 
-    final long   retryTimeout, created;
+    protected final long   retryTimeout, created;
 
-    DriveState(String type, String url, long retryTimeout) {
+    protected DriveState(String type, String url, long retryTimeout) {
       this.type = type;
       this.url = url;
       this.retryTimeout = retryTimeout;
@@ -257,25 +291,92 @@ public class CMISAPI {
   }
 
   /**
+   * Session context for CMIS calls. Class idea wrapped from OpenCMIS Workbench.
+   */
+  protected class Context extends OperationContextImpl {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Constructor of CMIS context;
+     * 
+     * @param filter
+     * @param includeAcls
+     * @param includeAllowableActions
+     * @param includePolicies
+     * @param includeRelationships
+     * @param renditionFilter
+     * @param orderBy
+     * @param maxItemsPerPage
+     */
+    protected Context(String filter,
+            boolean includeAcls,
+            boolean includeAllowableActions,
+            boolean includePolicies,
+            IncludeRelationships includeRelationships,
+            String renditionFilter,
+            String orderBy,
+            int maxItemsPerPage) {
+      setFilterString(filter);
+      setIncludeAcls(includeAcls);
+      setIncludeAllowableActions(includeAllowableActions);
+      setIncludePolicies(includePolicies);
+      setIncludeRelationships(includeRelationships);
+      setRenditionFilterString(renditionFilter);
+      setOrderBy(orderBy);
+      setMaxItemsPerPage(maxItemsPerPage);
+
+      setIncludePathSegments(false);
+      setCacheEnabled(false);
+    }
+  }
+
+  /**
    * Client session lock.
    */
-  private final Lock             lock         = new ReentrantLock();
+  private final Lock                 lock                = new ReentrantLock();
+
+  /**
+   * OpenCMIS context for object operations.
+   */
+  protected OperationContext         objectContext;
+
+  /**
+   * OpenCMIS context for folder operations.
+   */
+  protected OperationContext         folderContext;
+
+  protected static final Set<String> FOLDER_PROPERTY_SET = new HashSet<String>();
+  static {
+    FOLDER_PROPERTY_SET.add(PropertyIds.OBJECT_ID);
+    FOLDER_PROPERTY_SET.add(PropertyIds.OBJECT_TYPE_ID);
+    FOLDER_PROPERTY_SET.add(PropertyIds.NAME);
+    FOLDER_PROPERTY_SET.add(PropertyIds.CONTENT_STREAM_MIME_TYPE);
+    FOLDER_PROPERTY_SET.add(PropertyIds.CONTENT_STREAM_LENGTH);
+    FOLDER_PROPERTY_SET.add(PropertyIds.CONTENT_STREAM_FILE_NAME);
+    FOLDER_PROPERTY_SET.add(PropertyIds.CREATED_BY);
+    FOLDER_PROPERTY_SET.add(PropertyIds.CREATION_DATE);
+    FOLDER_PROPERTY_SET.add(PropertyIds.LAST_MODIFIED_BY);
+    FOLDER_PROPERTY_SET.add(PropertyIds.LAST_MODIFICATION_DATE);
+    FOLDER_PROPERTY_SET.add(PropertyIds.IS_VERSION_SERIES_CHECKED_OUT);
+    FOLDER_PROPERTY_SET.add(PropertyIds.VERSION_SERIES_CHECKED_OUT_ID);
+  }
 
   /**
    * Client session parameters.
    */
-  protected Map<String, String>  parameters   = new HashMap<String, String>();
+  protected Map<String, String>      parameters;
 
   /**
    * Current CMIS repository.
    */
-  protected String               repositoryId;
+  protected String                   repositoryId;
 
-  protected DriveState           state;
+  protected DriveState               state;
 
-  protected String               enterpriseId, enterpriseName, customDomain;
+  protected String                   enterpriseId, enterpriseName, customDomain;
 
-  protected ThreadLocal<Session> localSession = new ThreadLocal<Session>();
+  protected ThreadLocal<Session>     localSession        = new ThreadLocal<Session>();
 
   /**
    * Create API from user credentials.
@@ -286,7 +387,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws CloudDriveException
    */
-  CMISAPI(String serviceURL, String user, String password) throws CMISException, CloudDriveException {
+  protected CMISAPI(String serviceURL, String user, String password) throws CMISException, CloudDriveException {
     // Prepare CMIS server parameters
     Map<String, String> parameters = new HashMap<String, String>();
 
@@ -309,13 +410,17 @@ public class CMISAPI {
 
     this.parameters = parameters;
 
-    // TODO init drive state (optional)
+    // init drive state
     updateState();
 
     // init user (enterprise etc.)
     initUser();
   }
 
+  protected void initUser() throws CMISException, RefreshAccessException, NotFoundException {
+    // TODO additional and optional ops to init current user and its enterprise or group from cloud services
+  }
+  
   /**
    * Update user credentials.
    * 
@@ -323,7 +428,7 @@ public class CMISAPI {
    * @param password {@link String}
    * @throws CloudDriveException
    */
-  void updateUser(Map<String, String> parameters) throws CloudDriveException {
+  protected void updateUser(Map<String, String> parameters) throws CloudDriveException {
     try {
       lock.lock();
       this.parameters = new HashMap<String, String>(parameters);
@@ -335,7 +440,7 @@ public class CMISAPI {
   /**
    * @return CMIS session parameters.
    */
-  Map<String, String> getParamaters() {
+  protected Map<String, String> getParamaters() {
     try {
       lock.lock();
       return Collections.unmodifiableMap(parameters);
@@ -351,7 +456,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  String getUser() throws CMISException, RefreshAccessException {
+  protected String getUser() throws CMISException, RefreshAccessException {
     try {
       lock.lock();
       return parameters.get(SessionParameter.USER);
@@ -367,7 +472,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  String getPassword() throws CMISException, RefreshAccessException {
+  protected String getPassword() throws CMISException, RefreshAccessException {
     try {
       lock.lock();
       return parameters.get(SessionParameter.PASSWORD);
@@ -383,7 +488,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  String getServiceURL() throws CMISException, RefreshAccessException {
+  protected String getServiceURL() throws CMISException, RefreshAccessException {
     try {
       lock.lock();
       return parameters.get(SessionParameter.ATOMPUB_URL);
@@ -399,7 +504,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  List<Repository> getRepositories() throws CMISException, RefreshAccessException {
+  protected List<Repository> getRepositories() throws CMISException, RefreshAccessException {
     return Collections.unmodifiableList(repositories());
   }
 
@@ -408,7 +513,7 @@ public class CMISAPI {
    * 
    * @param repositoryId {@link String} repository name
    */
-  void initRepository(String repositoryId) {
+  protected void initRepository(String repositoryId) {
     this.repositoryId = repositoryId;
   }
 
@@ -417,7 +522,7 @@ public class CMISAPI {
    * 
    * @return the repository
    */
-  String getRepository() {
+  protected String getRepository() {
     return repositoryId;
   }
 
@@ -428,7 +533,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  Folder getRootFolder() throws CMISException, RefreshAccessException {
+  protected Folder getRootFolder() throws CMISException, RefreshAccessException {
     try {
       Folder root = session().getRootFolder();
       return root;
@@ -437,9 +542,9 @@ public class CMISAPI {
     }
   }
 
-  CmisObject getObject(String objectId) throws CMISException, NotFoundException, CloudDriveAccessException {
+  protected CmisObject getObject(String objectId) throws CMISException, NotFoundException, CloudDriveAccessException {
     try {
-      CmisObject object = session().getObject(objectId);
+      CmisObject object = session().getObject(objectId, objectContext);
       return object;
     } catch (CmisObjectNotFoundException e) {
       throw new NotFoundException("Error reading object: " + e.getMessage(), e);
@@ -464,11 +569,11 @@ public class CMISAPI {
     }
   }
 
-  ChildrenIterator getFolderItems(String folderId) throws CloudDriveException {
+  protected ChildrenIterator getFolderItems(String folderId) throws CloudDriveException {
     return new ChildrenIterator(folderId);
   }
 
-  ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
+  protected ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
     return new ChangesIterator(changeToken);
   }
 
@@ -480,7 +585,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  String getLink(CmisObject file) throws CMISException, RefreshAccessException {
+  protected String getLink(CmisObject file) throws CMISException, RefreshAccessException {
     // XXX type Constants.MEDIATYPE_FEED assumed as better fit, need confirm this with the doc
     // TODO org.apache.chemistry.opencmis.client.bindings.spi.atompub.CmisAtomPubConstants.LINK_HREF,
 
@@ -508,7 +613,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  String getLink(Folder file) throws CMISException, RefreshAccessException {
+  protected String getLink(Folder file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
 
     String linkSelfEntry = link.loadLink(repositoryId,
@@ -533,7 +638,7 @@ public class CMISAPI {
    * @throws RefreshAccessException
    * @see {@link #getLink(CmisObject)}
    */
-  String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
+  protected String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
     return getLink(item);
   }
 
@@ -546,7 +651,7 @@ public class CMISAPI {
    * @throws RefreshAccessException
    * @see {@link #getLink(CmisObject)}
    */
-  String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
+  protected String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
     return getLink(folder);
   }
 
@@ -559,40 +664,33 @@ public class CMISAPI {
    * @throws RefreshAccessException
    * @see {@link #getLink(CmisObject)}
    */
-  String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
+  protected String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
     return getLink(doc);
   }
 
-  DriveState getState() throws CMISException, RefreshAccessException {
-    if (state == null || state.isOutdated()) {
-      updateState();
-    }
+  protected DriveState getState() throws CMISException, RefreshAccessException {
+    // TODO state for CMIS?
+    // if (state == null || state.isOutdated()) {
+    // updateState();
+    // }
 
-    return state;
+    return null;
   }
 
   /**
    * Update the drive state.
    * 
    */
-  void updateState() throws CMISException, RefreshAccessException {
+  protected void updateState() throws CMISException, RefreshAccessException {
     try {
-      // TODO get the state from cloud or any other way and construct a new state object...
-      this.state = new DriveState("type...", "http://....", 10);
+      // TODO state for CMIS drive?
+      this.state = null; // new DriveState("type...", "http://....", 10);
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
       throw new CMISException("Error getting drive state: " + e.getMessage(), e);
     }
   }
 
-  Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
+  protected Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
                                                                                           NotFoundException,
                                                                                           ConflictException,
                                                                                           CloudDriveAccessException {
@@ -600,7 +698,7 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = session.getObject(parentId);
+        obj = session.getObject(parentId, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
@@ -616,7 +714,13 @@ public class CMISAPI {
         // content length = -1 if it is unknown
         ContentStream contentStream = session.getObjectFactory()
                                              .createContentStream(name, -1, mimeType, data);
-        return parent.createDocument(properties, contentStream, VersioningState.MAJOR);
+        return parent.createDocument(properties,
+                                     contentStream,
+                                     VersioningState.MAJOR,
+                                     null,
+                                     null,
+                                     null,
+                                     objectContext);
       } else {
         throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
       }
@@ -655,7 +759,7 @@ public class CMISAPI {
     }
   }
 
-  Folder createFolder(String parentId, String name) throws CMISException,
+  protected Folder createFolder(String parentId, String name) throws CMISException,
                                                    NotFoundException,
                                                    ConflictException,
                                                    CloudDriveAccessException {
@@ -663,7 +767,7 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = session.getObject(parentId);
+        obj = session.getObject(parentId, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
@@ -673,7 +777,7 @@ public class CMISAPI {
         properties.put(PropertyIds.NAME, name);
         // created date not used as CMIS will set its own one
         Folder parent = (Folder) obj;
-        return parent.createFolder(properties);
+        return parent.createFolder(properties, null, null, null, folderContext);
       } else {
         throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
       }
@@ -716,14 +820,14 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  void deleteDocument(String id) throws CMISException,
+  protected void deleteDocument(String id) throws CMISException,
                                 NotFoundException,
                                 ConflictException,
                                 CloudDriveAccessException {
     Session session = session();
     String name = "";
     try {
-      CmisObject obj = session.getObject(id);
+      CmisObject obj = session.getObject(id, objectContext);
       name = obj.getName();
       obj.delete(true);
     } catch (CmisObjectNotFoundException e) {
@@ -762,7 +866,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  void deleteFolder(String id) throws CMISException,
+  protected void deleteFolder(String id) throws CMISException,
                               NotFoundException,
                               ConflictException,
                               CloudDriveAccessException {
@@ -817,7 +921,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  Document updateContent(String id, String name, InputStream data, String mimeType, LocalFile local) throws CMISException,
+  protected Document updateContent(String id, String name, InputStream data, String mimeType, LocalFile local) throws CMISException,
                                                                                                     NotFoundException,
                                                                                                     ConflictException,
                                                                                                     CloudDriveAccessException {
@@ -825,7 +929,7 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = session.getObject(id);
+        obj = session.getObject(id, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Document not found: " + id, e);
       }
@@ -912,7 +1016,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
+  protected CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
                                                                                    NotFoundException,
                                                                                    ConflictException,
                                                                                    CloudDriveAccessException {
@@ -921,7 +1025,7 @@ public class CMISAPI {
       CmisObject result = null;
       CmisObject obj;
       try {
-        obj = session.getObject(id);
+        obj = session.getObject(id, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Object not found: " + id, e);
       }
@@ -956,7 +1060,7 @@ public class CMISAPI {
         }
         if (move) {
           try {
-            obj = session.getObject(parentId);
+            obj = session.getObject(parentId, objectContext);
           } catch (CmisObjectNotFoundException e) {
             throw new NotFoundException("Parent not found: " + parentId, e);
           }
@@ -968,7 +1072,7 @@ public class CMISAPI {
               String rpid = local.findRemoteParent(id, parentIds);
               if (rpid != null) {
                 try {
-                  obj = session.getObject(rpid);
+                  obj = session.getObject(rpid, objectContext);
                 } catch (CmisObjectNotFoundException e) {
                   throw new NotFoundException("Source parent not found: " + rpid, e);
                 }
@@ -993,7 +1097,7 @@ public class CMISAPI {
               srcParent = parents.get(0);
             }
 
-            FileableCmisObject moved = fileable.move(srcParent, parent);
+            FileableCmisObject moved = fileable.move(srcParent, parent, objectContext);
             if (moved != null) {
               result = moved;
             }
@@ -1055,7 +1159,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  Folder updateFolder(String parentId, String id, String name, LocalFile local) throws CMISException,
+  protected Folder updateFolder(String parentId, String id, String name, LocalFile local) throws CMISException,
                                                                                NotFoundException,
                                                                                ConflictException,
                                                                                CloudDriveAccessException {
@@ -1081,7 +1185,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  Document copyDocument(String id, String parentId, String name) throws CMISException,
+  protected Document copyDocument(String id, String parentId, String name) throws CMISException,
                                                                 NotFoundException,
                                                                 ConflictException,
                                                                 CloudDriveAccessException {
@@ -1089,14 +1193,14 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = session.getObject(parentId);
+        obj = session.getObject(parentId, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
         try {
-          obj = session.getObject(id);
+          obj = session.getObject(id, objectContext);
         } catch (CmisObjectNotFoundException e) {
           throw new NotFoundException("Source not found: " + parentId, e);
         }
@@ -1129,7 +1233,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  Document copyDocument(Document source, Folder parent, String name) throws CMISException,
+  protected Document copyDocument(Document source, Folder parent, String name) throws CMISException,
                                                                     NotFoundException,
                                                                     ConflictException,
                                                                     CloudDriveAccessException {
@@ -1137,7 +1241,13 @@ public class CMISAPI {
       Map<String, Object> properties = new HashMap<String, Object>();
       properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
       properties.put(PropertyIds.NAME, name);
-      return parent.createDocumentFromSource(source, properties, VersioningState.MAJOR);
+      return parent.createDocumentFromSource(source,
+                                             properties,
+                                             VersioningState.MAJOR,
+                                             null,
+                                             null,
+                                             null,
+                                             objectContext);
     } catch (CmisObjectNotFoundException e) {
       // this can be a rice condition when parent just deleted or similar happened remotely
       throw new NotFoundException("Error copying document: " + e.getMessage(), e);
@@ -1188,7 +1298,7 @@ public class CMISAPI {
    * 
    * @see #copyFolder(Folder, Folder, String)
    */
-  Folder copyFolder(String id, String parentId, String name) throws CMISException,
+  protected Folder copyFolder(String id, String parentId, String name) throws CMISException,
                                                             NotFoundException,
                                                             ConflictException,
                                                             CloudDriveAccessException {
@@ -1196,14 +1306,14 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = session.getObject(parentId);
+        obj = session.getObject(parentId, objectContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
         try {
-          obj = session.getObject(id);
+          obj = session.getObject(id, objectContext);
         } catch (CmisObjectNotFoundException e) {
           throw new NotFoundException("Source not found: " + parentId, e);
         }
@@ -1239,7 +1349,7 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
-  Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
+  protected Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
                                                               NotFoundException,
                                                               ConflictException,
                                                               CloudDriveAccessException {
@@ -1247,7 +1357,7 @@ public class CMISAPI {
       Map<String, Object> properties = new HashMap<String, Object>(2);
       properties.put(PropertyIds.NAME, source.getName());
       properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
-      Folder copyFolder = parent.createFolder(properties);
+      Folder copyFolder = parent.createFolder(properties, null, null, null, folderContext);
       // copy child documents recursively
       for (CmisObject child : source.getChildren()) {
         if (isDocument(child)) {
@@ -1289,7 +1399,7 @@ public class CMISAPI {
     }
   }
 
-  RepositoryInfo getRepositoryInfo() throws CMISException, RefreshAccessException {
+  protected RepositoryInfo getRepositoryInfo() throws CMISException, RefreshAccessException {
     try {
       return session(true).getRepositoryInfo();
     } catch (CmisRuntimeException e) {
@@ -1297,38 +1407,32 @@ public class CMISAPI {
     }
   }
 
-  boolean isFolder(CmisObject object) {
+  protected boolean isFolder(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_FOLDER)) {
       return true;
     }
     return false;
   }
 
-  boolean isDocument(CmisObject object) {
+  protected boolean isDocument(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_DOCUMENT)) {
       return true;
     }
     return false;
   }
 
-  boolean isRelationship(CmisObject object) {
+  protected boolean isRelationship(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_RELATIONSHIP)) {
       return true;
     }
     return false;
   }
 
-  boolean isFileable(CmisObject object) {
+  protected boolean isFileable(CmisObject object) {
     if (object instanceof FileableCmisObject) {
       return true;
     }
     return false;
-  }
-
-  // ********* internal *********
-
-  private void initUser() throws CMISException, RefreshAccessException, NotFoundException {
-    // TODO additional and optional ops to init current user and its enterprise or group from cloud services
   }
 
   /**
@@ -1338,7 +1442,7 @@ public class CMISAPI {
    * @throws CMISException when runtime or connection error happens
    * @throws RefreshAccessException if user credentials rejected (and need try renew them)
    */
-  private List<Repository> repositories() throws CMISException, RefreshAccessException {
+  protected List<Repository> repositories() throws CMISException, RefreshAccessException {
     try {
       lock.lock();
       SessionFactory sessionFactory = SessionFactoryImpl.newInstance();
@@ -1357,13 +1461,30 @@ public class CMISAPI {
   }
 
   /**
+   * Create CMIS binding instance (low-level API but with fine grained control).<br>
+   * 
+   * @return {@link CmisBinding}
+   * @throws CMISException
+   */
+  protected CmisBinding binding() throws CMISException {
+    CmisBindingFactory factory = CmisBindingFactory.newInstance();
+
+    Map<String, String> sessionParameters = new HashMap<String, String>(parameters);
+    if (repositoryId != null) {
+      sessionParameters.put(SessionParameter.REPOSITORY_ID, repositoryId);
+    }
+
+    return factory.createCmisAtomPubBinding(parameters);
+  }
+
+  /**
    * Create CMIS session.
    * 
    * @return {@link Session}
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  private Session session() throws CMISException, RefreshAccessException {
+  protected Session session() throws CMISException, RefreshAccessException {
     return session(false);
   }
 
@@ -1376,7 +1497,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws RefreshAccessException
    */
-  private Session session(boolean forceNew) throws CMISException, RefreshAccessException {
+  protected Session session(boolean forceNew) throws CMISException, RefreshAccessException {
     Session session = localSession.get();
     if (session != null && !forceNew) {
       // TODO should we check if session still live (not closed)?
@@ -1385,9 +1506,36 @@ public class CMISAPI {
       for (Repository r : repositories()) {
         if (r.getId().equals(repositoryId)) {
           session = r.createSession();
+
+          // default context
           OperationContext context = session.createOperationContext();
           context.setCacheEnabled(false);
           session.setDefaultContext(context);
+
+          // object/document context
+          this.objectContext = new Context("*", false, true, true, IncludeRelationships.BOTH, "*", null, 1000);
+
+          // folder context
+          ObjectType type = session.getTypeDefinition(BaseTypeId.CMIS_DOCUMENT.value());
+          StringBuilder filter = new StringBuilder();
+          for (String propId : FOLDER_PROPERTY_SET) {
+            PropertyDefinition<?> propDef = type.getPropertyDefinitions().get(propId);
+            if (propDef != null) {
+              if (filter.length() > 0) {
+                filter.append(',');
+              }
+              filter.append(propDef.getQueryName());
+            }
+          }
+          this.folderContext = new Context(filter.toString(),
+                                           false,
+                                           false,
+                                           false,
+                                           IncludeRelationships.NONE,
+                                           "cmis:none",
+                                           null,
+                                           Integer.MAX_VALUE); // TODO max pages = 10000 (as in workbench)
+
           localSession.set(session);
           return session;
         }
@@ -1396,21 +1544,12 @@ public class CMISAPI {
     throw new CMISException("CMIS repository not found: " + repositoryId);
   }
 
-  /**
-   * Create CMIS binding instance (low-level API but with fine grained control).<br>
-   * TODO not used!
-   * 
-   * @return {@link CmisBinding}
-   * @throws CMISException
-   */
-  private CmisBinding binding() throws CMISException {
-    CmisBindingFactory factory = CmisBindingFactory.newInstance();
-
-    Map<String, String> sessionParameters = new HashMap<String, String>(parameters);
-    if (repositoryId != null) {
-      sessionParameters.put(SessionParameter.REPOSITORY_ID, repositoryId);
-    }
-
-    return factory.createCmisAtomPubBinding(parameters);
+  protected OperationContext objectContext() throws CMISException, RefreshAccessException {
+    return objectContext != null ? objectContext : session().getDefaultContext();
   }
+
+  protected OperationContext folderContext() throws CMISException, RefreshAccessException {
+    return folderContext != null ? folderContext : session().getDefaultContext();
+  }
+
 }
