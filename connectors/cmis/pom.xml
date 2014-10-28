@@ -27,36 +27,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
     <artifactId>exo-clouddrive-connectors</artifactId>
     <version>1.1.0-SNAPSHOT</version>
   </parent>
-
   <artifactId>exo-clouddrive-cmis</artifactId>
   <version>1.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>eXo Cloud Drive Extension :: Connectors :: CMIS</name>
   <description>eXo Cloud Drive CMIS connector</description>
-
-  <!-- Cloud API dependencies -->
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-services-core</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-services-ecms</artifactId>
-        <version>1.1.0-SNAPSHOT</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.chemistry.opencmis</groupId>
-        <artifactId>chemistry-opencmis-client-impl</artifactId>
-        <version>0.12.0</version>
-        <type>jar</type>
-      </dependency>
-    </dependencies>  
-  </dependencyManagement>
 
   <modules>
     <module>services</module>

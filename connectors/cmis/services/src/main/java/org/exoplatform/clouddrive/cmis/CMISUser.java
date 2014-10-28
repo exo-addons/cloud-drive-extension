@@ -19,12 +19,19 @@
 package org.exoplatform.clouddrive.cmis;
 
 import org.apache.chemistry.opencmis.client.api.Repository;
+import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
+import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
+import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.cmis.CMISProvider.AtomPub;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+
+import javax.jcr.RepositoryException;
 
 /**
  * CMIS user.
@@ -53,26 +60,61 @@ public class CMISUser extends CloudUser {
    * 
    * @return {@link CMISAPI} instance authenticated for this user.
    */
-  CMISAPI api() {
+  protected CMISAPI api() {
     return api;
   }
 
   /**
-   * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
-   * 
-   * @return {@link String} user's enterprise name or <code>null</code>
+   * {@inheritDoc}
    */
-  public String getEnterpriseName() {
-    return "TODO api.getEnterpriseName()";
+  @Override
+  public String createDriveTitle() throws RepositoryException, DriveRemovedException, CloudDriveException {
+    RepositoryInfo info = api.getRepositoryInfo();
+    StringBuilder title = new StringBuilder();
+
+    String predefinedName = getPredefinedRepositoryName();
+    if (predefinedName != null) {
+      // use predefined name of the CMIS repo as a node name prefix
+      title.append(predefinedName);
+    } else {
+      // if not predefined then use product name/version as node name prefix
+      title.append(info.getProductName());
+      title.append(' ');
+      title.append(info.getProductVersion());
+    }
+
+    title.append(" - ");
+    title.append(getRepositoryName());
+    title.append(" - ");
+    title.append(getUserTitle());
+    return title.toString();
   }
 
   /**
-   * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user repository ID.
    * 
-   * @return {@link String} user's enterprise ID or <code>null</code>
+   * @return {@link String} user's repository ID
    */
-  public String getEnterpriseId() {
-    return "TODO api.getEnterpriseId()";
+  public String getRepositoryId() {
+    return api().getRepositoryId();
+  }
+
+  /**
+   * Current user repository name.
+   * 
+   * @return {@link String} user's repository name
+   */
+  public String getRepositoryName() {
+    return api().getRepositoryName();
+  }
+
+  /**
+   * Current user title.
+   * 
+   * @return {@link String} user name
+   */
+  public String getUserTitle() {
+    return api().getUserTitle();
   }
 
   /**
@@ -92,19 +134,32 @@ public class CMISUser extends CloudUser {
    */
   public List<Repository> getRepositories() throws CloudDriveAccessException, CMISException {
     return api().getRepositories();
-    // TODO List<String> repoIds = new ArrayList<String>();
-    // for (Repository r : cmisRepos) {
-    // repoIds.add(r.getId());
-    // }
-    // return repoIds;
   }
 
   /**
    * Set current CMIS repository for operations of this user.
    * 
    * @param repositoryId {@link String}
+   * @throws RefreshAccessException
    */
-  public void setCurrentRepository(String repositoryId) {
+  public void setCurrentRepository(String repositoryId) throws CMISException, RefreshAccessException {
     api().initRepository(repositoryId);
+  }
+
+  // **** internals *****
+
+  /**
+   * Predefined name for this user CMIS repository or <code>null</code> if repository wasn't predefined in
+   * configuration or by administrator.
+   * 
+   * @return {@link String}
+   */
+  protected String getPredefinedRepositoryName() {
+    for (AtomPub predefined : getProvider().getPredefinedAtompubServices()) {
+      if (predefined.getUrl().equals(api.getServiceURL())) {
+        return predefined.getName();
+      }
+    }
+    return null;
   }
 }

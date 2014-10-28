@@ -12,4 +12,27 @@
       <ConnectTemplate>Connect CMIS Server</ConnectTemplate>
     </tooltip>
   </UIActionBar>
+  <!-- For login form -->
+  <CMISLoginController>
+    <cmis>
+      <title>Login CMIS repository</title>
+      <authHelp>Authenticate to select CMIS repository for login.</authHelp>
+      <loginHelp>Select CMIS repository and complete login.</loginHelp>
+    </cmis>
+    <sharepoint>
+      <title>Login CMIS repository on Microsoft SharePoint server</title>
+      <authHelp>Authenticate to select CMIS repository for login.</authHelp>
+      <loginHelp>Select CMIS repository and complete login.</loginHelp>
+    </sharepoint>
+    <serviceUrl>Service URL</serviceUrl>
+    <serviceUrlHint>Server URL...</serviceUrlHint>
+    <username>User name</username>
+    <usernameHint>Your user name...</usernameHint>
+    <password>Password</password>
+    <passwordHint>Your password...</passwordHint>
+    <authenticate>Authenticate</authenticate>
+    <repository>CMIS repository</repository>
+    <login>Login</login>
+    <cancel>Cancel</cancel>
+  </CMISLoginController>
 </bundle>

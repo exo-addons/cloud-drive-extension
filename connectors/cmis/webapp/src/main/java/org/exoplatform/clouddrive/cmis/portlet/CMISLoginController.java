@@ -19,6 +19,7 @@
 package org.exoplatform.clouddrive.cmis.portlet;
 
 import juzu.Action;
+import juzu.Param;
 import juzu.Path;
 import juzu.Resource;
 import juzu.Response;
@@ -34,6 +35,7 @@ import org.exoplatform.clouddrive.cmis.CMISUser;
 import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.commons.juzu.ajax.Ajax;
+import org.exoplatform.portal.application.PortalRequestContext;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.gatein.common.util.Base64;
@@ -65,47 +67,57 @@ import javax.inject.Inject;
  */
 public class CMISLoginController {
 
-  private static final Log                                       LOG           = ExoLogger.getLogger(CMISLoginController.class);
+  private static final Log                                     LOG           = ExoLogger.getLogger(CMISLoginController.class);
 
-  private static final String                                    KEY_ALGORITHM = "RSA";
+  private static final String                                  KEY_ALGORITHM = "RSA";
 
   @Inject
   @Path("login.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.login        login;
+  org.exoplatform.clouddrive.cmis.portlet.templates.login      login;
 
   @Inject
   @Path("userkey.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.userkey      userKey;
+  org.exoplatform.clouddrive.cmis.portlet.templates.userkey    userKey;
 
   @Inject
   @Path("repository.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.repository   repository;
+  org.exoplatform.clouddrive.cmis.portlet.templates.repository repository;
 
   @Inject
   @Path("error.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.error        error;
+  org.exoplatform.clouddrive.cmis.portlet.templates.error      error;
 
   @Inject
   @Path("message.gtmpl")
-  org.exoplatform.clouddrive.cmis.portlet.templates.message message;
+  org.exoplatform.clouddrive.cmis.portlet.templates.message    message;
 
   @Inject
-  CodeAuthentication                                             authService;
+  CodeAuthentication                                           authService;
 
   @Inject
-  CloudDriveService                                              cloudDrives;
+  CloudDriveService                                            cloudDrives;
 
-  private final ConcurrentHashMap<String, PrivateKey>            keys          = new ConcurrentHashMap<String, PrivateKey>();
+  private final ConcurrentHashMap<String, PrivateKey>          keys          = new ConcurrentHashMap<String, PrivateKey>();
 
   @View
-  public Response index() {
+  public Response index(@Param String providerId) {
     Request request = Request.getCurrent();
     Map<String, String[]> parameters = request.getParameters();
+    if (providerId == null || providerId.length() == 0) {
+      PortalRequestContext portalReq = PortalRequestContext.getCurrentInstance();
+      if (portalReq != null) {
+        // try portal HTTP request for provider id
+        String reqProviderId = portalReq.getRequestParameter("providerId");
+        providerId = reqProviderId != null && reqProviderId.length() > 0 ? reqProviderId : "cmis";
+      } else {
+        providerId = "cmis";
+      }
+    }
     try {
-      return login.with(parameters).set("provider", cloudDrives.getProvider("cmis")).ok();
+      return login.with(parameters).set("provider", cloudDrives.getProvider(providerId)).ok();
     } catch (ProviderNotAvailableException e) {
-      LOG.error("Login error: provider not available", e);
-      return CMISLoginController_.error("CMIS provider not available");
+      LOG.error("Login error: provider not available " + providerId, e);
+      return CMISLoginController_.error("CMIS provider (" + providerId + ") not available");
     }
   }
 
@@ -128,14 +140,19 @@ public class CMISLoginController {
 
   @Ajax
   @Resource
-  public Response loginUser(String serviceURL, String user, String password) {
+  public Response loginUser(String serviceURL, String user, String password, String providerId) {
     if (serviceURL != null && serviceURL.length() > 0) {
       if (user != null && user.length() > 0) {
         if (password != null && password.length() > 0) {
           try {
             String passwordText = decodePassword(user, password);
             String code = authService.authenticate(serviceURL, user, passwordText);
-            CloudProvider cmisProvider = cloudDrives.getProvider("cmis");
+
+            if (providerId == null || providerId.length() == 0) {
+              providerId = "cmis";
+            }
+            CloudProvider cmisProvider = cloudDrives.getProvider(providerId);
+
             CMISUser cmisUser = (CMISUser) cloudDrives.authenticate(cmisProvider, code);
             return repository.with().code(code).repositories(cmisUser.getRepositories()).ok();
           } catch (InvalidKeyException e) {

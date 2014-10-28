@@ -16,7 +16,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis.rest;
+package org.exoplatform.clouddrive.sharepoint.rest;
 
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -47,14 +47,14 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
 /**
- * RESTful service to provide some specific features of CMIS connector.<br>
+ * RESTful service to provide some specific features of SharePoint connector.<br>
  * 
  */
-@Path("/clouddrive/drive/cmis")
+@Path("/clouddrive/drive/sharepoint")
 @Produces(MediaType.APPLICATION_JSON)
-public class CMISWebService implements ResourceContainer {
+public class SharepointWebService implements ResourceContainer {
 
-  protected static final Log             LOG = ExoLogger.getLogger(CMISWebService.class);
+  protected static final Log             LOG = ExoLogger.getLogger(SharepointWebService.class);
 
   protected final CloudDriveFeatures     features;
 
@@ -72,10 +72,10 @@ public class CMISWebService implements ResourceContainer {
    * @param jcrService
    * @param sessionProviders
    */
-  public CMISWebService(CloudDriveService cloudDrives,
-                         CloudDriveFeatures features,
-                         RepositoryService jcrService,
-                         SessionProviderService sessionProviders) {
+  public SharepointWebService(CloudDriveService cloudDrives,
+                        CloudDriveFeatures features,
+                        RepositoryService jcrService,
+                        SessionProviderService sessionProviders) {
     this.cloudDrives = cloudDrives;
     this.features = features;
 

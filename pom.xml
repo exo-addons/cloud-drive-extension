@@ -46,7 +46,7 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.0.6</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.0.7</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.18.0-rc</com.google.api.client.version>
@@ -56,9 +56,12 @@
 
     <!-- Box API -->
     <net.box.boxjavalibv2.version>3.0.9</net.box.boxjavalibv2.version>
+    
+    <!-- Apache Chemistry (OpencCMIS) API -->
+    <org.apache.chemistry.opencmis.version>0.12.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.15.9-GA</org.exoplatform.jcr-services.version>
+    <org.exoplatform.jcr-services.version>1.15.10-GA</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.0.8</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>0.7-groovy-2.0</spock.version>
@@ -145,6 +148,18 @@
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-sharepoint-services</artifactId>
+        <version>${project.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-sharepoint-webapp</artifactId>
+        <version>${project.version}</version>
+        <type>war</type>
+      </dependency>
       
       <!-- dependencies -->
       <dependency>
@@ -171,6 +186,11 @@
         <groupId>net.box</groupId>
         <artifactId>boxjavalibv2</artifactId>
         <version>${net.box.boxjavalibv2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.chemistry.opencmis</groupId>
+        <artifactId>chemistry-opencmis-client-impl</artifactId>
+        <version>${org.apache.chemistry.opencmis.version}</version>
       </dependency>
 
       <!-- for tests -->

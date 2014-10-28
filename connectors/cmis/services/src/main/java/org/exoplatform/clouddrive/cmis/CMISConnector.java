@@ -1,5 +1,6 @@
 package org.exoplatform.clouddrive.cmis;
 
+import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveConnector;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -12,12 +13,14 @@ import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
+import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
@@ -39,9 +42,9 @@ public class CMISConnector extends CloudDriveConnector {
   /**
    * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
    */
-  class API {
+  protected class API {
 
-    String serviceUrl, user, password;
+    protected String serviceUrl, user, password;
 
     /**
      * Authenticate to the API with user and password.
@@ -50,7 +53,7 @@ public class CMISConnector extends CloudDriveConnector {
      * @param password {@link String}
      * @return {@link API}
      */
-    API auth(String user, String password) {
+    protected API auth(String user, String password) {
       this.user = user;
       this.password = password;
       return this;
@@ -62,7 +65,7 @@ public class CMISConnector extends CloudDriveConnector {
      * @param serviceUrl {@link String}
      * @return {@link API}
      */
-    API serviceUrl(String serviceUrl) {
+    protected API serviceUrl(String serviceUrl) {
       this.serviceUrl = serviceUrl;
       return this;
     }
@@ -71,10 +74,10 @@ public class CMISConnector extends CloudDriveConnector {
      * Build API.
      * 
      * @return {@link CMISAPI}
-     * @throws CMISException if error happen during communication with Google Drive services
+     * @throws CMISException if error happen during communication with CMIS services
      * @throws CloudDriveException if cannot load local tokens
      */
-    CMISAPI build() throws CMISException, CloudDriveException {
+    protected CMISAPI build() throws CMISException, CloudDriveException {
       if (user == null || password == null) {
         throw new CloudDriveException("Cannot create API: user required");
       }
@@ -119,7 +122,7 @@ public class CMISConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudProvider createProvider() {
+  protected CloudProvider createProvider() throws ConfigurationException {
     StringBuilder redirectURL = new StringBuilder();
     redirectURL.append(getConnectorSchema());
     redirectURL.append("://");
@@ -134,7 +137,8 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append("://");
     authURL.append(getConnectorHost());
     authURL.append("/portal/clouddrive/");
-    authURL.append(getProviderId());
+    // by this auth provider id, dedicated CMIS connectors can use CMIS connector's login form
+    authURL.append(getAuthProviderId()); 
     authURL.append("/login?state=");
     try {
       authURL.append(URLEncoder.encode(CMISAPI.NO_STATE, "UTF-8"));
@@ -142,6 +146,8 @@ public class CMISConnector extends CloudDriveConnector {
       LOG.warn("Cannot encode state " + CMISAPI.NO_STATE + ":" + e);
       authURL.append(CMISAPI.NO_STATE);
     }
+    authURL.append("&providerId=");
+    authURL.append(getProviderId());
     authURL.append("&redirect_uri=");
     try {
       authURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
@@ -170,7 +176,9 @@ public class CMISConnector extends CloudDriveConnector {
    * to connect by the user). If the identity will not be initialized before a second call (second step), this
    * method will fail with {@link CloudDriveException}.<br>
    * CMIS connector doesn't manage the user identity initialization or any other extra steps. This should be
-   * done outside this connector (e.g. via dedicated authenticator).
+   * done outside this connector (e.g. via dedicated authenticator).<br>
+   * CMIS connector will detect if dedicated connector available for given service and then will return user
+   * instance initialized by that connector.
    * 
    * @param code {@link String} authentication code
    * @return {@link CMISUser}
@@ -183,17 +191,25 @@ public class CMISConnector extends CloudDriveConnector {
         // exchange the code on identity and create an user
         try {
           Identity userId = codeAuth.exchangeCode(code);
-          CMISAPI driveAPI = new API().auth(userId.getUser(), userId.getPassword())
-                                      .serviceUrl(userId.getServiceURL())
-                                      .build();
-          CMISUser user = new CMISUser(driveAPI.getUser(), //
-                                       driveAPI.getUser(), // TODO real name?
-                                       driveAPI.getUser(), // TODO real email
-                                       provider,
-                                       driveAPI);
-          // we ignore something mapped previously as it is almost not possible due to uniqueness of the code
-          users.put(code, new AuthFlow(user, userId));
-          return user;
+          CMISAPI driveAPI = createAPI(userId);
+
+          RepositoryInfo repo = driveAPI.getRepositoryInfo();
+          List<?> cimpls = ExoContainerContext.getCurrentContainer()
+                                              .getComponentInstancesOfType(CMISConnectorImpl.class);
+          CMISUser user = null;
+          for (Object co : cimpls) {
+            CMISConnectorImpl cimpl = (CMISConnectorImpl) co;
+            if (cimpl.hasSupport(repo)) {
+              user = cimpl.getConnector().createUser(userId, driveAPI);
+            }
+          }
+
+          if (user == null) {
+            // default implementation
+            user = createUser(userId, driveAPI);
+          } // else will use dedicated CMIS product connector
+
+          return createAuthFlow(code, userId, user);
         } catch (AuthenticationException e) {
           throw new CloudDriveException("Authentication failed: " + e.getMessage(), e);
         }
@@ -237,6 +253,54 @@ public class CMISConnector extends CloudDriveConnector {
                                                     sessionProviders,
                                                     jcrFinder);
     return drive;
+  }
+
+  // ***** specifics ******
+
+  protected CMISAPI createAPI(Identity userId) throws CMISException, CloudDriveException {
+    return new API().auth(userId.getUser(), userId.getPassword()).serviceUrl(userId.getServiceURL()).build();
+  }
+
+  /**
+   * Create an instance of {@link CMISUser} using data from given {@link Identity} or/and {@link CMISAPI}.
+   * 
+   * @param userId {@link Identity}
+   * @param api {@link CMISAPI}
+   * @return {@link CMISUser}
+   * @throws CMISException
+   * @throws CloudDriveException
+   */
+  protected CMISUser createUser(Identity userId, CMISAPI api) throws CMISException, CloudDriveException {
+    return new CMISUser(api.getUser(), // username as user id?
+                        api.getUser(), // username as login name
+                        "", // empty email
+                        provider,
+                        api);
+  }
+
+  /**
+   * Assign given code with authentication flow for given user.
+   * 
+   * @param code {@link String}
+   * @param userId {@link Identity}
+   * @param driveAPI {@link CMISAPI}
+   * @return
+   */
+  protected CMISUser createAuthFlow(String code, Identity userId, CMISUser user) {
+    // we ignore something mapped previously as it is almost not possible due to uniqueness of the code
+    users.put(code, new AuthFlow(user, userId));
+    return user;
+  }
+
+  /**
+   * Provider id that should be used in authentication URL of the provider. In case of dedicated connector
+   * based on CMIS this method may return 'cmis' id to use default authentication flow for CMIS services.
+   * 
+   * @return {@link String}
+   * @throws ConfigurationException if provider id cannot be determined for this connector authentication flow
+   */
+  protected String getAuthProviderId() throws ConfigurationException {
+    return getProviderId();
   }
 
 }

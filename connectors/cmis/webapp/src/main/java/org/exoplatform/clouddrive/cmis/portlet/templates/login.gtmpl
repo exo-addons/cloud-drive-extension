@@ -1,8 +1,13 @@
 #{param name=provider/}
+<% 
+	def title = "CMISLoginController.${provider.id}.title"
+  def authHelp = "CMISLoginController.${provider.id}.authHelp"
+  def loginHelp = "CMISLoginController.${provider.id}.loginHelp"
+%>
 <div class="container-fluid">
 	<div id="cmis-login-body" class="row-fluid">
 		<div class="span6 offset3">
-			<h1 class="text-centered">Login CMIS repository</h1>
+			<h1 class="text-centered">&{$title}</h1>
 		</div>
 		<div id="cmis-login-wrapper" class="span6 offset3">
 			<div id="cmis-login-error" class="error-message">
@@ -10,11 +15,11 @@
 			</div>
 			<form id="cmis-login-data" action="javascript:void(0)">
 				<fieldset class="form-centered">
-					<p class="help-block">Authenticate to select CMIS repository for login.</p>
+					<p class="help-block">&{$authHelp}</p>
 					<div class="control-group">
-						<label class="control-label" for="service-url">Service URL</label>
+						<label class="control-label" for="service-url">&{CMISLoginController.serviceUrl}</label>
 						<div class="controls input-append">
-							<input type="text" name="service-url" value="" placeholder="CMIS server URL..." class="form-control" />
+							<input type="text" name="service-url" value="" placeholder="&{CMISLoginController.serviceUrlHint}" class="form-control" />
 							<div class="btn-group">
 								<button class="btn dropdown-toggle" data-toggle="dropdown">
 									<span class="caret"></span>
@@ -41,18 +46,18 @@
 						</div>
 					</div>
 					<div class="control-group">
-						<label class="control-label" for="user">User name</label>
+						<label class="control-label" for="user">&{CMISLoginController.username}</label>
 						<div class="controls">
-							<input type="text" name="user" value="" placeholder="Your user name..." class="form-control" />
+							<input type="text" name="user" value="" placeholder="&{CMISLoginController.usernameHint}" class="form-control" />
 						</div>
 						<div class="login-error-container">
 							<label class="control-label error login-error" style="display: none;" for="user"></label>
 						</div>
 					</div>
 					<div class="control-group">
-						<label class="control-label" for="password">Password</label>
+						<label class="control-label" for="password">&{CMISLoginController.password}</label>
 						<div class="controls">
-							<input type="password" name="password" value="" placeholder="Your password..." class="form-control" />
+							<input type="password" name="password" value="" placeholder="&{CMISLoginController.passwordHint}" class="form-control" />
 						</div>
 						<div class="login-error-container">
 							<label class="control-label error login-error" style="display: none;" for="password"></label>
@@ -60,19 +65,19 @@
 					</div>
 					<div class="control-group text-centered form-buttons">
 						<div class="controls">
-							<button type=submit class="btn btn-primary">Authenticate</button>
-							<button type="button" class="btn" onclick="window.close();">Cancel</button>
+							<button type=submit class="btn btn-primary">&{CMISLoginController.authenticate}</button>
+							<button type="button" class="btn" onclick="window.close();">&{CMISLoginController.cancel}</button>
 						</div>
 					</div>
 				</fieldset>
 			</form>
 			<form id="cmis-login-form" action="@{loginRepository()}" method="post" style="display: none;">
 				<fieldset class="form-centered">
-					<p class="help-block">Select CMIS repository and complete login.</p>
+					<p class="help-block">&{${loginHelp}}</p>
 					<div id="cmis-login-key"></div>
 					<p />
 					<div class="control-group">
-						<label class="control-label" for="repository">CMIS repository</label>
+						<label class="control-label" for="repository">&{CMISLoginController.repository}</label>
 						<div class="controls">
 							<div id="cmis-login-repository" class="controls"></div>
 						</div>
@@ -83,8 +88,8 @@
 						<!-- input type="hidden" name="redirect_uri" value="test"/ -->
 						<div class="control-group text-centered form-buttons">
 							<div class="controls">
-								<button type="submit" class="btn btn-primary">Login</button>
-								<button type="button" class="btn" onclick="window.close();">Cancel</button>
+								<button type="submit" class="btn btn-primary">&{CMISLoginController.login}</button>
+								<button type="button" class="btn" onclick="window.close();">&{CMISLoginController.cancel}</button>
 							</div>
 						</div>
 				</fieldset>

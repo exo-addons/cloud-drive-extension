@@ -1331,7 +1331,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                               NodeFinder finder) throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder);
     CMISAPI api = user.api();
-    saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepository());
+    saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
   }
 
   protected JCRLocalCMISDrive(API apiBuilder,
@@ -1395,7 +1395,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @param repositoryId {@link String} optional if it's access update
    * @throws CloudDriveException
    */
-  private void saveAccess(Node driveNode, String password, String serviceURL, String repositoryId) throws CloudDriveException {
+  protected void saveAccess(Node driveNode, String password, String serviceURL, String repositoryId) throws CloudDriveException {
     try {
       jcrListener.disable();
       try {
@@ -1709,14 +1709,4 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     // TODO Return actual link for embedded editing (in iframe) or null if that not supported
     return null;
   }
-
-  // TODO cleanup
-  // protected boolean notInRange(String path, Collection<String> range) {
-  // for (String p : range) {
-  // if (path.startsWith(p)) {
-  // return false;
-  // }
-  // }
-  // return true;
-  // }
 }

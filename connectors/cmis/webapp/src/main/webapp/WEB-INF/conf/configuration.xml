@@ -25,10 +25,6 @@
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
   <component>
-    <type>org.exoplatform.clouddrive.cmis.rest.CMISWebService</type>
-  </component>
-
-  <component>
     <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
   </component>
 
