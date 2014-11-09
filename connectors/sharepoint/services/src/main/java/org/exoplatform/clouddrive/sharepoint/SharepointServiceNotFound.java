@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2003-2014 eXo Platform SAS.
  *
@@ -16,35 +17,39 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis;
+package org.exoplatform.clouddrive.sharepoint;
 
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
+import org.exoplatform.clouddrive.cmis.WrongCMISProviderException;
+
 
 /**
- * Product specific CMIS connector basic functionality. Goal of this interface is to mark product/vendor
- * dedicated implementations of Cloud Drive CMIS connector to support use of that connector instead of default
- * implementation in {@link CMISConnector}.<br>
+ * Web (REST) service not found on the SharePoint server. Exception message should describe details of the problem.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: CMISConnectorImpl.java 00000 Oct 26, 2014 pnedonosko $
+ * @version $Id: SharepointServiceNotFound.java 00000 Oct 31, 2014 pnedonosko $
  * 
  */
-public interface CMISConnectorImpl {
+public class SharepointServiceNotFound extends WrongCMISProviderException {
 
   /**
-   * Does this implementation supports the given repository.
    * 
-   * @param repository {@link RepositoryInfo} CMIS repository info
-   * @return <code>true</code> if given repository is supported by this implementation. 
    */
-  boolean hasSupport(RepositoryInfo repository);
-  
+  private static final long serialVersionUID = 1L;
+
   /**
-   * An instance of product specific CMIS connector extending {@link CMISConnector}.
-   * 
-   * @return {@link CMISConnector} instance
+   * @param message
    */
-  CMISConnector getConnector();
+  public SharepointServiceNotFound(String message) {
+    super(message);
+  }
+
+  /**
+   * @param message
+   * @param cause
+   */
+  public SharepointServiceNotFound(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

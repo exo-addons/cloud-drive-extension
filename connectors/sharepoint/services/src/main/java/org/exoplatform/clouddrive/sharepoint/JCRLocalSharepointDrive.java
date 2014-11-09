@@ -20,21 +20,20 @@ package org.exoplatform.clouddrive.sharepoint;
 
 import org.apache.chemistry.opencmis.client.api.CmisObject;
 import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.cmis.CMISAPI;
 import org.exoplatform.clouddrive.cmis.CMISException;
-import org.exoplatform.clouddrive.cmis.CMISProvider;
 import org.exoplatform.clouddrive.cmis.CMISUser;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.sharepoint.SharepointConnector.API;
-import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
-import org.gatein.common.util.Base64;
 
-import java.io.UnsupportedEncodingException;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 
 /**
@@ -60,11 +59,10 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
   }
 
   protected JCRLocalSharepointDrive(API apiBuilder,
-                                    CMISProvider provider,
                                     Node driveNode,
                                     SessionProviderService sessionProviders,
                                     NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder);
+    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder);
   }
 
   /**
@@ -77,7 +75,7 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
     // use empty values, real values will be set during the drive items fetching
     driveNode.setProperty("ecd:id", "");
     driveNode.setProperty("ecd:url", "");
-    
+
     // SharePoint specific info
     driveNode.setProperty("sharepoint:siteURL", getUser().getSiteURL());
     driveNode.setProperty("sharepoint:siteTitle", getUser().getSiteTitle());
@@ -85,8 +83,6 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
     driveNode.setProperty("sharepoint:userTitle", getUser().getSiteUser().getTitle());
   }
 
-  
-  
   /**
    * Load user from the drive Node.
    * 
@@ -98,10 +94,10 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
    * @throws SharepointException
    * @throws CloudDriveException
    */
-  protected static SharepointUser loadUser(API apiBuilder, CMISProvider provider, Node driveNode) throws RepositoryException,
-                                                                                                 SharepointException,
-                                                                                                 CloudDriveException {
-    SharepointUser user = (SharepointUser) JCRLocalCMISDrive.loadUser(apiBuilder, provider, driveNode);
+  protected static SharepointUser loadUser(API apiBuilder, Node driveNode) throws RepositoryException,
+                                                                          SharepointException,
+                                                                          CloudDriveException {
+    SharepointUser user = (SharepointUser) JCRLocalCMISDrive.loadUser(apiBuilder, driveNode);
     return user;
   }
 
@@ -145,4 +141,34 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
     // TODO Return actual link for embedded editing (in iframe) or null if that not supported
     return null;
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected void readNodes(Node parent, Map<String, List<Node>> nodes, boolean deep) throws RepositoryException {
+    // gather original mappings
+    super.readNodes(parent, nodes, deep);
+
+    final SharepointAPI api = getUser().api();
+
+    // reconstruct the map in its order but with double mappings for files: by simple ID and by SP document ID
+    // simple ID actual for sync based on Changes Log where SP doesn't show suffixed IDs of documents
+    Map<String, List<Node>> newNodes = new LinkedHashMap<String, List<Node>>();
+    for (Map.Entry<String, List<Node>> me : nodes.entrySet()) {
+      if (me.getValue().size() > 0) {
+        if (fileAPI.isFile(me.getValue().get(0))) {
+          newNodes.put(api.simpleId(me.getKey()), me.getValue());
+          newNodes.put(api.documentId(me.getKey()), me.getValue());
+        } else {
+          newNodes.put(me.getKey(), me.getValue());
+        }
+      }
+    }
+
+    // replace the map content
+    nodes.clear();
+    nodes.putAll(newNodes);
+  }
+
 }

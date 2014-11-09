@@ -15,9 +15,9 @@
   <!-- For login form -->
   <CMISLoginController>
     <sharepoint>
-      <title>Login CMIS repository on Microsoft SharePoint server</title>
-      <authHelp>Authenticate to select CMIS repository for login.</authHelp>
-      <loginHelp>Select CMIS repository and complete login.</loginHelp>
+      <title>Login Microsoft SharePoint server</title>
+      <authHelp>Authenticate to select CMIS repository on your SharePoint server.</authHelp>
+      <loginHelp>Select repository and complete login.</loginHelp>
     </sharepoint>
   </CMISLoginController>
 </bundle>

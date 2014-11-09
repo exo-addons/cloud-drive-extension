@@ -19,7 +19,6 @@
 package org.exoplatform.clouddrive.cmis;
 
 import org.apache.chemistry.opencmis.client.api.Repository;
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
@@ -29,7 +28,6 @@ import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.cmis.CMISProvider.AtomPub;
 
 import java.util.List;
-import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
@@ -69,7 +67,6 @@ public class CMISUser extends CloudUser {
    */
   @Override
   public String createDriveTitle() throws RepositoryException, DriveRemovedException, CloudDriveException {
-    RepositoryInfo info = api.getRepositoryInfo();
     StringBuilder title = new StringBuilder();
 
     String predefinedName = getPredefinedRepositoryName();
@@ -78,9 +75,9 @@ public class CMISUser extends CloudUser {
       title.append(predefinedName);
     } else {
       // if not predefined then use product name/version as node name prefix
-      title.append(info.getProductName());
+      title.append(api().getProductName());
       title.append(' ');
-      title.append(info.getProductVersion());
+      title.append(api().getProductVersion());
     }
 
     title.append(" - ");
@@ -144,6 +141,14 @@ public class CMISUser extends CloudUser {
    */
   public void setCurrentRepository(String repositoryId) throws CMISException, RefreshAccessException {
     api().initRepository(repositoryId);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getServiceName() {
+    return api().getVendorName() + " " + getProvider().getName();
   }
 
   // **** internals *****

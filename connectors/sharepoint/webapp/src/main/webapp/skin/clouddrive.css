@@ -34,7 +34,7 @@
 	-o-transform: scale(0.36);
 	-ms-transform: scale(0.36);
 	transform: scale(0.36);
-	background: url("icons/sharepoint2013-gray-16x16.png") no-repeat center center transparent !important;
+	background: url("icons/sharepoint2013-lightgray-16x16.png") no-repeat center center transparent !important;
 }
 
 /*
@@ -48,7 +48,7 @@
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/sharepoint2013-gray-16x16.png") no-repeat center center transparent !important;
+	background: url("icons/sharepoint2013-lightgray-16x16.png") no-repeat center center transparent !important;
 }
 
 /*
@@ -62,5 +62,5 @@
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/sharepoint2013-gray-32x32.png") no-repeat center center transparent !important;
+	background: url("icons/sharepoint2013-lightgray-32x32.png") no-repeat center center transparent !important;
 }

@@ -19,19 +19,21 @@
 package org.exoplatform.clouddrive.cmis.portlet;
 
 import juzu.Action;
-import juzu.Param;
 import juzu.Path;
 import juzu.Resource;
 import juzu.Response;
 import juzu.View;
 import juzu.impl.request.Request;
+import juzu.request.RenderContext;
 
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.ProviderNotAvailableException;
+import org.exoplatform.clouddrive.cmis.CMISException;
 import org.exoplatform.clouddrive.cmis.CMISUser;
+import org.exoplatform.clouddrive.cmis.WrongCMISProviderException;
 import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.commons.juzu.ajax.Ajax;
@@ -100,21 +102,18 @@ public class CMISLoginController {
   private final ConcurrentHashMap<String, PrivateKey>          keys          = new ConcurrentHashMap<String, PrivateKey>();
 
   @View
-  public Response index(@Param String providerId) {
+  public Response index(RenderContext render, String providerId) {
     Request request = Request.getCurrent();
     Map<String, String[]> parameters = request.getParameters();
     if (providerId == null || providerId.length() == 0) {
-      PortalRequestContext portalReq = PortalRequestContext.getCurrentInstance();
-      if (portalReq != null) {
-        // try portal HTTP request for provider id
-        String reqProviderId = portalReq.getRequestParameter("providerId");
-        providerId = reqProviderId != null && reqProviderId.length() > 0 ? reqProviderId : "cmis";
-      } else {
-        providerId = "cmis";
-      }
+      providerId = readProviderId();
     }
     try {
-      return login.with(parameters).set("provider", cloudDrives.getProvider(providerId)).ok();
+      return login.with(parameters)
+                  .set("res",
+                       render.getApplicationContext().resolveBundle(render.getUserContext().getLocale()))
+                  .set("provider", cloudDrives.getProvider(providerId))
+                  .ok();
     } catch (ProviderNotAvailableException e) {
       LOG.error("Login error: provider not available " + providerId, e);
       return CMISLoginController_.error("CMIS provider (" + providerId + ") not available");
@@ -123,15 +122,13 @@ public class CMISLoginController {
 
   @View
   public Response error(String message) {
-    Request request = Request.getCurrent();
-    Map<String, String[]> parameters = request.getParameters();
     return error.with().message(message).ok();
   }
 
   @Ajax
   @Resource
-  public Response userKey(String user) {
-    return userKey.with().key(createKey(user)).ok();
+  public Response userKey(String userName) {
+    return userKey.with().key(createKey(userName)).ok();
   }
 
   Response errorMessage(String text) {
@@ -140,46 +137,56 @@ public class CMISLoginController {
 
   @Ajax
   @Resource
-  public Response loginUser(String serviceURL, String user, String password, String providerId) {
+  public Response loginUser(String serviceURL, String userName, String password, String providerId) {
     if (serviceURL != null && serviceURL.length() > 0) {
-      if (user != null && user.length() > 0) {
+      if (userName != null && userName.length() > 0) {
         if (password != null && password.length() > 0) {
+          if (providerId == null || providerId.length() == 0) {
+            providerId = readProviderId();
+          }
+          String providerName = providerId;
           try {
-            String passwordText = decodePassword(user, password);
-            String code = authService.authenticate(serviceURL, user, passwordText);
-
-            if (providerId == null || providerId.length() == 0) {
-              providerId = "cmis";
-            }
+            String passwordText = decodePassword(userName, password);
+            String code = authService.authenticate(serviceURL, userName, passwordText);
             CloudProvider cmisProvider = cloudDrives.getProvider(providerId);
-
+            providerName = cmisProvider.getName();
             CMISUser cmisUser = (CMISUser) cloudDrives.authenticate(cmisProvider, code);
-            return repository.with().code(code).repositories(cmisUser.getRepositories()).ok();
+            try {
+              return repository.with().code(code).repositories(cmisUser.getRepositories()).ok();
+            } catch (WrongCMISProviderException e) {
+              LOG.error("Login error: wrong CMIS service URL for " + providerName, e);
+              return errorMessage("Wrong service URL for " + providerName);
+            } catch (CMISException e) {
+              LOG.error("Login error: error reading repositories list", e);
+              return errorMessage("Error reading repositories list from " + cmisProvider.getName() + ". "
+                  + e.getMessage());
+            }
           } catch (InvalidKeyException e) {
-            LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + user, e);
-            return errorMessage("Invalid password key of user " + user);
+            LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + userName, e);
+            return errorMessage("Invalid password key of user " + userName);
           } catch (IllegalBlockSizeException e) {
-            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
-            return errorMessage("Error processing password of user " + user);
+            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + userName, e);
+            return errorMessage("Error processing password of user " + userName);
           } catch (BadPaddingException e) {
-            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + user, e);
-            return errorMessage("Error processing password of user " + user);
+            LOG.warn("Error decoding " + KEY_ALGORITHM + " key from user " + userName, e);
+            return errorMessage("Error processing password of user " + userName);
           } catch (IllegalStateException e) {
             LOG.error("Login error: authentication initialization error", e);
-            return errorMessage("Authentication initialization error for " + user);
+            return errorMessage("Authentication initialization error for " + userName);
           } catch (ProviderNotAvailableException e) {
             LOG.error("Login error: provider not available", e);
             return errorMessage("CMIS provider not available");
           } catch (CloudDriveAccessException e) {
             LOG.warn("Login failure: " + e.getMessage());
-            return errorMessage("CMIS authentication failure for " + user
+            return errorMessage("Authentication failure for " + userName
                 + ". Ensure you are using correct username and password and try again.");
           } catch (CloudDriveException e) {
             LOG.error("Login error: authentication error", e);
-            return errorMessage("CMIS authentication error for " + user);
+            return errorMessage("Authentication error for " + userName + ". "
+                + e.getMessage());
           }
         } else {
-          LOG.warn("Wrong login: password required for " + user);
+          LOG.warn("Wrong login: password required for " + userName);
           return errorMessage("Password required");
         }
       } else {
@@ -270,6 +277,17 @@ public class CMISLoginController {
       // TODO throw new CMISLoginException("User key not found for " + user);
       LOG.warn("User key not found for " + user + ". Use password as plain text.");
       return password;
+    }
+  }
+
+  private String readProviderId() {
+    PortalRequestContext portalReq = PortalRequestContext.getCurrentInstance();
+    if (portalReq != null) {
+      // try portal HTTP request for provider id
+      String reqProviderId = portalReq.getRequestParameter("providerId");
+      return reqProviderId != null && reqProviderId.length() > 0 ? reqProviderId : "cmis";
+    } else {
+      return "cmis";
     }
   }
 }

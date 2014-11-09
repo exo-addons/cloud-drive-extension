@@ -4,6 +4,7 @@ import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveConnector;
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudDriveServiceImpl;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConfigurationException;
@@ -20,7 +21,6 @@ import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
@@ -86,6 +86,19 @@ public class CMISConnector extends CloudDriveConnector {
       }
       return new CMISAPI(serviceUrl, user, password);
     }
+
+    /**
+     * Create {@link CMISUser} instance.
+     * 
+     * @param userId {@link String}
+     * @param userName {@link String}
+     * @param email {@link String}
+     * @param api {@link CMISAPI}
+     * @return {@link CMISUser} instance
+     */
+    protected CMISUser createUser(String userId, String userName, String email, CMISAPI api) {
+      return new CMISUser(userId, userName, email, getProvider(), api);
+    }
   }
 
   class AuthFlow {
@@ -138,7 +151,7 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getConnectorHost());
     authURL.append("/portal/clouddrive/");
     // by this auth provider id, dedicated CMIS connectors can use CMIS connector's login form
-    authURL.append(getAuthProviderId()); 
+    authURL.append(getAuthProviderId());
     authURL.append("/login?state=");
     try {
       authURL.append(URLEncoder.encode(CMISAPI.NO_STATE, "UTF-8"));
@@ -191,38 +204,50 @@ public class CMISConnector extends CloudDriveConnector {
         // exchange the code on identity and create an user
         try {
           Identity userId = codeAuth.exchangeCode(code);
-          CMISAPI driveAPI = createAPI(userId);
 
-          RepositoryInfo repo = driveAPI.getRepositoryInfo();
-          List<?> cimpls = ExoContainerContext.getCurrentContainer()
-                                              .getComponentInstancesOfType(CMISConnectorImpl.class);
-          CMISUser user = null;
-          for (Object co : cimpls) {
-            CMISConnectorImpl cimpl = (CMISConnectorImpl) co;
-            if (cimpl.hasSupport(repo)) {
-              user = cimpl.getConnector().createUser(userId, driveAPI);
-            }
-          }
+          // use default implementation
+          CMISUser user = createUser(userId);
 
-          if (user == null) {
-            // default implementation
-            user = createUser(userId, driveAPI);
-          } // else will use dedicated CMIS product connector
-
-          return createAuthFlow(code, userId, user);
+          // we ignore something mapped previously as it is almost not possible due to uniqueness of the code
+          users.put(code, new AuthFlow(user, userId));
+          return user;
         } catch (AuthenticationException e) {
           throw new CloudDriveException("Authentication failed: " + e.getMessage(), e);
         }
       } else {
         // complete the user by setting the code context (CMIS repository here)
         CMISUser user = userFlow.user;
-        String context = userFlow.identity.getServiceContext();
+        Identity userId = userFlow.identity;
+        String context = userId.getServiceContext();
         if (context != null) {
+          // set current repo first (before getting repo info)!
           user.setCurrentRepository(context);
+
+          RepositoryInfo repo = user.api().getRepositoryInfo();
+          // XXX a bit nasty way to get things
+          CloudDriveServiceImpl cdService = (CloudDriveServiceImpl) ExoContainerContext.getCurrentContainer()
+                                                                                       .getComponentInstanceOfType(CloudDriveServiceImpl.class);
+          for (CloudDriveConnector cdc : cdService.getConnectors()) {
+            if (cdc instanceof CMISConnectorImpl) {
+              CMISConnectorImpl cimpl = (CMISConnectorImpl) cdc;
+              if (cimpl.hasSupport(repo)) {
+                CMISConnector c = cimpl.getConnector();
+                if (c == this) {
+                  // it is already a dedicated connector and user
+                  break;
+                }
+                // create user instance dedicated to the CMIS connector implementation
+                user = c.createUser(userId);
+                user.setCurrentRepository(context); // set context for the new user!
+                break;
+              }
+            }
+          }
+
+          return user;
         } else {
           throw new CloudDriveException("CMIS repository not defined");
         }
-        return user;
       }
     } else {
       throw new CloudDriveException("Access code should not be null or empty");
@@ -248,7 +273,6 @@ public class CMISConnector extends CloudDriveConnector {
     JCRLocalCloudDrive.checkTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(),
-                                                    getProvider(),
                                                     driveNode,
                                                     sessionProviders,
                                                     jcrFinder);
@@ -257,6 +281,14 @@ public class CMISConnector extends CloudDriveConnector {
 
   // ***** specifics ******
 
+  /**
+   * Create {@link CMISAPI} instance.<b>
+   * 
+   * @param userId {@link Identity}
+   * @return {@link CMISAPI} instance
+   * @throws CMISException
+   * @throws CloudDriveException
+   */
   protected CMISAPI createAPI(Identity userId) throws CMISException, CloudDriveException {
     return new API().auth(userId.getUser(), userId.getPassword()).serviceUrl(userId.getServiceURL()).build();
   }
@@ -270,26 +302,13 @@ public class CMISConnector extends CloudDriveConnector {
    * @throws CMISException
    * @throws CloudDriveException
    */
-  protected CMISUser createUser(Identity userId, CMISAPI api) throws CMISException, CloudDriveException {
+  protected CMISUser createUser(Identity userId) throws CMISException, CloudDriveException {
+    CMISAPI api = createAPI(userId);
     return new CMISUser(api.getUser(), // username as user id?
                         api.getUser(), // username as login name
                         "", // empty email
                         provider,
                         api);
-  }
-
-  /**
-   * Assign given code with authentication flow for given user.
-   * 
-   * @param code {@link String}
-   * @param userId {@link Identity}
-   * @param driveAPI {@link CMISAPI}
-   * @return
-   */
-  protected CMISUser createAuthFlow(String code, Identity userId, CMISUser user) {
-    // we ignore something mapped previously as it is almost not possible due to uniqueness of the code
-    users.put(code, new AuthFlow(user, userId));
-    return user;
   }
 
   /**

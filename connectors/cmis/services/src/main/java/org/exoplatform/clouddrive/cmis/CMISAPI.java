@@ -22,12 +22,14 @@ import org.apache.chemistry.opencmis.client.api.ChangeEvent;
 import org.apache.chemistry.opencmis.client.api.ChangeEvents;
 import org.apache.chemistry.opencmis.client.api.CmisObject;
 import org.apache.chemistry.opencmis.client.api.Document;
+import org.apache.chemistry.opencmis.client.api.DocumentType;
 import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
 import org.apache.chemistry.opencmis.client.api.ItemIterable;
 import org.apache.chemistry.opencmis.client.api.ObjectId;
 import org.apache.chemistry.opencmis.client.api.ObjectType;
 import org.apache.chemistry.opencmis.client.api.OperationContext;
+import org.apache.chemistry.opencmis.client.api.Property;
 import org.apache.chemistry.opencmis.client.api.Repository;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.client.api.SessionFactory;
@@ -52,6 +54,7 @@ import org.apache.chemistry.opencmis.commons.exceptions.CmisConstraintException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisContentAlreadyExistsException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisNameConstraintViolationException;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisNotSupportedException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisObjectNotFoundException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisPermissionDeniedException;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisRuntimeException;
@@ -71,9 +74,13 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import java.io.InputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -81,6 +88,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -90,9 +98,21 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CMISAPI {
 
-  protected static final Log LOG      = ExoLogger.getLogger(CMISAPI.class);
+  protected static final Log LOG                   = ExoLogger.getLogger(CMISAPI.class);
 
-  public static final String NO_STATE = "__no_state_set__";
+  public static final String NO_STATE              = "__no_state_set__";
+
+  /**
+   * Page size used by object context.
+   */
+  public static final int    OBJECT_PAGE_SIZE      = 1024;
+
+  /**
+   * Page size used by folder context and children/change iterators for large data sets.
+   */
+  public static final int    FOLDER_PAGE_SIZE      = 10240;
+
+  public static final String TOKEN_DATATIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   /**
    * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
@@ -101,12 +121,18 @@ public class CMISAPI {
    * 
    */
   protected class ChildrenIterator extends ChunkIterator<CmisObject> {
-    protected final String folderId;
+
+    protected final String             folderId;
 
     /**
      * Parent folder.
      */
-    protected Folder       parent;
+    protected Folder                   parent;
+
+    /**
+     * Parent's children objects.
+     */
+    protected ItemIterable<CmisObject> children;
 
     protected ChildrenIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
@@ -121,14 +147,13 @@ public class CMISAPI {
         if (isFolder(obj)) {
           // it is folder
           parent = (Folder) obj;
-          ItemIterable<CmisObject> children = parent.getChildren(folderContext);
+          children = parent.getChildren(folderContext);
           // TODO reorder folders first in the iterator?
-          // TODO accurate available number
-          // long total = children.getTotalNumItems();
-          // if (total == -1) {
-          // total = children.getPageNumItems();
-          // }
-          available(children.getPageNumItems());
+          long total = children.getTotalNumItems();
+          if (total == -1) {
+            total = children.getPageNumItems();
+          }
+          available(total);
           return children.iterator();
         } else {
           // empty iterator
@@ -140,60 +165,89 @@ public class CMISAPI {
     }
 
     protected boolean hasNextChunk() {
-      // TODO implement pagination via cmis context
+      // pagination via chunks not actual here - it is done by OpenCMIS in parent.getChildren() and its
+      // CollectionIterator
       return false;
     }
   }
 
   /**
-   * Iterator over set of drive change events from cloud service. This iterator hides next-chunk logic on
+   * Iterator over set of drive change events from CMIS Change Log. The iterator will fetch all available
+   * events since a given start token.This iterator hides next-chunk logic on
    * request to the service. <br>
    * Iterator methods can throw {@link CMISException} in case of remote or communication errors.
    */
   protected class ChangesIterator extends ChunkIterator<ChangeEvent> {
 
-    protected String            startChangeToken, changeToken;
+    protected ChangeToken       changeToken, lastFetchedToken, latestChunkToken;
 
     protected List<ChangeEvent> changes;
 
-    // TODO cleanup: ChangeEvents events;
+    protected boolean           firstRun     = true;
 
-    protected ChangesIterator(String startChangeToken) throws CMISException, RefreshAccessException {
-      this.startChangeToken = changeToken = startChangeToken;
+    protected boolean           hasMoreItems = true;
+
+    protected boolean           cleanNext    = true;
+
+    protected ChangesIterator(ChangeToken startChangeToken) throws CMISException, RefreshAccessException {
+      this.changeToken = startChangeToken;
+      this.lastFetchedToken = null;
 
       // fetch first
       this.iter = nextChunk();
+
+      this.firstRun = false;
     }
 
     protected Iterator<ChangeEvent> nextChunk() throws CMISException, RefreshAccessException {
-      try {
-        // XXX includeProperties = false, maxNumItems = max possible value to fetch all at once
-        // TODO better pagination organization
+      if (changeToken != null) {
+        try {
+          // includeProperties = true
+          ChangeEvents events = session().getContentChanges(changeToken.getString(), true, FOLDER_PAGE_SIZE);
 
-        // session(true).getContentChanges(changeToken,
-        // true).iterator().hasNext()
-        ChangeEvents events = session().getContentChanges(changeToken, true, Long.MAX_VALUE);
+          changes = events.getChangeEvents();
 
-        changes = events.getChangeEvents();
+          // latest token can be null for some CMIS impl (e.g. SP)
+          String latestChangeToken = events.getLatestChangeLogToken();
+          latestChunkToken = latestChangeToken != null ? readToken(latestChangeToken) : null;
 
-        // TODO remember position for next chunk and next iterators
-        int changesLen = changes.size();
-        String latestChangeToken = events.getLatestChangeLogToken();
-        if (latestChangeToken == null && changesLen > 0) {
-          latestChangeToken = changes.get(changesLen - 1).getProperties().get("ChangeToken").toString();
+          int changesLen = changes.size();
+
+          // find need of next chunk fetching (have more events in CMIS changes log) and a token for it
+          if (changesLen > 0) {
+            // remove first, already fetched in previous sync/chunk
+            ChangeToken first = readToken(changes.get(0));
+            if (first.equals(changeToken) || first.equals(lastFetchedToken)) {
+              changes.remove(0);
+              changesLen = changes.size();
+            }
+
+            if (events.getHasMoreItems() && changesLen > 0) {
+              ChangeToken nextToken;
+              if (latestChunkToken == null) {
+                nextToken = readToken(changes.get(changesLen - 1));
+              } else {
+                nextToken = latestChunkToken;
+              }
+              hasMoreItems = lastFetchedToken != null ? nextToken.isAfter(lastFetchedToken) : true;
+              changeToken = hasMoreItems ? nextToken : null;
+            } else {
+              hasMoreItems = false;
+              changeToken = null;
+            }
+          } else {
+            hasMoreItems = false;
+            changeToken = null;
+          }
+
+          available(changesLen);
+
+          return changes.iterator();
+        } catch (CmisRuntimeException e) {
+          throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
         }
-        changeToken = latestChangeToken;
-
-        // TODO accurate available number
-        // long total = events.getTotalNumItems();
-        // if (total == -1) {
-        // total = changes.size();
-        // }
-        available(changesLen);
-
-        return changes.iterator();
-      } catch (CmisRuntimeException e) {
-        throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
+      } else {
+        return new ArrayList<ChangeEvent>().iterator(); // empty
       }
     }
 
@@ -201,9 +255,7 @@ public class CMISAPI {
      * {@inheritDoc}
      */
     protected boolean hasNextChunk() {
-      // TODO check if it work properly
-      // TODO SP return true even if nothing new there: return events.getHasMoreItems();
-      return !startChangeToken.equals(changeToken) && changeToken != null;
+      return hasMoreItems;
     }
 
     /**
@@ -212,31 +264,156 @@ public class CMISAPI {
     @Override
     public boolean hasNext() throws CloudDriveException {
       boolean hasNext = super.hasNext();
-      // avoid appearing UPDATED of later DELETED objects
-      if (hasNext && !ChangeType.DELETED.equals(next.getChangeType())) {
-        for (ChangeEvent che : changes) {
-          if (next.getObjectId().equals(che.getObjectId()) && ChangeType.DELETED.equals(che.getChangeType())) {
-            try {
-              // skip this UPDATED as it was DELETED in this changes set
-              next();
-              hasNext = hasNext();
-            } catch (NoSuchElementException e) {
-              hasNext = false;
+      // FYI not mandatory, but helpful for performance reason: avoid appearing events of DELETED objects
+      if (hasNext && cleanNext) {
+        lastFetchedToken = readToken(next);
+        if (!ChangeType.DELETED.equals(next.getChangeType())) {
+          for (ChangeEvent che : changes) {
+            if (next.getObjectId().equals(che.getObjectId())
+                && ChangeType.DELETED.equals(che.getChangeType())) {
+              try {
+                // skip this event as it was DELETED in this changes set
+                next();
+                hasNext = hasNext();
+              } catch (NoSuchElementException e) {
+                hasNext = false;
+              }
+              break;
             }
-            break;
           }
         }
+        // avoids not required looping if hasNext() called several times without calling next()
+        cleanNext = false;
       }
+
       return hasNext;
     }
 
     /**
-     * Can be <code>null</code>. And it will be :)
-     * 
-     * @return
+     * {@inheritDoc}
      */
-    protected String getLatestChangeLogToken() {
-      return changeToken;
+    @Override
+    public ChangeEvent next() throws NoSuchElementException, CloudDriveException {
+      ChangeEvent next = super.next();
+      cleanNext = true;
+      return next;
+    }
+
+    /**
+     * Last consumed event change token. Can be the same as start token. Can be <code>null</code> if no data
+     * received by fetching and if CMIS service doesn't return the chunk latest token.
+     * 
+     * @return {@link ChangeToken} last fetched change token, token of last fetched events portion or
+     *         <code>null</code>
+     */
+    protected ChangeToken getLastChangeToken() {
+      // first priority in actually fetched token, then if nothing fetched we'll try a token from last fetched
+      // chunk, and if not available, return last used for fetching token (it can be null also)
+      return lastFetchedToken != null ? lastFetchedToken : (latestChunkToken != null ? latestChunkToken
+                                                                                    : changeToken);
+    }
+  }
+
+  protected class ChangeToken implements Comparable<ChangeToken> {
+    protected final String token;
+
+    protected ChangeToken(String token) {
+      this.token = token;
+    }
+
+    /**
+     * Compare this token with the given and return <code>true</code> if they are equal, <code>false</code>
+     * otherwise.
+     * 
+     * @param other {@link ChangeToken}
+     * @return boolean <code>true</code> if tokens equal, <code>false</code> otherwise
+     */
+    public boolean equals(ChangeToken other) {
+      if (other != null) {
+        return this.getString().equals(other.getString());
+      } else {
+        return false;
+      }
+    }
+
+    public int compareTo(ChangeToken other) {
+      return this.getString().compareTo(other.getString());
+    }
+
+    /**
+     * Return <code>true</code> if this event is after the given in time.
+     * 
+     * @param other {@link ChangeToken}
+     * @return boolean
+     */
+    public boolean isAfter(ChangeToken other) {
+      return this.compareTo(other) > 0;
+    }
+
+    /**
+     * Return <code>true</code> if this event is before the given in time.
+     * 
+     * @param other {@link ChangeToken}
+     * @return boolean
+     */
+    public boolean isBefore(ChangeToken other) {
+      return this.compareTo(other) < 0;
+    }
+
+    /**
+     * String representation of change log token.
+     * 
+     * @return the token string
+     */
+    public String getString() {
+      return token;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+      return getString();
+    }
+  }
+
+  protected class TimeChangeToken extends ChangeToken {
+
+    protected final GregorianCalendar time;
+
+    protected TimeChangeToken(GregorianCalendar time) {
+      super(String.valueOf(time.getTimeInMillis()));
+      this.time = time;
+    }
+
+    /**
+     * @return the time
+     */
+    protected GregorianCalendar getTime() {
+      return time;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(ChangeToken other) {
+      if (other instanceof TimeChangeToken) {
+        return this.getTime().equals(((TimeChangeToken) other).getTime());
+      }
+      return super.equals(other);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int compareTo(ChangeToken other) {
+      if (other instanceof TimeChangeToken) {
+        return this.getTime().compareTo(((TimeChangeToken) other).getTime());
+      }
+      return super.compareTo(other);
     }
   }
 
@@ -331,22 +508,7 @@ public class CMISAPI {
     }
   }
 
-  /**
-   * Client session lock.
-   */
-  private final Lock                 lock                = new ReentrantLock();
-
-  /**
-   * OpenCMIS context for object operations.
-   */
-  protected OperationContext         objectContext;
-
-  /**
-   * OpenCMIS context for folder operations.
-   */
-  protected OperationContext         folderContext;
-
-  protected static final Set<String> FOLDER_PROPERTY_SET = new HashSet<String>();
+  protected static final Set<String>       FOLDER_PROPERTY_SET = new HashSet<String>();
   static {
     FOLDER_PROPERTY_SET.add(PropertyIds.OBJECT_ID);
     FOLDER_PROPERTY_SET.add(PropertyIds.OBJECT_TYPE_ID);
@@ -363,25 +525,49 @@ public class CMISAPI {
   }
 
   /**
+   * Client session lock.
+   */
+  private final Lock                       lock                = new ReentrantLock();
+
+  /**
    * Client session parameters.
    */
-  protected Map<String, String>      parameters;
+  protected Map<String, String>            parameters;
 
   /**
    * Current CMIS repository Id.
    */
-  protected String                   repositoryId;
+  protected String                         repositoryId;
 
   /**
    * Current CMIS repository name;
    */
-  protected String                   repositoryName;
+  protected String                         repositoryName;
 
-  protected DriveState               state;
+  protected String                         productName;
 
-  protected String                   enterpriseId, enterpriseName, customDomain;
+  protected String                         productVersion;
 
-  protected ThreadLocal<Session>     localSession        = new ThreadLocal<Session>();
+  protected String                         vendorName;
+
+  protected DriveState                     state;
+
+  protected String                         enterpriseId, enterpriseName, customDomain;
+
+  /**
+   * OpenCMIS context for object operations.
+   */
+  protected OperationContext               objectContext;
+
+  /**
+   * OpenCMIS context for folder operations.
+   */
+  protected OperationContext               folderContext;
+
+  /**
+   * Session holder.
+   */
+  protected final AtomicReference<Session> session             = new AtomicReference<Session>();
 
   /**
    * Create API from user credentials.
@@ -423,8 +609,7 @@ public class CMISAPI {
   /**
    * Update user credentials.
    * 
-   * @param user {@link String}
-   * @param password {@link String}
+   * @param parameters {@link Map} of connection parameters
    * @throws CloudDriveException
    */
   protected void updateUser(Map<String, String> parameters) {
@@ -505,7 +690,11 @@ public class CMISAPI {
    */
   protected void initRepository(String repositoryId) throws CMISException, RefreshAccessException {
     this.repositoryId = repositoryId;
-    this.repositoryName = getRepositoryInfo().getName();
+    RepositoryInfo info = getRepositoryInfo();
+    this.repositoryName = info.getName();
+    this.productName = info.getProductName();
+    this.productVersion = info.getProductVersion();
+    this.vendorName = info.getVendorName();
   }
 
   /**
@@ -513,15 +702,36 @@ public class CMISAPI {
    * 
    * @return the repository
    */
-  protected String getRepositoryId() {
+  public String getRepositoryId() {
     return repositoryId;
   }
 
-  protected String getRepositoryName() {
+  public String getRepositoryName() {
     return repositoryName != null ? repositoryName : repositoryId;
   }
 
-  protected String getUserTitle() {
+  /**
+   * @return the productName
+   */
+  public String getProductName() {
+    return productName;
+  }
+
+  /**
+   * @return the productVersion
+   */
+  public String getProductVersion() {
+    return productVersion;
+  }
+
+  /**
+   * @return the vendorName
+   */
+  public String getVendorName() {
+    return vendorName;
+  }
+
+  public String getUserTitle() {
     // By default CMIS cannot provide something else than an username
     // Vendor specific APIes may override this method to return proper value
     return getUser();
@@ -587,8 +797,8 @@ public class CMISAPI {
       // communication (REST) error
       throw new CMISException("Error reading object: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
-      // wrong input data
-      throw new CMISException("Error reading object: " + e.getMessage(), e);
+      // wrong input data: use dedicated exception type to let upper code to recognize it
+      throw new CMISInvalidArgumentException("Error reading object: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content reading: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -608,7 +818,7 @@ public class CMISAPI {
     return new ChildrenIterator(folderId);
   }
 
-  protected ChangesIterator getChanges(String changeToken) throws CMISException, RefreshAccessException {
+  protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException, RefreshAccessException {
     return new ChangesIterator(changeToken);
   }
 
@@ -626,18 +836,15 @@ public class CMISAPI {
 
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
 
-    String linkSelfEntry = link.loadLink(repositoryId,
-                                         file.getId(),
-                                         Constants.REL_SELF,
-                                         Constants.MEDIATYPE_ENTRY);
-
     String linkContent = link.loadContentLink(repositoryId, file.getId());
-
+    if (linkContent != null) {
+      return linkContent;
+    } else {
+      return link.loadLink(repositoryId, file.getId(), Constants.REL_SELF, Constants.MEDIATYPE_ENTRY);
+    }
     // String prefix = "OBJ LINK (" + file.getId() + " " + file.getName() + ") ";
     // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
     // LOG.info(prefix + " linkContent: " + linkContent);
-
-    return linkContent != null ? linkContent : linkSelfEntry;
   }
 
   /**
@@ -656,7 +863,7 @@ public class CMISAPI {
                                          Constants.REL_SELF,
                                          Constants.MEDIATYPE_ENTRY);
 
-    String linkContent = link.loadContentLink(repositoryId, file.getId());
+    // String linkContent = link.loadContentLink(repositoryId, file.getId());
     // String prefix = "FOLDER LINK (" + file.getId() + " " + file.getName() + ") ";
     // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
     // LOG.info(prefix + " linkContent: " + linkContent);
@@ -740,6 +947,14 @@ public class CMISAPI {
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
 
+        VersioningState vstate;
+        ObjectType docType = session.getTypeDefinition(BaseTypeId.CMIS_DOCUMENT.value());
+        if (isVersionable(docType)) {
+          vstate = VersioningState.MAJOR;
+        } else {
+          vstate = VersioningState.NONE;
+        }
+
         Map<String, Object> properties = new HashMap<String, Object>();
         properties.put(PropertyIds.OBJECT_TYPE_ID, BaseTypeId.CMIS_DOCUMENT.value());
         properties.put(PropertyIds.NAME, name);
@@ -749,13 +964,7 @@ public class CMISAPI {
         // content length = -1 if it is unknown
         ContentStream contentStream = session.getObjectFactory()
                                              .createContentStream(name, -1, mimeType, data);
-        return parent.createDocument(properties,
-                                     contentStream,
-                                     VersioningState.MAJOR,
-                                     null,
-                                     null,
-                                     null,
-                                     objectContext);
+        return parent.createDocument(properties, contentStream, vstate, null, null, null, objectContext);
       } else {
         throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
       }
@@ -778,7 +987,7 @@ public class CMISAPI {
       throw new CMISException("Error creating document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error creating document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error creating document: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content upload: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -832,7 +1041,7 @@ public class CMISAPI {
       throw new CMISException("Error creating folder: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error creating folder: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error creating folder: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
       throw new RefreshAccessException("Permission denied for folder creation: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
@@ -878,7 +1087,7 @@ public class CMISAPI {
       throw new CMISException("Error deleting document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error deleting document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error deleting document: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
       throw new RefreshAccessException("Permission denied for document removal: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
@@ -928,7 +1137,7 @@ public class CMISAPI {
       throw new CMISException("Error deleting folder: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error deleting folder: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error deleting folder: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
       throw new RefreshAccessException("Permission denied for folder removal: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
@@ -1018,7 +1227,7 @@ public class CMISAPI {
       throw new CMISException("Error updating cloud document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error updating cloud document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error updating cloud document: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content update: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -1067,14 +1276,7 @@ public class CMISAPI {
 
       // update name
       if (!obj.getName().equals(name)) {
-        Map<String, Object> properties = new HashMap<String, Object>();
-        properties.put(PropertyIds.NAME, name);
-
-        // update object properties
-        ObjectId objId = obj.updateProperties(properties, true);
-        if (objId != null && objId instanceof CmisObject) {
-          obj = result = (CmisObject) objId;
-        }
+        obj = result = rename(name, obj, session);
       }
 
       if (isFileable(obj)) {
@@ -1082,8 +1284,8 @@ public class CMISAPI {
 
         // update parent if required
         // go through actual parents to find should we move/add the file to another parent
-        boolean move = true;
-        List<Folder> parents = fileable.getParents();
+        List<Folder> parents = fileable.getParents(folderContext);
+        boolean move = parents.size() > 0;
         Set<String> parentIds = new HashSet<String>();
         for (Folder p : parents) {
           String pid = p.getId();
@@ -1135,6 +1337,9 @@ public class CMISAPI {
             FileableCmisObject moved = fileable.move(srcParent, parent, objectContext);
             if (moved != null) {
               result = moved;
+            } else {
+              fileable.refresh();
+              result = fileable;
             }
           } else {
             throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
@@ -1164,7 +1369,7 @@ public class CMISAPI {
       throw new CMISException("Error updating object: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error updating object: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error updating object: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
       throw new RefreshAccessException("Permission denied for object updating: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
@@ -1176,6 +1381,25 @@ public class CMISAPI {
     } catch (CmisBaseException e) {
       throw new CMISException("Error updating object: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Rename CMIS object by better way working for the CMIS provider (this method can be overridden in
+   * dedicated implementations). By default it uses obj.rename() method.
+   * 
+   * @param newName {@link String} new name
+   * @param obj {@link CmisObject}
+   * @param session {@link Session}
+   * @return {@link CmisObject} renamed object
+   */
+  protected CmisObject rename(String newName, CmisObject obj, Session session) {
+    ObjectId objId = obj.rename(newName, true);
+    if (objId != null && objId instanceof CmisObject) {
+      obj = (CmisObject) objId;
+    } else {
+      obj.refresh();
+    }
+    return obj;
   }
 
   /**
@@ -1194,6 +1418,8 @@ public class CMISAPI {
    * @throws ConflictException
    * @throws CloudDriveAccessException
    */
+  @Deprecated
+  // TODO not used
   protected Folder updateFolder(String parentId, String id, String name, LocalFile local) throws CMISException,
                                                                                          NotFoundException,
                                                                                          ConflictException,
@@ -1273,16 +1499,45 @@ public class CMISAPI {
                                                                               ConflictException,
                                                                               CloudDriveAccessException {
     try {
+      Session session = session();
+
       Map<String, Object> properties = new HashMap<String, Object>();
-      properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
+      properties.put(PropertyIds.BASE_TYPE_ID, source.getBaseType().getId());
+      properties.put(PropertyIds.OBJECT_TYPE_ID, source.getType().getId());
       properties.put(PropertyIds.NAME, name);
-      return parent.createDocumentFromSource(source,
-                                             properties,
-                                             VersioningState.MAJOR,
-                                             null,
-                                             null,
-                                             null,
-                                             objectContext);
+
+      VersioningState vstate;
+      ObjectType docType = session.getTypeDefinition(source.getBaseType().getId());
+      if (isVersionable(docType)) {
+        vstate = VersioningState.MAJOR;
+      } else {
+        vstate = VersioningState.NONE;
+      }
+
+      try {
+        return parent.createDocumentFromSource(source, properties, vstate, null, null, null, objectContext);
+      } catch (CmisNotSupportedException e) {
+        LOG.warn("Cannot copy document " + source.getName() + " (" + source.getId() + ") to "
+            + parent.getName() + "/" + name + ". Will try use actual content copying. " + e.getMessage());
+        // createDocumentFromSource not supported, will do copying via client (it is AtomPub case)
+
+        ContentStream sourceContent = source.getContentStream();
+        ContentStream destContent = session.getObjectFactory()
+                                           .createContentStream(name,
+                                                                sourceContent.getLength(),
+                                                                sourceContent.getMimeType(),
+                                                                sourceContent.getStream());
+        for (Property<?> p : source.getProperties()) {
+          if (!properties.containsKey(p.getId())) {
+            if (p.isMultiValued()) {
+              properties.put(p.getId(), p.getValues());
+            } else {
+              properties.put(p.getId(), p.getValue());
+            }
+          }
+        }
+        return parent.createDocument(properties, destContent, vstate, null, null, null, objectContext);
+      }
     } catch (CmisObjectNotFoundException e) {
       // this can be a rice condition when parent just deleted or similar happened remotely
       throw new NotFoundException("Error copying document: " + e.getMessage(), e);
@@ -1299,7 +1554,7 @@ public class CMISAPI {
       throw new CMISException("Error copying document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error copying document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error copying document: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content copying: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -1418,7 +1673,7 @@ public class CMISAPI {
       throw new CMISException("Error copying document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISException("Error copying document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error copying document: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content copying: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -1438,6 +1693,10 @@ public class CMISAPI {
     try {
       return session(true).getRepositoryInfo();
     } catch (CmisRuntimeException e) {
+      throw new CMISException("Error getting repository info: " + e.getMessage(), e);
+    } catch (CmisObjectNotFoundException e) {
+      throw new CMISException("Error getting repository info: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
       throw new CMISException("Error getting repository info: " + e.getMessage(), e);
     }
   }
@@ -1488,7 +1747,12 @@ public class CMISAPI {
     } catch (CmisUnauthorizedException e) {
       // The user/password have probably been rejected by the server.
       throw new RefreshAccessException("CMIS user rejected", e);
+    } catch (CmisObjectNotFoundException e) {
+      // Wrong service end-point used or incompatible CMIS version
+      throw new WrongCMISProviderException("Error reading repositories list: " + e.getMessage(), e);
     } catch (CmisRuntimeException e) {
+      throw new CMISException("Runtime error when reading CMIS repositories list", e);
+    } catch (CmisBaseException e) {
       throw new CMISException("Error reading CMIS repositories list", e);
     } finally {
       lock.unlock();
@@ -1533,9 +1797,9 @@ public class CMISAPI {
    * @throws RefreshAccessException
    */
   protected Session session(boolean forceNew) throws CMISException, RefreshAccessException {
-    Session session = localSession.get();
+    Session session = this.session.get();
     if (session != null && !forceNew) {
-      // TODO should we check if session still live (not closed)?
+      // TODO should we check if session still alive (not closed)?
       return session;
     } else {
       for (Repository r : repositories()) {
@@ -1548,7 +1812,13 @@ public class CMISAPI {
           session.setDefaultContext(context);
 
           // object/document context
-          this.objectContext = new Context("*", false, true, true, IncludeRelationships.BOTH, "*", null, 1000);
+          Context objectContext = new Context("*", true, // includeAcls
+                                              true, // includeAllowableActions
+                                              true, // includePolicies
+                                              IncludeRelationships.NONE,
+                                              "cmis:none", // renditions filter
+                                              null,
+                                              OBJECT_PAGE_SIZE);
 
           // folder context
           ObjectType type = session.getTypeDefinition(BaseTypeId.CMIS_DOCUMENT.value());
@@ -1562,16 +1832,18 @@ public class CMISAPI {
               filter.append(propDef.getQueryName());
             }
           }
-          this.folderContext = new Context(filter.toString(),
-                                           false,
-                                           false,
-                                           false,
-                                           IncludeRelationships.NONE,
-                                           "cmis:none",
-                                           null,
-                                           Integer.MAX_VALUE); // TODO max pages = 10000 (as in workbench)
+          Context folderContext = new Context(filter.toString(), false, // includeAcls
+                                              false, // includeAllowableActions
+                                              false, // includePolicies
+                                              IncludeRelationships.NONE,
+                                              "cmis:none", // renditions filter
+                                              null,
+                                              FOLDER_PAGE_SIZE);
 
-          localSession.set(session);
+          this.session.set(session);
+          // FYI contexts don't depend on session instance
+          this.objectContext = objectContext;
+          this.folderContext = folderContext;
           return session;
         }
       }
@@ -1579,12 +1851,65 @@ public class CMISAPI {
     throw new CMISException("CMIS repository not found: " + repositoryId);
   }
 
-  protected OperationContext objectContext() throws CMISException, RefreshAccessException {
-    return objectContext != null ? objectContext : session().getDefaultContext();
+  protected ChangeToken readToken(ChangeEvent event) throws CMISException {
+    List<?> tl = event.getProperties().get("ChangeToken");
+    if (tl != null && tl.size() > 0) {
+      Object obj = tl.get(0);
+      if (obj != null && obj instanceof String) {
+        return readToken((String) obj);
+      }
+    }
+
+    // try use event change time as a token
+    GregorianCalendar time = event.getChangeTime();
+    if (time != null) {
+      return new TimeChangeToken(time);
+    }
+    throw new CMISException("ChangeToken property not found, change time is null for " + event.getObjectId()
+        + " " + event.getChangeType());
   }
 
-  protected OperationContext folderContext() throws CMISException, RefreshAccessException {
-    return folderContext != null ? folderContext : session().getDefaultContext();
+  protected ChangeToken readToken(String tokenString) throws CMISException {
+    if (tokenString != null) {
+      return new ChangeToken(tokenString);
+    }
+    throw new CMISException("ChangeToken string is null");
+  }
+
+  protected boolean isVersionable(ObjectType type) {
+    return type instanceof DocumentType ? ((DocumentType) type).isVersionable() : false;
+  }
+
+  protected boolean isSyncableChange(ChangeEvent change) throws RefreshAccessException, CMISException {
+    boolean res = true;
+    List<?> objTypeIdList = change.getProperties().get(PropertyIds.OBJECT_TYPE_ID);
+    if (objTypeIdList != null) {
+      res = false;
+      for (Object tid : objTypeIdList) {
+        if (tid instanceof String) {
+          try {
+            BaseTypeId btid = session().getTypeDefinition((String) tid, true).getBaseTypeId();
+            if (btid.equals(BaseTypeId.CMIS_DOCUMENT)) {
+              res = true;
+            } else if (btid.equals(BaseTypeId.CMIS_FOLDER)) {
+              res = true;
+            }
+          } catch (CmisRuntimeException e) {
+            throw new CMISException("Error reading object type (" + tid + "): " + e.getMessage(), e);
+          } catch (CmisObjectNotFoundException e) {
+            throw new CMISException("Error reading object type (" + tid + "): " + e.getMessage(), e);
+          } catch (CmisBaseException e) {
+            throw new CMISException("Error reading object type (" + tid + "): " + e.getMessage(), e);
+          }
+        }
+      }
+    }
+    return res;
+  }
+
+  public static String formatTokenTime(Date date) {
+    DateFormat format = new SimpleDateFormat(TOKEN_DATATIME_FORMAT);
+    return format.format(date);
   }
 
 }

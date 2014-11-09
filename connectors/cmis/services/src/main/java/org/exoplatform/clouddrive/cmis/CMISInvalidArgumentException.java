@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2003-2014 eXo Platform SAS.
  *
@@ -18,33 +19,39 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
+import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
 
 /**
- * Product specific CMIS connector basic functionality. Goal of this interface is to mark product/vendor
- * dedicated implementations of Cloud Drive CMIS connector to support use of that connector instead of default
- * implementation in {@link CMISConnector}.<br>
+ * Wrong argument in a request to CMIS service. Created to warp {@link CmisInvalidArgumentException}.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: CMISConnectorImpl.java 00000 Oct 26, 2014 pnedonosko $
+ * @version $Id: CMISInvalidArgumentException.java 00000 Nov 5, 2014 pnedonosko $
  * 
  */
-public interface CMISConnectorImpl {
+public class CMISInvalidArgumentException extends CMISException {
 
   /**
-   * Does this implementation supports the given repository.
-   * 
-   * @param repository {@link RepositoryInfo} CMIS repository info
-   * @return <code>true</code> if given repository is supported by this implementation. 
+   * @param message
    */
-  boolean hasSupport(RepositoryInfo repository);
-  
+  public CMISInvalidArgumentException(String message) {
+    super(message);
+  }
+
   /**
-   * An instance of product specific CMIS connector extending {@link CMISConnector}.
-   * 
-   * @return {@link CMISConnector} instance
+   * @param message
+   * @param cause
    */
-  CMISConnector getConnector();
+  public CMISInvalidArgumentException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  /**
+   * @param cause
+   */
+  public CMISInvalidArgumentException(Throwable cause) {
+    super(cause);
+  }
+
 }

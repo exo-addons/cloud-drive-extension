@@ -56,12 +56,13 @@ public class SharepointUser extends CMISUser {
 
   /**
    * {@inheritDoc}
-   * @throws CloudDriveException 
+   * 
+   * @throws CloudDriveException
    */
   @Override
   public String createDriveTitle() throws RepositoryException, CloudDriveException {
     StringBuilder title = new StringBuilder();
-    
+
     String siteTitle = getSiteTitle();
     if (siteTitle != null && siteTitle.length() > 0) {
       // use SP site name as node name prefix
@@ -82,8 +83,7 @@ public class SharepointUser extends CMISUser {
     title.append(getUserTitle());
     return title.toString();
   }
-  
-  
+
   /**
    * {@inheritDoc}
    */
@@ -92,10 +92,17 @@ public class SharepointUser extends CMISUser {
     return getSiteUser().getEmail();
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getServiceName() {
+    return getProvider().getName();
+  }
 
-  
   // ***** specifics ******
-/**
+
+  /**
    * Currently connected SharePoint site name. Its name may be the same as {@link #getRepositoryName()} but
    * this name retrieved via native API.
    * 

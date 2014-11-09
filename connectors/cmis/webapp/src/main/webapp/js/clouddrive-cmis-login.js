@@ -4,16 +4,23 @@
  */
 (function($) {
 
-	function LoginClient() {
-
-		this.getUserKey = function(user) {
-
-		};
-	}
-
-	var client = new LoginClient();
+	/** 
+	 * http://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+	 * */
+	var urlParam = function(name, url) {
+		if (!url) {
+			url = window.location.href;
+		}
+		var results = new RegExp('[\\?&]' + name + '=([^&#]*)').exec(url);
+		if (!results) {
+			return undefined;
+		}
+		return results[1] || undefined;
+	};
 
 	$(function() {
+		var providerId = urlParam("providerId");
+		
 		// hide PLF admin toolbar items
 		$("#UIToolbarContainer div.UIContainer").toggle("fade");
 
@@ -73,6 +80,12 @@
 		$login.submit(function() {
 			$login.find("button.btn.btn-primary").attr("disabled", "disabled");
 		});
+		$login.find("select").keypress(function(event) {
+			if (event.which == 13) {
+				event.preventDefault();
+				$login.submit();
+			}
+		});
 
 		$loginData.submit(function(event) {
 			event.preventDefault();
@@ -82,7 +95,7 @@
 				var user = $loginData.find("input[name='user']").val();
 				var password = $loginData.find("input[name='password']").val();
 				$("#cmis-login-key").jzLoad("CMISLoginController.userKey()", {
-					"user" : user
+					"userName" : user
 				}, function(response, status, jqXHR) {
 					// complete callback
 					// console.log(JSON.stringify(response));
@@ -96,8 +109,9 @@
 						// TODO encrypt user and password
 						$repository.jzLoad("CMISLoginController.loginUser()", {
 							"serviceURL" : serviceURL,
-							"user" : user,
-							"password" : password
+							"userName" : user,
+							"password" : password,
+							"providerId" : providerId
 						}, function(response, status, jqXHR) {
 							$loginData.css("cursor", cursorCss);
 							$loginData.find("button.btn.btn-primary").removeAttr("disabled");
@@ -112,12 +126,6 @@
 								if (code) {
 									console.log("code: " + code);
 									$error.empty();
-									$login.find("select").keypress(function(event) {
-										if (event.which == 13) {
-											event.preventDefault();
-											$login.submit();
-										}
-									});
 									$login.find("input[name='code']").val(code);
 									var params = window.location.search;
 									if (params.length > 0) {
@@ -128,9 +136,16 @@
 									} else {
 										console.log("No additional form params");
 									}
-									// toggle to the repository form
-									$loginData.toggle("blind");
-									$login.show();
+									var $option = $repository.find("select>option");
+									if ($option.length == 1) {
+										// if only single repository available - submit automatically
+										$option.parent().val($option.val());
+										$login.submit();
+									} else {
+										// toggle to the repository form
+										$loginData.toggle("blind");
+										$login.show();
+									}
 								} else {
 									var $message = $repository.find(".error-message-text");
 									if ($message.length > 0) {
@@ -154,5 +169,5 @@
 		});
 	});
 
-	return client;
+	return {};
 })($);

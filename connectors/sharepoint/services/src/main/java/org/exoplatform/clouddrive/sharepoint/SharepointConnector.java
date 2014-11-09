@@ -79,6 +79,14 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
       }
       return new SharepointAPI(serviceUrl, user, password);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected SharepointUser createUser(String userId, String userName, String email, CMISAPI api) {
+      return new SharepointUser(userId, userName, email, getProvider(), (SharepointAPI) api);
+    }
   }
 
   public SharepointConnector(RepositoryService jcrService,
@@ -122,7 +130,7 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
    * {@inheritDoc}
    */
   @Override
-  protected SharepointUser createUser(Identity userId, CMISAPI api) throws CMISException, CloudDriveException {
+  protected SharepointUser createUser(Identity userId) throws CMISException, CloudDriveException {
     SharepointAPI spAPI = createAPI(userId);
     User user = spAPI.getSiteUser();
     return new SharepointUser(user.getId(), // id
@@ -157,7 +165,6 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
     JCRLocalSharepointDrive.checkTrashed(driveNode);
     JCRLocalSharepointDrive.migrateName(driveNode);
     JCRLocalSharepointDrive drive = new JCRLocalSharepointDrive(new API(),
-                                                                getProvider(),
                                                                 driveNode,
                                                                 sessionProviders,
                                                                 jcrFinder);

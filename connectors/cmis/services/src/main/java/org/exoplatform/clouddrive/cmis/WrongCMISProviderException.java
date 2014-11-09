@@ -18,33 +18,36 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 
 /**
- * Product specific CMIS connector basic functionality. Goal of this interface is to mark product/vendor
- * dedicated implementations of Cloud Drive CMIS connector to support use of that connector instead of default
- * implementation in {@link CMISConnector}.<br>
+ * Wrong provider used for CMIS service end-point. This can be happen if dedicated CMIS extension used for
+ * other CMIS vendor (e.g. attempted to use SharePoint connector for Alfresco repository).<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: CMISConnectorImpl.java 00000 Oct 26, 2014 pnedonosko $
+ * @version $Id: WrongProviderException.java 00000 Oct 31, 2014 pnedonosko $
  * 
  */
-public interface CMISConnectorImpl {
+public class WrongCMISProviderException extends CMISException {
 
   /**
-   * Does this implementation supports the given repository.
    * 
-   * @param repository {@link RepositoryInfo} CMIS repository info
-   * @return <code>true</code> if given repository is supported by this implementation. 
    */
-  boolean hasSupport(RepositoryInfo repository);
-  
+  private static final long serialVersionUID = 1L;
+
   /**
-   * An instance of product specific CMIS connector extending {@link CMISConnector}.
-   * 
-   * @return {@link CMISConnector} instance
+   * @param message
    */
-  CMISConnector getConnector();
+  public WrongCMISProviderException(String message) {
+    super(message);
+  }
+
+  /**
+   * @param message
+   * @param cause
+   */
+  public WrongCMISProviderException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

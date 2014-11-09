@@ -103,5 +103,4 @@ public class BoxProvider extends CloudProvider {
     // repeat on error
     return true;
   }
-
 }

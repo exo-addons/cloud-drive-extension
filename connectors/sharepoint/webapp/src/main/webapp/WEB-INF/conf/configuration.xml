@@ -59,6 +59,25 @@
           <property name="connector-schema" value="${clouddrive.service.schema:http}" />
           <property name="login-sso" value="${clouddrive.login.sso:false}" />
         </properties-param>
+        <object-param>
+          <name>predefined-services</name>
+          <object type="org.exoplatform.clouddrive.CloudDriveConnector$PredefinedServices">
+            <field name="services">
+              <collection type="java.util.LinkedHashSet">
+                <value>
+                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                    <field name="name">
+                      <string>eXo SharePoint Demo</string>
+                    </field>
+                    <field name="url">
+                      <string>http://exosharepoint.no-ip.info:8000/_vti_bin/cmis/rest?getRepositories</string>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>
@@ -89,25 +108,6 @@
               <collection type="java.util.ArrayList">
                 <value>
                   <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
-                </value>
-              </collection>
-            </field>
-          </object>
-        </object-param>
-        <object-param>
-          <name>predefined-services</name>
-          <object type="org.exoplatform.clouddrive.CloudDriveConnector$PredefinedServices">
-            <field name="services">
-              <collection type="java.util.LinkedHashSet">
-                <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
-                    <field name="name">
-                      <string>eXo SharePoint Demo</string>
-                    </field>
-                    <field name="url">
-                      <string>http://exosharepoint.no-ip.info:8000/_vti_bin/cmis/rest?getRepositories</string>
-                    </field>
-                  </object>
                 </value>
               </collection>
             </field>
