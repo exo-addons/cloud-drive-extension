@@ -1,0 +1,2 @@
+#{param name=key/}
+<span data-key="${key}"><span/>

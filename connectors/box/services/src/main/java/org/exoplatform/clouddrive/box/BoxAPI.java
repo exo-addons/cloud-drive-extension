@@ -81,7 +81,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -335,8 +334,6 @@ public class BoxAPI {
     Long              streamPosition;
 
     Integer           offset   = 0, chunkSize = 0;
-
-    List<BoxEvent>    nextChunk;
 
     EventsIterator(long streamPosition) throws BoxException, RefreshAccessException {
       this.streamPosition = streamPosition <= -1 ? BoxEventRequestObject.STREAM_POSITION_NOW : streamPosition;
@@ -780,7 +777,7 @@ public class BoxAPI {
     // TODO use real thumbnails from Box
     return getLink(item);
   }
-  
+
   ChangesLink getChangesLink() throws BoxException, RefreshAccessException {
     if (changesLink == null || changesLink.isOutdated()) {
       updateChangesLink();

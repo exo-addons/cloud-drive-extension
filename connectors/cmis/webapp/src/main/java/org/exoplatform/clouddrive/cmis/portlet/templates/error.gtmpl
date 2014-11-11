@@ -1,0 +1,11 @@
+#{param name=message/}
+<div class="container-fluid">
+	<div id="cmis-error-body" class="row-fluid">
+		<h1>Error</h1>
+		Login failed with message: ${message}
+		<p>
+			<a class="btn btn-primary" href="@{index()}">Back</a>
+		</p>
+	</div>
+</div>
+

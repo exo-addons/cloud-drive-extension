@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
+  <UITabForm>
+    <label>
+      <connectTemplate>Connect CMIS Server</connectTemplate>
+    </label>
+  </UITabForm>
+  <!-- For menu caption in Action Bar -->
+  <UIActionBar>
+    <tooltip>
+      <ConnectTemplate>Connect CMIS Server</ConnectTemplate>
+    </tooltip>
+  </UIActionBar>
+  <!-- For login form -->
+  <CMISLoginController>
+    <cmis>
+      <title>Login CMIS repository</title>
+      <authHelp>Authenticate to select CMIS repository for login.</authHelp>
+      <loginHelp>Select CMIS repository and complete login.</loginHelp>
+    </cmis>
+    <serviceUrl>Service URL</serviceUrl>
+    <serviceUrlHint>Server URL...</serviceUrlHint>
+    <username>User name</username>
+    <usernameHint>Your user name...</usernameHint>
+    <password>Password</password>
+    <passwordHint>Your password...</passwordHint>
+    <authenticate>Authenticate</authenticate>
+    <repository>CMIS repository</repository>
+    <login>Login</login>
+    <cancel>Cancel</cancel>
+  </CMISLoginController>
+</bundle>

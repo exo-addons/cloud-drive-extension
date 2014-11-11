@@ -1,0 +1,101 @@
+#{param name=provider/}
+#{param name=res/}
+<% 
+	def title = res.getString("CMISLoginController.${provider.id}.title")
+  def authHelp = res.getString("CMISLoginController.${provider.id}.authHelp")
+  def loginHelp = res.getString("CMISLoginController.${provider.id}.loginHelp")
+%>
+<div class="container-fluid">
+	<div id="cmis-login-body" class="row-fluid">
+		<div class="span6 offset3">
+			<h1 class="text-centered">${title}</h1>
+		</div>
+		<div id="cmis-login-wrapper" class="span6 offset3">
+			<div id="cmis-login-error" class="error-message">
+				<div class="alert alert-warning" style="display: none;"></div>
+			</div>
+			<form id="cmis-login-data" action="javascript:void(0)">
+				<fieldset class="form-centered">
+					<p class="help-block">${authHelp}</p>
+					<div class="control-group">
+						<label class="control-label" for="service-url">&{CMISLoginController.serviceUrl}</label>
+						<div class="controls input-append">
+							<input type="text" name="service-url" value="" placeholder="&{CMISLoginController.serviceUrlHint}" class="form-control" />
+							<div class="btn-group">
+								<button class="btn dropdown-toggle" data-toggle="dropdown">
+									<span class="caret"></span>
+								</button>
+								<ul id="service-url-predefined" class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
+									<%
+									  for(service in provider.predefinedAtompubServices) {
+											if (service.name) {
+									%>
+									<li><a href="#" data-url="${service.url}">${service.name}</a></li>
+									<%
+									  	} else {
+									%>
+									<li><a href="#" data-url="${service.url}">${service.url}</a></li>
+									<%
+									  	}
+										}
+									%>
+								</ul>
+							</div>
+						</div>
+						<div class="login-error-container">
+							<label class="control-label error login-error" style="display: none;" for="service-url"></label>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label" for="user">&{CMISLoginController.username}</label>
+						<div class="controls">
+							<input type="text" name="user" value="" placeholder="&{CMISLoginController.usernameHint}" class="form-control" />
+						</div>
+						<div class="login-error-container">
+							<label class="control-label error login-error" style="display: none;" for="user"></label>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label" for="password">&{CMISLoginController.password}</label>
+						<div class="controls">
+							<input type="password" name="password" value="" placeholder="&{CMISLoginController.passwordHint}" class="form-control" />
+						</div>
+						<div class="login-error-container">
+							<label class="control-label error login-error" style="display: none;" for="password"></label>
+						</div>
+					</div>
+					<div class="control-group text-centered form-buttons">
+						<div class="controls">
+							<button type=submit class="btn btn-primary">&{CMISLoginController.authenticate}</button>
+							<button type="button" class="btn" onclick="window.close();">&{CMISLoginController.cancel}</button>
+						</div>
+					</div>
+				</fieldset>
+			</form>
+			<form id="cmis-login-form" action="@{loginRepository()}" method="post" style="display: none;">
+				<fieldset class="form-centered">
+					<p class="help-block">${loginHelp}</p>
+					<div id="cmis-login-key"></div>
+					<p />
+					<div class="control-group">
+						<label class="control-label" for="repository">&{CMISLoginController.repository}</label>
+						<div class="controls">
+							<div id="cmis-login-repository" class="controls"></div>
+						</div>
+						<div class="login-error-container">
+							<label class="control-label error login-error" style="display: none;" for="repository"></label>
+						</div>
+						<input type="hidden" name="code" value="" />
+						<!-- input type="hidden" name="redirect_uri" value="test"/ -->
+						<div class="control-group text-centered form-buttons">
+							<div class="controls">
+								<button type="submit" class="btn btn-primary">&{CMISLoginController.login}</button>
+								<button type="button" class="btn" onclick="window.close();">&{CMISLoginController.cancel}</button>
+							</div>
+						</div>
+				</fieldset>
+			</form>
+		</div>
+	</div>
+</div>
+

@@ -1,0 +1,73 @@
+@CHARSET "UTF-8";
+/*@import "bootstrap.css";
+ @import "bootstrap-theme.css";*/
+@import "jquery-ui.css";
+@import "jquery-ui.structure.css";
+@import "jquery-ui.theme.css";
+
+.uiIconError {
+	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat scroll left top transparent;
+	margin-left: 20px;
+}
+.uiIconWarning {
+	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat -20px top transparent;
+	margin-left: 20px;
+}
+
+#cmis-login-wrapper .error-message {
+	margin: 25px 10px 0;
+}
+
+#cmis-login-wrapper .error-message .alert {
+	background: none repeat scroll 0 0 transparent;
+	border: medium none;
+	box-shadow: none;
+	padding: 0;
+	color: #c09853;
+}
+
+#cmis-login-wrapper .error-message .alert > i {
+	margin-top: 0px;
+}
+
+label.login-error {
+	position: relative;
+	top: -6px;
+	font-size: 11px;
+	margin-bottom: 0px;
+}
+
+div.control-group {
+	margin-bottom: 0px;
+}
+
+div.login-error-container {
+	display: block;
+	height: 12px;
+}
+
+button.btn {
+	width: 110px;
+}
+
+button.btn.dropdown-toggle {
+	width: 34px;
+}
+
+#service-url-predefined {
+	left: -270px;
+	width: 304px;
+}
+
+.text-centered {
+	text-align: center;
+}
+
+.form-centered {
+	width: 320px;
+	margin: 0 auto;
+}
+
+div.form-buttons {
+	marging-top : 10px;
+}

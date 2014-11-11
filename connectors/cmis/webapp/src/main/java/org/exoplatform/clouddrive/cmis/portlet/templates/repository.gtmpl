@@ -1,0 +1,14 @@
+#{param name=code/}
+#{param name=repositories/}
+<div id="cmis-login-code" user-code="${code}"></div>
+<select name="repository" class="form-control">
+<%
+  for(r in repositories) {
+%>
+<option value="${r.id}">${r.name ? r.name : r.id}</option>
+<%
+  }
+%>
+</select>
+
+

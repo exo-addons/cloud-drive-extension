@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (C) 2003-2014 eXo Platform SAS.
+
+    This file is part of Mobile Notifications for eXo platform.
+
+    Mobile Notifications for eXo platform is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as
+    published by the Free Software Foundation; either version 3 of
+    the License, or (at your option) any later version.
+
+    Mobile Notifications for eXo platform software is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with CMIS Integration for eXo platform; if not, write to the Free
+    Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+    02110-1301 USA, or see <http://www.gnu.org/licenses/>.
+
+-->
+<portlet-app xmlns="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd" version="2.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd
+http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
+   
+  <!-- User mobile notifications settings portlet -->
+  <portlet>
+    <description xml:lang="EN">Cloud Drive CMIS Connector Login Page</description>
+    <portlet-name>CMISLoginPortlet</portlet-name>
+    <display-name xml:lang="EN">Cloud Drive CMIS Connector Login Page</display-name>
+    <portlet-class>org.exoplatform.clouddrive.cmis.portlet.CMISLoginPortlet</portlet-class>
+    <init-param>
+      <name>juzu.app_name</name>
+      <value>org.exoplatform.clouddrive.cmis.portlet  </value>
+    </init-param>
+    <init-param>
+      <name>juzu.run_mode</name>
+      <value>prod</value>
+    </init-param>
+    <supports>
+      <mime-type>text/html</mime-type>
+    </supports>
+     
+    <!-- <supported-locale>en</supported-locale> -->
+    <resource-bundle>locale.clouddrive.cmis.site</resource-bundle>
+    <portlet-info>
+      <title>Cloud Drive CMIS connector login page</title>
+      <keywords>Cloud Drive - CMIS</keywords>
+    </portlet-info>
+
+    <!-- portlet-preferences>
+      <preference>
+        <name>view</name>
+        <value>normal</value>
+        <read-only>false</read-only>
+      </preference>
+      <preference>
+        <name>fullscreen</name>
+        <value>false</value>
+        <read-only>false</read-only>
+      </preference>
+    </portlet-preferences -->
+  </portlet>
+</portlet-app>

@@ -1,7 +1,7 @@
 eXo Cloud Drive Connector API
 =============================
 
-Cloud Drive add-on supports various cloud providers via extensible Connector API. A connector it is a complex of Java interfaces implemented by the connector code and client scripts, pages, styles, other files connected together by conventions. Connector API allows develop connectors to new cloud providers without changing the core code.
+Cloud Drive add-on supports various cloud providers via extensible Connector API. A connector it is a set of Java interfaces implemented by the connector code and client scripts, pages, styles, other files connected together by conventions. Connector API allows develop connectors to new cloud providers without changing the core code.
 Cloud Drive add-on it is a [portal extension](http://docs.exoplatform.com/PLF40/PLFDevGuide.eXoPlatformExtensions.html) to Platform. Each _connector it is also a portal extension_ that depends on the core add-on extension.
 
 For existing embedded connectors check [connectors page](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors).
@@ -61,7 +61,7 @@ When need to provide an additional logic for your connector in client browser, i
 
 **CSS style file**
 
-To provide branded styles for your connector and its files you may need load a CSS to the browser when connected drive is open in Documents app. Cloud Drive client automaticaly loads connector styles from the web app of the extension by its name, no special action required. As mentioned above web app name should be `cloud-drive-PROVIDER_ID`. Then CSS file will be loaded by path: "/cloud-drive-PROVIDER_ID/skin/cloud-drive.css".
+To provide branded styles for your connector and its files you may need load a CSS to the browser when connected drive is open in Documents app. Cloud Drive client automaticaly loads connector styles from the web app of the extension by its name, no special action required. As mentioned above web app name should be `cloud-drive-PROVIDER_ID`. Then CSS file will be loaded by path: "/cloud-drive-PROVIDER_ID/skin/clouddrive.css".
 
 **CSS class names**
 
