@@ -75,9 +75,9 @@ public class CMISUser extends CloudUser {
       title.append(predefinedName);
     } else {
       // if not predefined then use product name/version as node name prefix
-      title.append(api().getProductName());
+      title.append(api().getVendorName());
       title.append(' ');
-      title.append(api().getProductVersion());
+      title.append("CMIS"); // api().getProductVersion()
     }
 
     title.append(" - ");
