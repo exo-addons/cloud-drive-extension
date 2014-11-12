@@ -116,7 +116,7 @@ public class BoxConnector extends CloudDriveConnector {
       return super.getConnectorHost();
     } else {
       // if not HTTPS, then only localhost possible
-      String[] host = connectorHost.split(":");
+      String[] host = super.getConnectorHost().split(":");
       StringBuilder newHost = new StringBuilder();
       newHost.append("localhost");
       if (host.length > 1) {
