@@ -55,7 +55,7 @@
           <name>drive-configuration</name>
           <property name="provider-id" value="sharepoint" />
           <property name="provider-name" value="Microsoft SharePoint" />
-          <property name="connector-host" value="${clouddrive.service.host}" />
+          <property name="connector-host" value="${clouddrive.service.host:localhost:8080}" />
           <property name="connector-schema" value="${clouddrive.service.schema:http}" />
           <property name="login-sso" value="${clouddrive.login.sso:false}" />
         </properties-param>
