@@ -896,7 +896,7 @@ public class BoxAPI {
         throw new NotFoundException("Parent not found " + parentId + ". File uploading canceled for " + name,
                                     e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to upload a file " + name, e);
+        throw new NotFoundException("The user doesn't have access to upload a file " + name, e);
       } else if (status == 409) {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
@@ -927,7 +927,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then parent not found
         throw new NotFoundException("Parent not found " + parentId, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to create a folder " + name, e);
+        throw new NotFoundException("The user doesn't have access to create a folder " + name, e);
       } else if (status == 409) {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
@@ -955,7 +955,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then parent not found
         throw new NotFoundException("Parent not found " + parentId, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to create a folder " + name, e);
+        throw new NotFoundException("The user doesn't have access to create a folder " + name, e);
       } else if (status == 409) {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
@@ -989,7 +989,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to the file " + id, e);
+        throw new NotFoundException("The user doesn't have access to the file " + id, e);
       }
       throw new BoxException("Error deleting file: " + e.getMessage(), e);
     } catch (AuthFatalFailureException e) {
@@ -1021,7 +1021,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to the folder " + id, e);
+        throw new NotFoundException("The user doesn't have access to the folder " + id, e);
       }
       throw new BoxException("Error deleting folder: " + e.getMessage(), e);
     } catch (AuthFatalFailureException e) {
@@ -1076,7 +1076,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to the file " + id, e);
+        throw new NotFoundException("The user doesn't have access to the file " + id, e);
       }
       throw new BoxException("Error trashing file: " + e.getMessage(), e);
     } catch (AuthFatalFailureException e) {
@@ -1131,7 +1131,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       } else if (status == 403) {
-        throw new NotFoundException("The user doesn’t have access to the folder " + id, e);
+        throw new NotFoundException("The user doesn't have access to the folder " + id, e);
       }
       throw new BoxException("Error trashing foler: " + e.getMessage(), e);
     } catch (AuthFatalFailureException e) {
