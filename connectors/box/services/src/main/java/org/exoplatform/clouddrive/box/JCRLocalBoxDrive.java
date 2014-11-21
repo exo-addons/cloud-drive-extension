@@ -1448,7 +1448,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   editLink(link),
+                                   null, // editLink
                                    embedLink,
                                    thumbnailLink,
                                    type,
@@ -1491,14 +1491,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(String link) {
+  protected String previewLink(Node fileNode) throws RepositoryException {
     BoxUser user = getUser();
-    if (user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
+    String link = super.previewLink(fileNode);
+    if (link != null && user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
       // append encoded link to access URL
       try {
         link = URLEncoder.encode(link, "UTF-8");
       } catch (UnsupportedEncodingException e) {
-        LOG.warn("Cannot encode URL " + link + ":" + e);
+        LOG.warn("Cannot encode URL " + fileNode + ":" + e);
       }
       return String.format(BoxAPI.BOX_EMBED_URL_SSO, user.getEnterpriseId(), link);
     }
@@ -1509,7 +1510,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String editLink(String link) {
+  protected String editLink(Node fileNode) {
     // Box does not support embedded editor (due to SAMEORIGIN cross-domain policy)
     return null;
   }

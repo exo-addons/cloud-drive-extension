@@ -418,56 +418,6 @@ public class CMISAPI {
   }
 
   /**
-   * Sample drive state POJO.
-   */
-  public static class DriveState {
-    protected final String type;
-
-    protected final String url;
-
-    protected final long   retryTimeout, created;
-
-    protected DriveState(String type, String url, long retryTimeout) {
-      this.type = type;
-      this.url = url;
-      this.retryTimeout = retryTimeout;
-      this.created = System.currentTimeMillis();
-    }
-
-    /**
-     * @return the type
-     */
-    public String getType() {
-      return type;
-    }
-
-    /**
-     * @return the url
-     */
-    public String getUrl() {
-      return url;
-    }
-
-    /**
-     * @return the retryTimeout
-     */
-    public long getRetryTimeout() {
-      return retryTimeout;
-    }
-
-    /**
-     * @return the created
-     */
-    public long getCreated() {
-      return created;
-    }
-
-    public boolean isOutdated() {
-      return (System.currentTimeMillis() - created) > retryTimeout;
-    }
-  }
-
-  /**
    * Session context for CMIS calls. Class idea wrapped from OpenCMIS Workbench.
    */
   protected class Context extends OperationContextImpl {
@@ -550,8 +500,6 @@ public class CMISAPI {
 
   protected String                         vendorName;
 
-  protected DriveState                     state;
-
   protected String                         enterpriseId, enterpriseName, customDomain;
 
   /**
@@ -572,14 +520,15 @@ public class CMISAPI {
   /**
    * Create API from user credentials.
    * 
-   * @param serviceURL {@link String}
-   * @param user {@link String}
-   * @param password {@link String}
+   * @param serviceURL {@link String} CMIS service URL (AtimPub binding)
+   * @param user {@link String} CMIS service username
+   * @param password {@link String} CMIS service user password
    * @throws CMISException
    * @throws CloudDriveException
    */
   protected CMISAPI(String serviceURL, String user, String password) throws CMISException,
       CloudDriveException {
+    
     // Prepare CMIS server parameters
     Map<String, String> parameters = new HashMap<String, String>();
 
@@ -601,9 +550,6 @@ public class CMISAPI {
     // parameters.put(SessionParameter.LOCALE_ISO639_LANGUAGE, "de");
 
     this.parameters = parameters;
-
-    // init drive state
-    updateState();
   }
 
   /**
@@ -842,9 +788,6 @@ public class CMISAPI {
     } else {
       return link.loadLink(repositoryId, file.getId(), Constants.REL_SELF, Constants.MEDIATYPE_ENTRY);
     }
-    // String prefix = "OBJ LINK (" + file.getId() + " " + file.getName() + ") ";
-    // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
-    // LOG.info(prefix + " linkContent: " + linkContent);
   }
 
   /**
@@ -862,75 +805,54 @@ public class CMISAPI {
                                          file.getId(),
                                          Constants.REL_SELF,
                                          Constants.MEDIATYPE_ENTRY);
-
-    // String linkContent = link.loadContentLink(repositoryId, file.getId());
-    // String prefix = "FOLDER LINK (" + file.getId() + " " + file.getName() + ") ";
-    // LOG.info(prefix + " linkSelfEntry: " + linkSelfEntry);
-    // LOG.info(prefix + " linkContent: " + linkContent);
-
     return linkSelfEntry;
   }
 
-  /**
-   * Link (URL) to embed a file onto external app (in PLF). It is the same as file link.
-   * 
-   * @param item {@link CmisObject}
-   * @return String with the file embed URL.
-   * @throws CMISException
-   * @throws RefreshAccessException
-   * @see {@link #getLink(CmisObject)}
-   */
-  protected String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
-    return getLink(item);
-  }
+  // TODO cleanup
+//  /**
+//   * Link (URL) to embed a file onto external app (in PLF). It is the same as file link.
+//   * 
+//   * @param item {@link CmisObject}
+//   * @return String with the file embed URL.
+//   * @throws CMISException
+//   * @throws RefreshAccessException
+//   * @see {@link #getLink(CmisObject)}
+//   */
+//  protected String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
+//    return getLink(item);
+//  }
 
-  /**
-   * Link (URL) to embed a folder onto external app (in PLF). It is the same as file link.
-   * 
-   * @param folder {@link Folder}
-   * @return String with the file embed URL.
-   * @throws CMISException
-   * @throws RefreshAccessException
-   * @see {@link #getLink(CmisObject)}
-   */
-  protected String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
-    return getLink(folder);
-  }
+//  /**
+//   * Link (URL) to embed a folder onto external app (in PLF). It is the same as file link.
+//   * 
+//   * @param folder {@link Folder}
+//   * @return String with the file embed URL.
+//   * @throws CMISException
+//   * @throws RefreshAccessException
+//   * @see {@link #getLink(CmisObject)}
+//   */
+//  protected String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
+//    return getLink(folder);
+//  }
 
-  /**
-   * Link (URL) to embed a document onto external app (in PLF). It is the same as document link.
-   * 
-   * @param doc {@link Document}
-   * @return String with the file embed URL.
-   * @throws CMISException
-   * @throws RefreshAccessException
-   * @see {@link #getLink(CmisObject)}
-   */
-  protected String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
-    return getLink(doc);
-  }
-
-  protected DriveState getState() throws CMISException, RefreshAccessException {
-    // TODO state for CMIS?
-    // if (state == null || state.isOutdated()) {
-    // updateState();
-    // }
-
-    return null;
-  }
-
-  /**
-   * Update the drive state.
-   * 
-   */
-  protected void updateState() throws CMISException, RefreshAccessException {
-    try {
-      // TODO state for CMIS drive?
-      this.state = null; // new DriveState("type...", "http://....", 10);
-    } catch (Exception e) {
-      throw new CMISException("Error getting drive state: " + e.getMessage(), e);
-    }
-  }
+//  /**
+//   * Link (URL) to embed a document into external app (in PLF). It is the same as document link.
+//   * 
+//   * @param doc {@link Document}
+//   * @return String with the file embed URL.
+//   * @throws CMISException
+//   * @throws RefreshAccessException
+//   * @see {@link #getLink(CmisObject)}
+//   */
+//  protected String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
+//    // return link to this server with REST service proxy to access the CMIS repo
+//    StringBuilder cmisProxyLink = new StringBuilder();
+//    cmisProxyLink.append(exoURL);
+//    cmisProxyLink.append(CMISContentService.SERVICE_PATH);
+//    cmisProxyLink.append('/');
+//    cmisProxyLink.append(doc.getId());
+//    return cmisProxyLink.toString();
+//  }
 
   protected Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
                                                                                                     NotFoundException,

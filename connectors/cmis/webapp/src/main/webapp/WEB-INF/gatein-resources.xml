@@ -74,6 +74,13 @@
       <module>jquery</module>
     </depends>
   </module>
+  
+  <module>
+    <name>codeMirror</name>
+    <script>
+      <path>/js/codemirror.js</path>
+    </script>
+  </module>
 
   <module>
     <name>cloudDrive.cmis</name>
@@ -89,6 +96,9 @@
     </depends>
     <depends>
       <module>cloudDriveUtils</module>
+    </depends>
+    <depends>
+      <module>codeMirror</module>
     </depends>
   </module>
 

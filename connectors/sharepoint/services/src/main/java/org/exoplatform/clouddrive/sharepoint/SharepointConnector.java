@@ -148,7 +148,11 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
                                                                   RepositoryException {
     if (user instanceof SharepointUser) {
       SharepointUser apiUser = (SharepointUser) user;
-      JCRLocalCMISDrive drive = new JCRLocalSharepointDrive(apiUser, driveNode, sessionProviders, jcrFinder);
+      JCRLocalCMISDrive drive = new JCRLocalSharepointDrive(apiUser,
+                                                            driveNode,
+                                                            sessionProviders,
+                                                            jcrFinder,
+                                                            exoURL());
       return drive;
     } else {
       throw new CloudDriveException("Not SharePoint user: " + user);
@@ -167,7 +171,8 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
     JCRLocalSharepointDrive drive = new JCRLocalSharepointDrive(new API(),
                                                                 driveNode,
                                                                 sessionProviders,
-                                                                jcrFinder);
+                                                                jcrFinder,
+                                                                exoURL());
     return drive;
   }
 

@@ -52,8 +52,9 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
   protected JCRLocalSharepointDrive(SharepointUser user,
                                     Node driveNode,
                                     SessionProviderService sessionProviders,
-                                    NodeFinder finder) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+                                    NodeFinder finder,
+                                    String exoURL) throws CloudDriveException, RepositoryException {
+    super(user, driveNode, sessionProviders, finder, exoURL);
     SharepointAPI api = user.api();
     saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
   }
@@ -61,8 +62,9 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
   protected JCRLocalSharepointDrive(API apiBuilder,
                                     Node driveNode,
                                     SessionProviderService sessionProviders,
-                                    NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder);
+                                    NodeFinder finder,
+                                    String exoURL) throws RepositoryException, CloudDriveException {
+    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, exoURL);
   }
 
   /**
@@ -122,24 +124,6 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
 
     // TODO add specific props
     // localNode.setProperty("cmiscd:refreshTimestamp", item.getRefreshTimestamp());
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String previewLink(String link) {
-    // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return link;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String editLink(String link) {
-    // TODO Return actual link for embedded editing (in iframe) or null if that not supported
-    return null;
   }
 
   /**

@@ -1030,17 +1030,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(String link) {
+  protected String previewLink(Node fileNode) {
     // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return link;
+    return fileNode;
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  protected String editLink(String link) {
-    // TODO Return actual link for embedded editing (in iframe) or null if that not supported
+  protected String editLink(Node fileNode) {
+    // TODO Return actual link for embedded editing (in iframe) or null if edit not supported
     return null;
   }
 

@@ -1,0 +1,66 @@
+<%
+  import org.exoplatform.clouddrive.CloudDrive
+  import org.exoplatform.clouddrive.CloudFile
+  import org.exoplatform.wcm.webui.reader.ContentReader
+
+	def rcontext = _ctx.getRequestContext()
+	def uiParent = uicomponent.getParent()
+	def currentNode = uiParent.getNode()
+
+	 // should be set in CloudFileFilter
+  def drive = uicomponent.getDrive()
+  def file = uicomponent.getFile()
+  if (drive && file) {
+    def title = ContentReader.getXSSCompatibilityContent(file.getTitle())
+    def serviceName = drive.user.serviceName
+    def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
+%>
+<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="position: relative; height: 100%; overflow: hidden;">
+<%	
+    if(uicomponent.isWebDocument()) {
+%>
+	<div id="WebContent" class="uiTabNormal">
+		<ul class="nav nav-tabs">
+			<li class="active"><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.htmlview")%></a></li>
+			<li><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.plaintextview")%></a></li> 
+		</ul>
+		<div class="tab-content file-content">
+			<div id="TabHTML" class="tab-pane fade in active">      
+				<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
+			</div>
+			<div id="TabCode" class="tab-pane fade"></div>
+		</div>  
+	</div>  
+<%  } else if (uicomponent.isXmlDocument()) {
+  %>
+	<div id="WebContent" class="uiTabNormal">
+		<ul class="nav nav-tabs">
+			<li class="active"><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.plaintextview")%></a></li> 
+			<li><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.htmlview")%></a></li>
+		</ul>
+		<div class="tab-content file-content">
+			<div id="TabCode" class="tab-pane fade in active"></div>
+			<div id="TabHTML" class="tab-pane fade">      
+				<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
+			</div>
+		</div>  
+	</div>  
+<%  
+		} else {  
+	    if(uicomponent.isViewable()) {
+%>
+	<div class="file-content">
+		<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
+	</div>
+<% 
+	    } else {
+%><div class="center">
+<%=_ctx.appRes("File.view.label.file-size-too-big")%>
+	</div>
+<%
+	    }
+	  }
+	} else {%>
+		<p>Cannot load cloud file viewer. Refresh the page.</p>
+<%}%>
+</div>  

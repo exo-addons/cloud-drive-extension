@@ -23,9 +23,11 @@ import org.apache.chemistry.opencmis.client.api.CmisObject;
 import org.apache.chemistry.opencmis.client.api.Document;
 import org.apache.chemistry.opencmis.client.api.FileableCmisObject;
 import org.apache.chemistry.opencmis.client.api.Folder;
+import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.CapabilityChanges;
 import org.apache.chemistry.opencmis.commons.enums.ChangeType;
+import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudProviderException;
@@ -39,6 +41,7 @@ import org.exoplatform.clouddrive.cmis.CMISAPI.ChangeToken;
 import org.exoplatform.clouddrive.cmis.CMISAPI.ChangesIterator;
 import org.exoplatform.clouddrive.cmis.CMISAPI.ChildrenIterator;
 import org.exoplatform.clouddrive.cmis.CMISConnector.API;
+import org.exoplatform.clouddrive.cmis.rest.ContentService;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
@@ -49,10 +52,10 @@ import org.gatein.common.util.Base64;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -865,13 +868,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String embedLink = api.getEmbedLink(file);
       String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = file.getContentStreamMimeType();
 
-      initFile(fileNode, id, name, type, link, embedLink, //
+      initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
@@ -945,7 +947,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           id = file.getId();
           String name = file.getName();
           String link = api.getLink(file);
-          String embedLink = api.getEmbedLink(file);
           String thumbnailLink = link; // TODO need real thumbnail
           String createdBy = file.getCreatedBy();
           String modifiedBy = file.getLastModifiedBy();
@@ -953,7 +954,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           Calendar created = file.getCreationDate();
           modified = file.getLastModificationDate();
 
-          initFile(fileNode, id, name, type, link, embedLink, //
+          initFile(fileNode, id, name, type, link, null, // embedLink=null
                    thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
@@ -1012,7 +1013,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String embedLink = api.getEmbedLink(file);
       String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
@@ -1020,7 +1020,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       Calendar created = file.getCreationDate();
       modified = file.getLastModificationDate();
 
-      initFile(fileNode, id, name, type, link, embedLink, //
+      initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
@@ -1040,7 +1040,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String embedLink = api.getEmbedLink(file);
       String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
@@ -1048,7 +1047,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       Calendar created = file.getCreationDate();
       Calendar modified = file.getLastModificationDate();
 
-      initFile(destFileNode, id, name, type, link, embedLink, //
+      initFile(destFileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
@@ -1144,9 +1143,53 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     }
   }
 
+  protected class DocumentContent implements ContentReader {
+
+    protected final ContentStream content;
+
+    protected final String        type;
+
+    protected final long          length;
+
+    protected DocumentContent(ContentStream content, String type) {
+      this.content = content;
+      this.length = content.getLength();
+      this.type = type != null ? type : content.getMimeType();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public InputStream getStream() {
+      return content.getStream();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getMimeType() {
+      return type;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public long getLength() {
+      return length;
+    }
+  }
+
   protected final MimeTypeResolver mimeTypes         = new MimeTypeResolver();
 
   protected final AtomicLong       changeIdSequencer = new AtomicLong(0);
+
+  /**
+   * Platform server host URL, used for preview URL generation.
+   */
+  protected final String           exoURL;
 
   /**
    * @param user
@@ -1158,8 +1201,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected JCRLocalCMISDrive(CMISUser user,
                               Node driveNode,
                               SessionProviderService sessionProviders,
-                              NodeFinder finder) throws CloudDriveException, RepositoryException {
+                              NodeFinder finder,
+                              String exoURL) throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder);
+    this.exoURL = exoURL;
     CMISAPI api = user.api();
     saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
   }
@@ -1167,8 +1212,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected JCRLocalCMISDrive(API apiBuilder,
                               Node driveNode,
                               SessionProviderService sessionProviders,
-                              NodeFinder finder) throws RepositoryException, CloudDriveException {
+                              NodeFinder finder,
+                              String exoURL) throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder);
+    this.exoURL = exoURL;
   }
 
   /**
@@ -1326,7 +1373,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                           CloudProviderException,
                           RepositoryException,
                           RefreshAccessException {
-    // TODO return getUser().api().getState();
     // no special state provided for the moment
     return null;
   }
@@ -1433,10 +1479,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     String id = item.getId();
     String name = item.getName();
     String type;
-    boolean isFolder;
+    boolean isFolder, isDocument;
     long contentLength;
     if (api.isDocument(item)) {
       isFolder = false;
+      isDocument = true;
       Document document = (Document) item;
       contentLength = document.getContentStreamLength();
       type = document.getContentStreamMimeType();
@@ -1444,6 +1491,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         type = mimeTypes.getMimeType(name);
       }
     } else {
+      isDocument = false;
       isFolder = api.isFolder(item);
       contentLength = -1;
       type = item.getType().getId();
@@ -1475,9 +1523,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       }
     }
 
-    String link, embedLink, thumbnailLink;
+    String link, thumbnailLink;
     if (isFolder) {
-      link = embedLink = api.getLink((Folder) item);
+      link = api.getLink((Folder) item);
       thumbnailLink = null;
       if (changed) {
         initFolder(node, id, name, type, link, createdBy, modifiedBy, created, modified);
@@ -1485,13 +1533,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       }
     } else {
       link = api.getLink(item);
-      embedLink = api.getEmbedLink(item);
       // TODO use real thumbnailLink if available or null
-      thumbnailLink = null;
+      thumbnailLink = link;
       if (changed) {
         initFile(node, id, name, type, // mimetype
                  link,
-                 embedLink,
+                 null, // embedLink=null
                  thumbnailLink,
                  createdBy,
                  modifiedBy,
@@ -1511,8 +1558,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                  id,
                                  name,
                                  link,
-                                 editLink(link),
-                                 embedLink,
+                                 editLink(node),
+                                 previewLink(node),
                                  thumbnailLink,
                                  type,
                                  createdBy,
@@ -1525,20 +1572,64 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   }
 
   /**
-   * {@inheritDoc}
+   * Create a link to get this file content via eXo REST service as a proxy to remote CMIS. It is a path
+   * relative to the current server.
+   * 
+   * @param fileId {@link String}
+   * @return {@link String}
+   * @throws DriveRemovedException
+   * @throws RepositoryException
    */
-  @Override
-  protected String previewLink(String link) {
-    // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return link;
+  protected String createContentLink(String fileId) throws DriveRemovedException, RepositoryException {
+    // return link to this server with REST service proxy to access the CMIS repo
+    StringBuilder cmisProxyLink = new StringBuilder();
+    //cmisProxyLink.append(exoURL);
+    cmisProxyLink.append("/portal/rest");
+    cmisProxyLink.append(ContentService.SERVICE_PATH);
+    cmisProxyLink.append("?workspace=");
+    cmisProxyLink.append(rootWorkspace);
+    cmisProxyLink.append("&path=");
+    try {
+      cmisProxyLink.append(URLEncoder.encode(rootNode().getPath(), "UTF-8"));
+    } catch (UnsupportedEncodingException e) {
+      cmisProxyLink.append(rootNode().getPath());
+    }
+    cmisProxyLink.append("&fileId=");
+    cmisProxyLink.append(fileId);
+    return cmisProxyLink.toString();
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  protected String editLink(String link) {
+  protected String previewLink(Node fileNode) throws RepositoryException {
+    String fileId = fileAPI.getId(fileNode);
+    try {
+      return createContentLink(fileId);
+    } catch (DriveRemovedException e) {
+      return null;
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected String editLink(Node fileNode) {
     // TODO Return actual link for embedded editing (in iframe) or null if that not supported
+    return null;
+  }
+
+  public ContentReader getFileContent(String fileId) throws CMISException,
+                                                    NotFoundException,
+                                                    CloudDriveAccessException {
+    CMISAPI api = getUser().api();
+    CmisObject item = api.getObject(fileId);
+    if (api.isDocument(item)) {
+      Document document = (Document) item;
+      return new DocumentContent(document.getContentStream(), document.getContentStreamMimeType());
+    }
     return null;
   }
 }

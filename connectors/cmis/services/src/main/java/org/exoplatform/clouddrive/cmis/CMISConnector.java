@@ -221,7 +221,7 @@ public class CMISConnector extends CloudDriveConnector {
         String context = userId.getServiceContext();
         if (context != null) {
           // set current repo first (before getting repo info)!
-          user.setCurrentRepository(context);
+          user.setRepositoryId(context);
 
           RepositoryInfo repo = user.api().getRepositoryInfo();
           // XXX a bit nasty way to get things
@@ -238,7 +238,7 @@ public class CMISConnector extends CloudDriveConnector {
                 }
                 // create user instance dedicated to the CMIS connector implementation
                 user = c.createUser(userId);
-                user.setCurrentRepository(context); // set context for the new user!
+                user.setRepositoryId(context); // set context for the new user!
                 break;
               }
             }
@@ -259,7 +259,11 @@ public class CMISConnector extends CloudDriveConnector {
                                                                   RepositoryException {
     if (user instanceof CMISUser) {
       CMISUser apiUser = (CMISUser) user;
-      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser, driveNode, sessionProviders, jcrFinder);
+      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser,
+                                                      driveNode,
+                                                      sessionProviders,
+                                                      jcrFinder,
+                                                      exoURL());
       return drive;
     } else {
       throw new CloudDriveException("Not cloud user: " + user);
@@ -275,11 +279,20 @@ public class CMISConnector extends CloudDriveConnector {
     JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(),
                                                     driveNode,
                                                     sessionProviders,
-                                                    jcrFinder);
+                                                    jcrFinder,
+                                                    exoURL());
     return drive;
   }
 
   // ***** specifics ******
+
+  protected String exoURL() {
+    StringBuilder exoURL = new StringBuilder();
+    exoURL.append(getConnectorSchema());
+    exoURL.append("://");
+    exoURL.append(getConnectorHost());
+    return exoURL.toString();
+  }
 
   /**
    * Create {@link CMISAPI} instance.<b>
