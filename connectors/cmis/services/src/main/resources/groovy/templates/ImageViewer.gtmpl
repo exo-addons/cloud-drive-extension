@@ -8,63 +8,9 @@
   import org.exoplatform.services.jcr.util.Text;
   import org.exoplatform.container.PortalContainer;
   import org.exoplatform.wcm.webui.Utils;
-  import javax.imageio.ImageIO;
+  /*import javax.imageio.ImageIO;
   import javax.imageio.stream.ImageInputStream;
   import javax.imageio.ImageReader;
-
-	UIComponent uiParent = uicomponent.getParent();
-	
-	public boolean isVersionable(Node node) throws Exception {
-    return node.isNodeType("mix:versionable");
-  }	
-
-	public Node getFileLangNode(Node currentNode) throws Exception {
-    if(currentNode.isNodeType("nt:unstructured")) {
-      if(currentNode.getNodes().getSize() > 0) {
-        NodeIterator nodeIter = currentNode.getNodes() ;
-        while(nodeIter.hasNext()) {
-          Node ntFile = nodeIter.nextNode() ;
-          if(ntFile.getPrimaryNodeType().getName().equals("nt:file")) {
-            return ntFile ;
-          }
-        }
-        return currentNode ;
-      }
-    }
-    return currentNode ;
-  }
-
-  def originalNode = uiParent.getOriginalNode();
-  def currentNode = getFileLangNode(uiParent.getNode());
-  def binarySrc = Utils.getWebdavURL(currentNode);
-  def contentNode = currentNode.getNode("jcr:content") ;
-  def mimeType = contentNode.getProperty("jcr:mimeType").getString() ;
-  List<String> unsupportMimeTypeText = new ArrayList<String>();
-  unsupportMimeTypeText.add("text/rtf");
-    
-  
-  public String formatNodeName(String text) {
-    return text.replaceAll("'", "\\\\'") ;
-  }
-  
-  public long getFileSize(Node contentNode) throws Exception {
-    long size = contentNode.getProperty("jcr:data").getLength()/1024;      	        
-    return size;
-  }
-  
-  String rndString = String.valueOf(new Date().getTime());
-  
-	def dcTitle = "";
-	if(contentNode.hasProperty("dc:title")) {
-    StringBuilder sB = new StringBuilder();
-	  def i=0;
-	  for(title in contentNode.getProperty("dc:title").getValues()) {
-		  if (i > 0) sB.append("; ");
-			sB.append(title.getString());
-			i++;			        	    
-		}
-	  dcTitle=sB.toString();
-  }
 
   String imageWidthStr = "610";
   def imageHeight = 0;
@@ -85,12 +31,31 @@
       imageHeight = Math.floor(610*imageHeight/imageWidth);
     }
     	
-  } catch (Exception e) {}
+  } catch (Exception e) {}*/
+  
+  ////////// ******
+  
+  def rcontext = _ctx.requestContext
+	def uiParent = uicomponent.parent
+	def currentNode = uiParent.node
+
+	// should be set in CloudFileFilter
+  def drive = uicomponent.drive
+  def file = uicomponent.file
+  if (drive && file) {
+    def title = ContentReader.getXSSCompatibilityContent(file.title)
+    def serviceName = drive.user.serviceName
+    def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
 %>
-<% if (imageHeight <= 610) { %>
+<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="position: relative; height: 100%; overflow: hidden;">
   <div style="text-align:center">
-<% } else { %>
-  <div style="text-align:center; height:610px; overflow:auto;">
-<% } %>
-    <a rel="tooltip" data-placement="bottom" title="$dcTitle" onclick="javascript:window.open('$binarySrc');" style="cursor:pointer"><img src="$binarySrc" width="$imageWidthStr"/></a>
+  <!-- div style="text-align:center; height:610px; overflow:auto;" -->
+    <a rel="tooltip" data-placement="bottom" title="$title" onclick="javascript:void('$file.link');" style="cursor:pointer">
+    	<img src="$file.previewLink" style="width: 100%; overflow: hidden;"/>
+    </a>
   </div>
+<%
+  } else {%>
+		<p>Cannot load cloud file viewer. Refresh the page.</p>
+<%}%>
+</div>

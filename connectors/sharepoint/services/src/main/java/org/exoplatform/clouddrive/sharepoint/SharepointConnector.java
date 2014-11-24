@@ -17,6 +17,7 @@ import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.sharepoint.SharepointAPI.User;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -92,9 +93,10 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
   public SharepointConnector(RepositoryService jcrService,
                              SessionProviderService sessionProviders,
                              NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes,
                              InitParams params,
                              CodeAuthentication codeAuth) throws ConfigurationException {
-    super(jcrService, sessionProviders, finder, params, codeAuth);
+    super(jcrService, sessionProviders, finder, mimeTypes, params, codeAuth);
   }
 
   /**
@@ -152,6 +154,7 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
                                                             driveNode,
                                                             sessionProviders,
                                                             jcrFinder,
+                                                            mimeTypes,
                                                             exoURL());
       return drive;
     } else {
@@ -172,6 +175,7 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
                                                                 driveNode,
                                                                 sessionProviders,
                                                                 jcrFinder,
+                                                                mimeTypes,
                                                                 exoURL());
     return drive;
   }

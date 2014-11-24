@@ -9,6 +9,7 @@ import org.exoplatform.clouddrive.ConfigurationException;
 import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -95,8 +96,9 @@ public class BoxConnector extends CloudDriveConnector {
   public BoxConnector(RepositoryService jcrService,
                       SessionProviderService sessionProviders,
                       NodeFinder finder,
+                      ExtendedMimeTypeResolver mimeTypes,
                       InitParams params) throws ConfigurationException {
-    super(jcrService, sessionProviders, finder, params);
+    super(jcrService, sessionProviders, finder, mimeTypes, params);
   }
 
   /**
@@ -225,7 +227,11 @@ public class BoxConnector extends CloudDriveConnector {
                                                                   RepositoryException {
     if (user instanceof BoxUser) {
       BoxUser boxUser = (BoxUser) user;
-      JCRLocalBoxDrive drive = new JCRLocalBoxDrive(boxUser, driveNode, sessionProviders, jcrFinder);
+      JCRLocalBoxDrive drive = new JCRLocalBoxDrive(boxUser,
+                                                    driveNode,
+                                                    sessionProviders,
+                                                    jcrFinder,
+                                                    mimeTypes);
       return drive;
     } else {
       throw new CloudDriveException("Not Box user: " + user);
@@ -242,7 +248,8 @@ public class BoxConnector extends CloudDriveConnector {
                                                   getProvider(),
                                                   driveNode,
                                                   sessionProviders,
-                                                  jcrFinder);
+                                                  jcrFinder,
+                                                  mimeTypes);
     return drive;
   }
 

@@ -45,7 +45,7 @@ import org.exoplatform.clouddrive.cmis.rest.ContentService;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.gatein.common.util.Base64;
 
@@ -858,10 +858,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           throw e; // we cannot do anything at this level
         } else {
           file = (Document) existing;
-          // and erase local file data here
-          if (fileNode.hasNode("jcr:content")) {
-            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty data by default
-          }
+          // FYI local file data will be erased by synchronizer after this call
         }
       }
 
@@ -871,7 +868,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String thumbnailLink = link; // TODO need real thumbnail
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
-      String type = file.getContentStreamMimeType();
+      String type = findMimetype(file, mimeType);
 
       initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
@@ -1150,11 +1147,14 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     protected final String        type;
 
     protected final long          length;
+    
+    protected final String        fileName;
 
-    protected DocumentContent(ContentStream content, String type) {
+    protected DocumentContent(ContentStream content, String type, String fileName) {
       this.content = content;
       this.length = content.getLength();
       this.type = type != null ? type : content.getMimeType();
+      this.fileName = fileName;
     }
 
     /**
@@ -1177,19 +1177,25 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
+    public String getTypeMode() {
+      return mimeTypes.getMimeTypeMode(type, fileName);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public long getLength() {
       return length;
     }
   }
 
-  protected final MimeTypeResolver mimeTypes         = new MimeTypeResolver();
-
-  protected final AtomicLong       changeIdSequencer = new AtomicLong(0);
+  protected final AtomicLong changeIdSequencer = new AtomicLong(0);
 
   /**
    * Platform server host URL, used for preview URL generation.
    */
-  protected final String           exoURL;
+  protected final String     exoURL;
 
   /**
    * @param user
@@ -1202,8 +1208,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                               Node driveNode,
                               SessionProviderService sessionProviders,
                               NodeFinder finder,
+                              ExtendedMimeTypeResolver mimeTypes,
                               String exoURL) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+    super(user, driveNode, sessionProviders, finder, mimeTypes);
     this.exoURL = exoURL;
     CMISAPI api = user.api();
     saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
@@ -1213,8 +1220,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                               Node driveNode,
                               SessionProviderService sessionProviders,
                               NodeFinder finder,
+                              ExtendedMimeTypeResolver mimeTypes,
                               String exoURL) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder);
+    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     this.exoURL = exoURL;
   }
 
@@ -1432,6 +1440,41 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected void initFile(Node localNode,
+                          String title,
+                          String id,
+                          String type,
+                          String link,
+                          String previewLink,
+                          String thumbnailLink,
+                          String author,
+                          String lastUser,
+                          Calendar created,
+                          Calendar modified) throws RepositoryException {
+
+    // clarify type: try guess more relevant MIME type from file name/extension.
+    String recommendedType = findMimetype(title, type);
+    if (recommendedType != null && !type.equals(recommendedType)) {
+      type = recommendedType;
+    }
+
+    super.initFile(localNode,
+                   title,
+                   id,
+                   type,
+                   link,
+                   previewLink,
+                   thumbnailLink,
+                   author,
+                   lastUser,
+                   created,
+                   modified);
+  }
+
+  /**
    * Initialize CMIS Change Token of a file.<br>
    * Override this method to apply vendor specific logic (id type etc).
    * 
@@ -1478,7 +1521,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
     String id = item.getId();
     String name = item.getName();
-    String type;
+    String type, typeMode;
     boolean isFolder, isDocument;
     long contentLength;
     if (api.isDocument(item)) {
@@ -1490,11 +1533,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       if (type == null) {
         type = mimeTypes.getMimeType(name);
       }
+      typeMode = mimeTypes.getMimeTypeMode(type, name);
     } else {
       isDocument = false;
       isFolder = api.isFolder(item);
       contentLength = -1;
       type = item.getType().getId();
+      typeMode = null;
     }
 
     // read/create local node if not given
@@ -1502,7 +1547,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       if (isFolder) {
         node = openFolder(id, name, parent);
       } else {
-        node = openFile(id, name, type, parent);
+        node = openFile(id, name, parent);
       }
     }
 
@@ -1562,6 +1607,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                  previewLink(node),
                                  thumbnailLink,
                                  type,
+                                 typeMode,
                                  createdBy,
                                  modifiedBy,
                                  created,
@@ -1583,7 +1629,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected String createContentLink(String fileId) throws DriveRemovedException, RepositoryException {
     // return link to this server with REST service proxy to access the CMIS repo
     StringBuilder cmisProxyLink = new StringBuilder();
-    //cmisProxyLink.append(exoURL);
+    // cmisProxyLink.append(exoURL);
     cmisProxyLink.append("/portal/rest");
     cmisProxyLink.append(ContentService.SERVICE_PATH);
     cmisProxyLink.append("?workspace=");
@@ -1621,14 +1667,100 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     return null;
   }
 
+  /**
+   * Find MIME type of given CMIS document. If the document type is <code>null</code> or a default value as
+   * defined by {@link ExtendedMimeTypeResolver#getDefaultMimeType()}, then most relevant type will be
+   * determined and if nothing found an existing local type will be returned. Otherwise a default type will be
+   * returned as defined by {@link ExtendedMimeTypeResolver#getDefaultMimeType()}.
+   * 
+   * @param file {@link Document} CMIS document
+   * @param localType {@link String} locally stored MIME type for given file or <code>null</code>
+   * @return {@link String} relevant MIME type, not <code>null</code>
+   */
+  protected String findMimetype(Document file, String localType) {
+    return findMimetype(file.getName(), file.getContentStreamMimeType(), localType);
+  }
+
+  /**
+   * Determine a MIME type of given file name if given file type is <code>null</code> or a default value as
+   * defined by {@link ExtendedMimeTypeResolver#getDefaultMimeType()}. If required, a MIME type will be
+   * guessed by {@link ExtendedMimeTypeResolver#getMimeType(String)} and
+   * returned if found. Otherwise a default type will be returned (
+   * {@link ExtendedMimeTypeResolver#getDefaultMimeType()}).
+   * 
+   * @param file {@link String} file name
+   * @param fileType {@link String} MIME type already associated with the given file
+   * @return {@link String} relevant MIME type, not <code>null</code>
+   */
+  protected String findMimetype(String fileName, String fileType) {
+    return findMimetype(fileName, fileType, null);
+  }
+
+  /**
+   * Determine a MIME type for given file name if given file type is <code>null</code> or a default value as
+   * defined by {@link ExtendedMimeTypeResolver#getDefaultMimeType()}. Otherwise this method returns the given
+   * file type.<br>
+   * If required, a MIME type will be guessed by {@link ExtendedMimeTypeResolver#getMimeType(String)} and
+   * returned if found. If not, and given alternative type not <code>null</code>, the alternative type
+   * will be returned. Otherwise a default type will be returned (
+   * {@link ExtendedMimeTypeResolver#getDefaultMimeType()}).
+   * 
+   * @param file {@link String} file name
+   * @param fileType {@link String} MIME type already associated with the given file name
+   * @param alternativeType {@link String} alternative (locally stored) MIME type for given file name or
+   *          <code>null</code>
+   * @return {@link String} relevant MIME type, not <code>null</code>
+   */
+  protected String findMimetype(String fileName, String fileType, String alternativeType) {
+    final String defaultType = mimeTypes.getDefaultMimeType();
+    if (fileType == null || fileType.startsWith(defaultType)) {
+      // try find most relevant MIME type
+      String resolvedType = mimeTypes.getMimeType(fileName);
+      if (resolvedType != null && !resolvedType.startsWith(defaultType)) {
+        fileType = resolvedType;
+      } else if (alternativeType != null) {
+        fileType = alternativeType;
+      } else {
+        fileType = defaultType;
+      }
+    }
+    return fileType;
+  }
+
   public ContentReader getFileContent(String fileId) throws CMISException,
                                                     NotFoundException,
-                                                    CloudDriveAccessException {
+                                                    CloudDriveAccessException,
+                                                    DriveRemovedException,
+                                                    RepositoryException {
     CMISAPI api = getUser().api();
     CmisObject item = api.getObject(fileId);
     if (api.isDocument(item)) {
       Document document = (Document) item;
-      return new DocumentContent(document.getContentStream(), document.getContentStreamMimeType());
+      String name = document.getName();
+      String mimeType = document.getContentStreamMimeType();
+      if (mimeType == null || mimeType.startsWith(mimeTypes.getDefaultMimeType())) {
+        // XXX guessing from locally stored MIME type is less relevant as local data is a result of last sync
+        // with remote service whch we already read and found null or default type.
+        // Reading local JCR also is slow op we already do when reading the file to know its ID for this
+        // method.
+        // Node fileNode = findNode(fileId);
+        // if (fileNode != null) {
+        // try {
+        // mimeType = fileNode.getProperty("ecd:type").getString();
+        // } catch (PathNotFoundException e) {
+        // throw new NotFoundException("Local node not cloud file (" + fileId + ") " + fileNode.getPath());
+        // }
+        // } else {
+        // throw new NotFoundException("Local file not found " + fileId);
+        // }
+
+        // try guess the type from name/extension
+        String fileType = mimeTypes.getMimeType(name);
+        if (fileType != null) {
+          mimeType = fileType;
+        }
+      }
+      return new DocumentContent(document.getContentStream(), mimeType, name);
     }
     return null;
   }

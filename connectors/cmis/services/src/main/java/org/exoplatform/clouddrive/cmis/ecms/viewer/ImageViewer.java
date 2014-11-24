@@ -17,14 +17,11 @@
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
 import org.exoplatform.webui.config.annotation.ComponentConfig;
-import org.exoplatform.webui.core.UIComponent;
 
 /**
- *
+ * Image files viewer for Cloud Drive.
  */
 @ComponentConfig(template = "classpath:groovy/templates/ImageViewer.gtmpl")
-public class ImageViewer extends UIComponent {
+public class ImageViewer extends AbstractFileViewer {
 
-  public ImageViewer() throws Exception {
-  }
 }

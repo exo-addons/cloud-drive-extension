@@ -44,7 +44,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.InputStream;
@@ -196,7 +196,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     protected BoxFolder syncChilds(String folderId, Node parent) throws RepositoryException,
                                                                 CloudDriveException {
-      
+
       ItemsIterator items = api.getFolderItems(folderId);
       iterators.add(items);
       while (items.hasNext() && !Thread.currentThread().isInterrupted()) {
@@ -1120,8 +1120,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
   }
 
-  protected final MimeTypeResolver mimeTypes = new MimeTypeResolver();
-
   /**
    * @param user
    * @param driveNode
@@ -1129,11 +1127,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * @throws CloudDriveException
    * @throws RepositoryException
    */
-  public JCRLocalBoxDrive(BoxUser user,
-                          Node driveNode,
-                          SessionProviderService sessionProviders,
-                          NodeFinder finder) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+  protected JCRLocalBoxDrive(BoxUser user,
+                             Node driveNode,
+                             SessionProviderService sessionProviders,
+                             NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException,
+      RepositoryException {
+    super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -1141,8 +1141,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                              BoxProvider provider,
                              Node driveNode,
                              SessionProviderService sessionProviders,
-                             NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder);
+                             NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes) throws RepositoryException,
+      CloudDriveException {
+    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -1400,7 +1402,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         if (isFolder) {
           node = openFolder(id, name, parent);
         } else {
-          node = openFile(id, name, type, parent);
+          node = openFile(id, name, parent);
         }
       }
 
@@ -1419,9 +1421,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFolder(node, id, name, type, // type=folder
-                     link, // gf.getAlternateLink(),
-                     createdBy, // gf.getOwnerNames().get(0),
-                     modifiedBy, // gf.getLastModifyingUserName(),
+                     link,
+                     createdBy,
+                     modifiedBy,
                      created,
                      modified);
           initBoxItem(node, item);
@@ -1434,24 +1436,21 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFile(node, id, name, type, // mimetype
-                   link, // gf.getAlternateLink(),
-                   embedLink, // gf.getEmbedLink(),
-                   thumbnailLink, // gf.getThumbnailLink(),
-                   createdBy, // gf.getOwnerNames().get(0),
-                   modifiedBy, // gf.getLastModifyingUserName(),
+                   link,
+                   embedLink,
+                   thumbnailLink,
+                   createdBy,
+                   modifiedBy,
                    created,
                    modified);
           initBoxItem(node, item);
         }
       }
-      return new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   null, // editLink
+      return new JCRLocalCloudFile(node.getPath(), id, name, link, null, // editLink
                                    embedLink,
                                    thumbnailLink,
                                    type,
+                                   null, // typeMode not required for Box
                                    createdBy,
                                    modifiedBy,
                                    created,

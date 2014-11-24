@@ -16,96 +16,61 @@
  */
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
-import org.exoplatform.clouddrive.CloudDrive;
-import org.exoplatform.clouddrive.CloudFile;
-import org.exoplatform.clouddrive.ecms.BaseCloudDriveManagerComponent;
-import org.exoplatform.web.application.Parameter;
-import org.exoplatform.webui.application.WebuiRequestContext;
+import org.exoplatform.clouddrive.CloudDriveAccessException;
+import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.NotFoundException;
+import org.exoplatform.clouddrive.cmis.CMISException;
+import org.exoplatform.clouddrive.cmis.ContentReader;
+import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 
+import javax.jcr.RepositoryException;
+
 /**
- *
+ * Text files viewer for Cloud Drive.
  */
 @ComponentConfig(template = "classpath:groovy/templates/TextViewer.gtmpl")
-public class TextViewer extends BaseCloudDriveManagerComponent implements CloudFileViewer {
+public class TextViewer extends AbstractFileViewer {
 
-  protected CloudDrive drive;
-
-  protected CloudFile  file;
-
-  public TextViewer() throws Exception {
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void processRender(WebuiRequestContext context) throws Exception {
-    Object obj = context.getAttribute(CloudDrive.class);
-    if (obj != null) {
-      CloudDrive drive = (CloudDrive) obj;
-      obj = context.getAttribute(CloudFile.class);
-      if (obj != null) {
-        initFile(drive, (CloudFile) obj);
-        initContext();
-      }
-    }
-    super.processRender(context);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String renderEventURL(boolean ajax, String name, String beanId, Parameter[] params) throws Exception {
-    // TODO Auto-generated method stub
-    return super.renderEventURL(ajax, name, beanId, params);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void initFile(CloudDrive drive, CloudFile file) {
-    this.drive = drive;
-    this.file = file;
-  }
-
-  public long getFileSize() throws Exception {
-    // long size = contentNode.getProperty("jcr:data").getLength()/1024;
-    long size = 0; // TODO
-    return size;
-  }
-
-  public boolean isViewable() {
-    return true; // TODO
-  }
-
+  public static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2M
+  
   public boolean isWebDocument() {
     String mimeType = file.getType();
-    return mimeType.startsWith("text/html")
-        || mimeType.startsWith("application/rss+xml")
+    return mimeType.startsWith("text/html") || mimeType.startsWith("application/rss+xml")
         || mimeType.startsWith("application/xhtml"); // TODO more types
   }
-  
+
   public boolean isXmlDocument() {
     String mimeType = file.getType();
-    return mimeType.startsWith("text/xml")
-        || mimeType.startsWith("application/xml"); // TODO more types
+    return mimeType.startsWith("text/xml") || mimeType.startsWith("application/xml")
+        || (mimeType.startsWith("application/") && mimeType.indexOf("+xml") > 0); // TODO more types
+  }
+
+  public boolean isFormattedText() {
+    String mimeType = file.getType();
+    return (mimeType.startsWith("text/") && file.getTypeMode() != null)
+        || (mimeType.startsWith("application/") && file.getTypeMode() != null)
+        // text/x- can be used for various programming languages
+        || mimeType.startsWith("text/x-") || mimeType.startsWith("application/x-sh")
+        || mimeType.startsWith("text/javascript") || mimeType.startsWith("application/javascript")
+        || mimeType.startsWith("text/json") || mimeType.startsWith("application/json");
   }
 
   /**
-   * @return the drive
+   * {@inheritDoc}
    */
-  public CloudDrive getDrive() {
-    return drive;
+  @Override
+  public boolean isViewable() {
+    boolean res = super.isViewable();
+    if (res) {
+      // ensure size OK
+      try {
+        ContentReader content = ((JCRLocalCMISDrive) drive).getFileContent(file.getId());
+        res = content.getLength() <= MAX_FILE_SIZE;
+      } catch (Throwable e) {
+        LOG.warn("Error getting file content reader for " + file.getId() + " " + file.getPath(), e);
+      }
+    }
+    return res;
   }
-
-  /**
-   * @return the file
-   */
-  public CloudFile getFile() {
-    return file;
-  }
-
 }

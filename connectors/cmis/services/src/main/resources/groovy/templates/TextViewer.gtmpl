@@ -35,8 +35,8 @@
   %>
 	<div id="WebContent" class="uiTabNormal">
 		<ul class="nav nav-tabs">
-			<li class="active"><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.plaintextview")%></a></li> 
-			<li><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.htmlview")%></a></li>
+			<li class="active"><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.sourceview")%></a></li> 
+			<li><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.webview")%></a></li>
 		</ul>
 		<div class="tab-content file-content">
 			<div id="TabCode" class="tab-pane fade in active"></div>
@@ -44,21 +44,26 @@
 				<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
 			</div>
 		</div>  
+	</div>
+<%  } else if (uicomponent.isFormattedText()) {
+  %>
+	<div id="WebContent" class="uiTabNormal">
+		<div class="file-content">
+			<div id="TabCode" data-file-link="$file.previewLink"></div>
+		</div>  
 	</div>  
 <%  
-		} else {  
-	    if(uicomponent.isViewable()) {
+		} else if(uicomponent.isViewable()) {
 %>
 	<div class="file-content">
 		<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
 	</div>
 <% 
-	    } else {
+	  } else {
 %><div class="center">
 <%=_ctx.appRes("File.view.label.file-size-too-big")%>
 	</div>
 <%
-	    }
 	  }
 	} else {%>
 		<p>Cannot load cloud file viewer. Refresh the page.</p>

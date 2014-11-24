@@ -14,6 +14,7 @@ import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -119,9 +120,10 @@ public class CMISConnector extends CloudDriveConnector {
   public CMISConnector(RepositoryService jcrService,
                        SessionProviderService sessionProviders,
                        NodeFinder finder,
+                       ExtendedMimeTypeResolver mimeTypes,
                        InitParams params,
                        CodeAuthentication codeAuth) throws ConfigurationException {
-    super(jcrService, sessionProviders, finder, params);
+    super(jcrService, sessionProviders, finder, mimeTypes, params);
     this.codeAuth = codeAuth;
   }
 
@@ -263,6 +265,7 @@ public class CMISConnector extends CloudDriveConnector {
                                                       driveNode,
                                                       sessionProviders,
                                                       jcrFinder,
+                                                      mimeTypes,
                                                       exoURL());
       return drive;
     } else {
@@ -280,6 +283,7 @@ public class CMISConnector extends CloudDriveConnector {
                                                     driveNode,
                                                     sessionProviders,
                                                     jcrFinder,
+                                                    mimeTypes,
                                                     exoURL());
     return drive;
   }

@@ -173,15 +173,83 @@
                   </object>
                 </value>
                 <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.FileTypeFilter">
+                    <field name="mimeTypes">
+                      <collection type="java.util.LinkedHashSet"> 
+                        <!-- text/rtf, text/csv and others like that should be filtered by UI comp with lower rank! -->
+                        <value><string>text/</string></value>
+                        <value><string>application/x-</string></value>
+                        <!-- value><string>text/html</string></value>
+                        <value><string>text/plain</string></value>
+                        <value><string>text/xml</string></value>
+                        <value><string>text/css</string></value>
+                        <value><string>text/javascript</string></value>
+                        <value><string>text/ecmascript</string></value -->
+                        <value><string>application/xml</string></value>
+                        <value><string>application/xhtml</string></value>
+                        <value><string>application/xhtml+xml</string></value>
+                        <value><string>application/xml+dtd</string></value>
+                        <value><string>application/rss+xml</string></value>
+                        <value><string>application/atom+xml</string></value>
+                        <value><string>application/xop+xml</string></value>
+                        <value><string>application/rdf+xml</string></value>
+                        <value><string>application/soap+xml</string></value>
+                        <value><string>application/javascript</string></value>
+                        <value><string>application/json</string></value>
+                        <value><string>application/ecmascript</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ShowCmisImage</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisImage</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.ImageViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>40</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                        <value><string>sharepoint</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>text/html</string></value>
-                        <value><string>text/plain</string></value>
-                        <value><string>text/xml</string></value>
-                        <value><string>application/rss+xml</string></value>
-                        <value><string>application/x-groovy</string></value>
-                        <value><string>application/x-groovy+html</string></value>
+                        <value><string>image/jpeg</string></value>
+												<value><string>image/png</string></value>
+												<value><string>image/gif</string></value>
+												<value><string>image/bmp</string></value>
+                        <value><string>image/x-windows-bmp</string></value>
+                        <value><string>image/x-icon</string></value>
+												<value><string>image/tiff</string></value>
+                        <value><string>image/x-tiff</string></value>
+                        <value><string>image/webp</string></value>
+                        <value><string>image/pjpeg</string></value>
+                        <value><string>image/svg+xml</string></value>
                       </collection>
                     </field>
                   </object>

@@ -24,11 +24,14 @@ import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.cmis.ContentReader;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.clouddrive.features.CloudDriveFeatures;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
+
+import java.util.List;
 
 import javax.annotation.security.RolesAllowed;
 import javax.jcr.LoginException;
@@ -37,6 +40,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
@@ -78,9 +83,9 @@ public class ContentService implements ResourceContainer {
    * @param sessionProviders
    */
   public ContentService(CloudDriveService cloudDrives,
-                            CloudDriveFeatures features,
-                            RepositoryService jcrService,
-                            SessionProviderService sessionProviders) {
+                        CloudDriveFeatures features,
+                        RepositoryService jcrService,
+                        SessionProviderService sessionProviders) {
     this.cloudDrives = cloudDrives;
     this.features = features;
 
@@ -100,6 +105,7 @@ public class ContentService implements ResourceContainer {
   @GET
   @RolesAllowed("users")
   public Response getFileComments(@Context UriInfo uriInfo,
+                                  @Context HttpHeaders headers,
                                   @QueryParam("workspace") String workspace,
                                   @QueryParam("path") String path,
                                   @QueryParam("fileId") String fileId) {
@@ -117,9 +123,10 @@ public class ContentService implements ResourceContainer {
                 if (len >= 0) {
                   resp.header("Content-Length", len);
                 }
-                String mime = content.getMimeType();
-                if (mime != null && mime.length() > 0) {
-                  resp.type(mime);
+                resp.type(content.getMimeType());
+                String uiMode = content.getTypeMode();
+                if (uiMode != null && uiMode.length() > 0) {
+                  resp.header(ExtendedMimeTypeResolver.X_TYPE_MODE, content.getTypeMode());
                 }
                 return resp.build();
               }

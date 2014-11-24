@@ -34,6 +34,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
@@ -708,8 +709,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     }
   }
 
-  protected final MimeTypeResolver mimeTypes = new MimeTypeResolver();
-
   /**
    * @param user
    * @param driveNode
@@ -717,11 +716,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * @throws CloudDriveException
    * @throws RepositoryException
    */
-  public JCRLocalTemplateDrive(TemplateUser user,
-                               Node driveNode,
-                               SessionProviderService sessionProviders,
-                               NodeFinder finder) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+  protected JCRLocalTemplateDrive(TemplateUser user,
+                                  Node driveNode,
+                                  SessionProviderService sessionProviders,
+                                  NodeFinder finder,
+                                  ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException,
+      RepositoryException {
+    super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -729,8 +730,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                   TemplateProvider provider,
                                   Node driveNode,
                                   SessionProviderService sessionProviders,
-                                  NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder);
+                                  NodeFinder finder,
+                                  ExtendedMimeTypeResolver mimeTypes) throws RepositoryException,
+      CloudDriveException {
+    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -959,6 +962,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     String name = ""; // item.getName();
     boolean isFolder = false; // item instanceof APIFolder;
     String type = ""; // isFolder ? item.getType() : findMimetype(name);
+    // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
+    String typeMode = mimeTypes.getMimeTypeMode(type, name); 
     String itemHash = ""; // item.getEtag()
 
     // read/create local node if not given
@@ -966,7 +971,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       if (isFolder) {
         node = openFolder(id, name, parent);
       } else {
-        node = openFile(id, name, type, parent);
+        node = openFile(id, name, parent);
       }
     }
 
@@ -1012,10 +1017,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                  id,
                                  name,
                                  link,
-                                 editLink(link),
+                                 editLink(node),
                                  embedLink,
                                  thumbnailLink,
                                  type,
+                                 typeMode,
                                  createdBy,
                                  modifiedBy,
                                  created,
@@ -1030,9 +1036,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(Node fileNode) {
+  protected String previewLink(Node fileNode) throws RepositoryException {
     // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return fileNode;
+    return super.previewLink(fileNode);
   }
 
   /**

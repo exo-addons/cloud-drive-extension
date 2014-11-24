@@ -25,6 +25,7 @@ import org.exoplatform.clouddrive.cmis.CMISUser;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.sharepoint.SharepointConnector.API;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.util.ArrayList;
@@ -53,8 +54,9 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
                                     Node driveNode,
                                     SessionProviderService sessionProviders,
                                     NodeFinder finder,
+                                    ExtendedMimeTypeResolver mimeTypes,
                                     String exoURL) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder, exoURL);
+    super(user, driveNode, sessionProviders, finder, mimeTypes, exoURL);
     SharepointAPI api = user.api();
     saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
   }
@@ -63,8 +65,9 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
                                     Node driveNode,
                                     SessionProviderService sessionProviders,
                                     NodeFinder finder,
+                                    ExtendedMimeTypeResolver mimeTypes,
                                     String exoURL) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, exoURL);
+    super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, mimeTypes, exoURL);
   }
 
   /**
