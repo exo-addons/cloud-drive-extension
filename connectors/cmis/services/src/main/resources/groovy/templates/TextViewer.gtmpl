@@ -7,7 +7,7 @@
 	def uiParent = uicomponent.getParent()
 	def currentNode = uiParent.getNode()
 
-	 // should be set in CloudFileFilter
+	// should be set in CloudFileFilter
   def drive = uicomponent.getDrive()
   def file = uicomponent.getFile()
   if (drive && file) {
@@ -24,7 +24,7 @@
 			<li class="active"><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.htmlview")%></a></li>
 			<li><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.plaintextview")%></a></li> 
 		</ul>
-		<div class="tab-content file-content">
+		<div class="tab-content file-content" style="display: none;">
 			<div id="TabHTML" class="tab-pane fade in active">      
 				<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
 			</div>
@@ -38,7 +38,7 @@
 			<li class="active"><a id="FileCodeSwitch" data-toggle="tab" href="#TabCode"><%=_ctx.appRes("File.view.label.sourceview")%></a></li> 
 			<li><a data-toggle="tab" href="#TabHTML"><%=_ctx.appRes("File.view.label.webview")%></a></li>
 		</ul>
-		<div class="tab-content file-content">
+		<div class="tab-content file-content" style="display: none;">
 			<div id="TabCode" class="tab-pane fade in active"></div>
 			<div id="TabHTML" class="tab-pane fade">      
 				<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
@@ -49,13 +49,13 @@
   %>
 	<div id="WebContent" class="uiTabNormal">
 		<div class="file-content">
-			<div id="TabCode" data-file-link="$file.previewLink"></div>
+			<div id="TabCode"></div>
 		</div>  
 	</div>  
 <%  
 		} else if(uicomponent.isViewable()) {
 %>
-	<div class="file-content">
+	<div class="file-content" style="display: none;">
 		<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
 	</div>
 <% 

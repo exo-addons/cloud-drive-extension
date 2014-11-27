@@ -46,6 +46,10 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.PortalContainer;
+import org.exoplatform.container.definition.PortalContainerConfig;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.gatein.common.util.Base64;
 
@@ -1147,7 +1151,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     protected final String        type;
 
     protected final long          length;
-    
+
     protected final String        fileName;
 
     protected DocumentContent(ContentStream content, String type, String fileName) {
@@ -1629,8 +1633,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected String createContentLink(String fileId) throws DriveRemovedException, RepositoryException {
     // return link to this server with REST service proxy to access the CMIS repo
     StringBuilder cmisProxyLink = new StringBuilder();
-    // cmisProxyLink.append(exoURL);
-    cmisProxyLink.append("/portal/rest");
+    cmisProxyLink.append('/');
+    cmisProxyLink.append(PortalContainer.getCurrentPortalContainerName());
+    cmisProxyLink.append('/');
+    cmisProxyLink.append(PortalContainer.getCurrentRestContextName());
     cmisProxyLink.append(ContentService.SERVICE_PATH);
     cmisProxyLink.append("?workspace=");
     cmisProxyLink.append(rootWorkspace);

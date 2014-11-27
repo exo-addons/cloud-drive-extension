@@ -16,6 +16,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -142,7 +143,11 @@ public class CMISConnector extends CloudDriveConnector {
     redirectURL.append(getConnectorSchema());
     redirectURL.append("://");
     redirectURL.append(getConnectorHost());
-    redirectURL.append("/portal/rest/clouddrive/connect/");
+    redirectURL.append('/');
+    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
+    redirectURL.append('/');
+    redirectURL.append(PortalContainer.getCurrentRestContextName());
+    redirectURL.append("/clouddrive/connect/");
     redirectURL.append(getProviderId());
 
     // Auth URL lead to a webpage on eXo side, it should ask for username/password and store somehow on the
@@ -151,7 +156,9 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getConnectorSchema());
     authURL.append("://");
     authURL.append(getConnectorHost());
-    authURL.append("/portal/clouddrive/");
+    authURL.append('/');
+    authURL.append(PortalContainer.getCurrentPortalContainerName());
+    authURL.append("/clouddrive/");
     // by this auth provider id, dedicated CMIS connectors can use CMIS connector's login form
     authURL.append(getAuthProviderId());
     authURL.append("/login?state=");

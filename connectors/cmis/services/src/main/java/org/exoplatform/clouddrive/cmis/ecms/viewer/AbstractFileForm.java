@@ -18,15 +18,22 @@ package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudFile;
-import org.exoplatform.clouddrive.ecms.BaseCloudDriveManagerComponent;
+import org.exoplatform.clouddrive.ecms.BaseCloudDriveForm;
+import org.exoplatform.portal.webui.util.Util;
+import org.exoplatform.portal.webui.workspace.UIPortalApplication;
+import org.exoplatform.services.resources.ResourceBundleService;
+import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.webui.application.WebuiRequestContext;
+
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import javax.ws.rs.core.MediaType;
 
 /**
- * Base class for Cloud Drive file viewers.
+ * Base support for WebUI forms based on Cloud Drive file.
  */
-public abstract class AbstractFileViewer extends BaseCloudDriveManagerComponent implements CloudFileViewer {
+public abstract class AbstractFileForm extends BaseCloudDriveForm implements CloudFileViewer {
 
   protected CloudDrive drive;
 
@@ -74,9 +81,23 @@ public abstract class AbstractFileViewer extends BaseCloudDriveManagerComponent 
     return file;
   }
 
+  /**
+   * @return <code>true</code> if file can be represented as Web document.
+   */
   public boolean isViewable() {
     String mimeType = file.getType();
     return !mimeType.startsWith(MediaType.APPLICATION_OCTET_STREAM);
   }
+
+  public String getResourceBundle(String key) {
+    Locale locale = Util.getUIPortal().getAncestorOfType(UIPortalApplication.class).getLocale();
+    ResourceBundleService resourceBundleService = WCMCoreUtils.getService(ResourceBundleService.class);
+    ResourceBundle resourceBundle = resourceBundleService.getResourceBundle(localeFile(),
+                                                                            locale,
+                                                                            this.getClass().getClassLoader());
+    return resourceBundle.getString(key);
+  }
+
+  protected abstract String localeFile();
 
 }

@@ -23,6 +23,10 @@ import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.cmis.ContentReader;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
+import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.DocumentNotFoundException;
+import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage;
+import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage.PDFFile;
+import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage.PDFFile.ImageFile;
 import org.exoplatform.clouddrive.features.CloudDriveFeatures;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -31,17 +35,16 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 
-import java.util.List;
-
 import javax.annotation.security.RolesAllowed;
 import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
@@ -74,6 +77,8 @@ public class ContentService implements ResourceContainer {
 
   protected final SessionProviderService sessionProviders;
 
+  protected final PDFViewerStorage       pdfStorage;
+
   /**
    * Constructor.
    * 
@@ -84,10 +89,12 @@ public class ContentService implements ResourceContainer {
    */
   public ContentService(CloudDriveService cloudDrives,
                         CloudDriveFeatures features,
+                        PDFViewerStorage pdfStorage,
                         RepositoryService jcrService,
                         SessionProviderService sessionProviders) {
     this.cloudDrives = cloudDrives;
     this.features = features;
+    this.pdfStorage = pdfStorage;
 
     this.jcrService = jcrService;
     this.sessionProviders = sessionProviders;
@@ -104,19 +111,19 @@ public class ContentService implements ResourceContainer {
    */
   @GET
   @RolesAllowed("users")
-  public Response getFileComments(@Context UriInfo uriInfo,
-                                  @Context HttpHeaders headers,
-                                  @QueryParam("workspace") String workspace,
-                                  @QueryParam("path") String path,
-                                  @QueryParam("fileId") String fileId) {
+  public Response get(@Context UriInfo uriInfo,
+                      @Context HttpHeaders headers,
+                      @QueryParam("workspace") String workspace,
+                      @QueryParam("path") String path,
+                      @QueryParam("fileId") String fileId) {
     if (workspace != null) {
       if (path != null) {
         if (fileId != null) {
           try {
-            CloudDrive local = cloudDrives.findDrive(workspace, path);
-            if (local != null) {
+            CloudDrive drive = cloudDrives.findDrive(workspace, path);
+            if (drive != null) {
               // work with CMIS repo only
-              ContentReader content = ((JCRLocalCMISDrive) local).getFileContent(fileId);
+              ContentReader content = ((JCRLocalCMISDrive) drive).getFileContent(fileId);
               if (content != null) {
                 ResponseBuilder resp = Response.ok().entity(content.getStream());
                 long len = content.getLength();
@@ -124,9 +131,9 @@ public class ContentService implements ResourceContainer {
                   resp.header("Content-Length", len);
                 }
                 resp.type(content.getMimeType());
-                String uiMode = content.getTypeMode();
-                if (uiMode != null && uiMode.length() > 0) {
-                  resp.header(ExtendedMimeTypeResolver.X_TYPE_MODE, content.getTypeMode());
+                String typeMode = content.getTypeMode();
+                if (typeMode != null && typeMode.length() > 0) {
+                  resp.header(ExtendedMimeTypeResolver.X_TYPE_MODE, typeMode);
                 }
                 return resp.build();
               }
@@ -150,6 +157,190 @@ public class ContentService implements ResourceContainer {
             LOG.error("Error reading file content " + workspace + ":" + path, e);
             return Response.status(Status.INTERNAL_SERVER_ERROR)
                            .entity("Error reading file content: runtime error.")
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST).entity("Null fileId.").build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST).entity("Null path.").build();
+      }
+    } else {
+      return Response.status(Status.BAD_REQUEST).entity("Null workspace.").build();
+    }
+  }
+
+  /**
+   * Return image (PNG) representation of cloud file content (page) reading it from local PDF storage. File
+   * should be previously created in the storage to be successfully returned by this method, an empty response
+   * (204 No Content) will be returned otherwise.<br>
+   * 
+   * @param uriInfo
+   * @param workspace
+   * @param path
+   * @param providerId
+   * @return
+   */
+  @GET
+  @Path("/pdf/page")
+  @RolesAllowed("users")
+  public Response getPageImage(@Context UriInfo uriInfo,
+                               @Context HttpHeaders headers,
+                               @QueryParam("workspace") String workspace,
+                               @QueryParam("path") String path,
+                               @QueryParam("fileId") String fileId,
+                               @DefaultValue("1") @QueryParam("page") String strPage,
+                               @DefaultValue("0") @QueryParam("rotation") String strRotation,
+                               @DefaultValue("1.0") @QueryParam("scale") String strScale) {
+    if (workspace != null) {
+      if (path != null) {
+        if (fileId != null) {
+          try {
+            CloudDrive drive = cloudDrives.findDrive(workspace, path);
+            if (drive != null) {
+              String repository = jcrService.getCurrentRepository().getConfiguration().getName();
+              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, fileId);
+              if (pdfFile != null) {
+                // save page capture to file.
+                float scale;
+                try {
+                  scale = Float.parseFloat(strScale);
+                  // maximum scale support is 300%
+                  if (scale > 3.0f) {
+                    scale = 3.0f;
+                  }
+                } catch (NumberFormatException e) {
+                  scale = 1.0f;
+                }
+                float rotation;
+                try {
+                  rotation = Float.parseFloat(strRotation);
+                } catch (NumberFormatException e) {
+                  rotation = 0.0f;
+                }
+                int maximumOfPage = pdfFile.getNumberOfPages();
+                int page;
+                try {
+                  page = Integer.parseInt(strPage);
+                } catch (NumberFormatException e) {
+                  page = 1;
+                }
+                if (page >= maximumOfPage) {
+                  page = maximumOfPage;
+                } else if (page < 1) {
+                  page = 1;
+                }
+
+                ImageFile image = pdfFile.getPageImage(page, rotation, scale);
+
+                return Response.ok(image.getStream(), image.getType())
+                               .header("Last-Modified", pdfFile.getLastModified())
+                               .header("Content-Length", image.getLength())
+                               .build();
+              } else {
+                // PDF representation not available
+                LOG.warn("PDF representation not available for " + workspace + ":" + path + " id:" + fileId);
+                return Response.status(Status.NO_CONTENT).build();
+              }
+            }
+            return Response.status(Status.BAD_REQUEST).entity("Not CMIS file.").build();
+          } catch (DocumentNotFoundException e) {
+            LOG.error("Error reading cloud file representation " + workspace + ":" + path + ": "
+                + e.getMessage());
+            return Response.status(Status.NOT_FOUND).entity("Cloud file representation not found.").build();
+          } catch (LoginException e) {
+            LOG.warn("Error login to read cloud file representation " + workspace + ":" + path + ": "
+                + e.getMessage());
+            return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
+          } catch (CloudDriveException e) {
+            LOG.warn("Error reading cloud file representation " + workspace + ":" + path, e);
+            return Response.status(Status.BAD_REQUEST)
+                           .entity("Error reading cloud file representation. " + e.getMessage())
+                           .build();
+          } catch (RepositoryException e) {
+            LOG.error("Error reading cloud file representation " + workspace + ":" + path, e);
+            return Response.status(Status.INTERNAL_SERVER_ERROR)
+                           .entity("Error reading cloud file representation: storage error.")
+                           .build();
+          } catch (Throwable e) {
+            LOG.error("Error reading file content " + workspace + ":" + path, e);
+            return Response.status(Status.INTERNAL_SERVER_ERROR)
+                           .entity("Error reading cloud file representation: runtime error.")
+                           .build();
+          }
+        } else {
+          return Response.status(Status.BAD_REQUEST).entity("Null fileId.").build();
+        }
+      } else {
+        return Response.status(Status.BAD_REQUEST).entity("Null path.").build();
+      }
+    } else {
+      return Response.status(Status.BAD_REQUEST).entity("Null workspace.").build();
+    }
+  }
+
+  /**
+   * Return cloud file representation reading it from local PDF storage. File
+   * should be previously created in the storage to be successfully returned by this method, an empty response
+   * (204 No Content) will be returned otherwise.<br>
+   * 
+   * @param uriInfo
+   * @param workspace
+   * @param path
+   * @param providerId
+   * @return
+   */
+  @GET
+  @Path("/pdf")
+  @RolesAllowed("users")
+  public Response getPDF(@Context UriInfo uriInfo,
+                         @Context HttpHeaders headers,
+                         @QueryParam("workspace") String workspace,
+                         @QueryParam("path") String path,
+                         @QueryParam("fileId") String fileId) {
+    if (workspace != null) {
+      if (path != null) {
+        if (fileId != null) {
+          try {
+            CloudDrive drive = cloudDrives.findDrive(workspace, path);
+            if (drive != null) {
+              String repository = jcrService.getCurrentRepository().getConfiguration().getName();
+              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, fileId);
+              if (pdfFile != null) {
+                return Response.ok(pdfFile.getStream(), pdfFile.getMimeType())
+                               .header("Last-Modified", pdfFile.getLastModified())
+                               .header("Content-Length", pdfFile.getLength())
+                               .build();
+              } else {
+                // PDF representation not available
+                return Response.status(Status.NO_CONTENT).build();
+              }
+            }
+            return Response.status(Status.BAD_REQUEST).entity("Not CMIS file.").build();
+          } catch (DocumentNotFoundException e) {
+            LOG.error("Error reading cloud file PDF representation " + workspace + ":" + path + ": "
+                + e.getMessage());
+            return Response.status(Status.NOT_FOUND)
+                           .entity("Cloud file PDF representation not found.")
+                           .build();
+          } catch (LoginException e) {
+            LOG.warn("Error login to read cloud file PDF representation " + workspace + ":" + path + ": "
+                + e.getMessage());
+            return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
+          } catch (CloudDriveException e) {
+            LOG.warn("Error reading cloud file PDF representation " + workspace + ":" + path, e);
+            return Response.status(Status.BAD_REQUEST)
+                           .entity("Error reading cloud file PDF representation. " + e.getMessage())
+                           .build();
+          } catch (RepositoryException e) {
+            LOG.error("Error reading cloud file representation " + workspace + ":" + path, e);
+            return Response.status(Status.INTERNAL_SERVER_ERROR)
+                           .entity("Error reading cloud file PDF representation: storage error.")
+                           .build();
+          } catch (Throwable e) {
+            LOG.error("Error reading file content " + workspace + ":" + path, e);
+            return Response.status(Status.INTERNAL_SERVER_ERROR)
+                           .entity("Error reading cloud file PDF representation: runtime error.")
                            .build();
           }
         } else {
