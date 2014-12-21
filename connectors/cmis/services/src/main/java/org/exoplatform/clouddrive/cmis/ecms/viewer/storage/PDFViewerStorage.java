@@ -42,7 +42,6 @@ import org.icepdf.core.pobjects.Stream;
 import org.icepdf.core.util.GraphicsRenderingHints;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -96,8 +95,12 @@ public class PDFViewerStorage {
   public static final long   FILE_LIVE_TIME      = 12 * 60 * 60000;                            // 12hrs
 
   public static final String PAGE_IMAGE_TYPE     = "image/png";
-  
-  public static final String PAGE_IMAGE_EXT     = ".png";
+
+  public static final String PDF_TYPE            = "application/pdf";
+
+  public static final String PAGE_IMAGE_EXT      = ".png";
+
+  public static final String PDF_EXT             = ".pdf";
 
   protected class FileKey implements Serializable {
 
@@ -215,9 +218,9 @@ public class PDFViewerStorage {
       public String toString() {
         StringBuilder key = new StringBuilder();
         key.append(page);
-        key.append(File.separatorChar);
+        key.append(',');
         key.append(rotation);
-        key.append(File.separatorChar);
+        key.append(',');
         key.append(scale);
         return key.toString();
       }
@@ -226,19 +229,15 @@ public class PDFViewerStorage {
     public class ImageFile {
       protected final File   file;
 
+      protected final String name;
+
       protected final String type;
 
-      protected ImageFile(File file, String type) {
+      protected ImageFile(File file, String name, String type) {
         super();
         this.file = file;
+        this.name = name;
         this.type = type;
-      }
-
-      /**
-       * @return the file
-       */
-      public File getFile() {
-        return file;
       }
 
       /**
@@ -255,6 +254,13 @@ public class PDFViewerStorage {
         return type;
       }
 
+      /**
+       * @return the name
+       */
+      public String getName() {
+        return name;
+      }
+
       public InputStream getStream() {
         try {
           return new FileInputStream(file);
@@ -263,14 +269,14 @@ public class PDFViewerStorage {
         }
       }
 
-      protected void delete() {
-        file.delete();
+      protected boolean delete() {
+        return file.delete();
       }
     }
 
     protected final File                                  file;
 
-    protected final String                                type, typeMode;
+    protected final String                                name;
 
     protected final long                                  lastModified;
 
@@ -282,10 +288,9 @@ public class PDFViewerStorage {
 
     protected long                                        lastAcccessed;
 
-    protected PDFFile(File file, String type, String typeMode, long lastModified, Document document) {
+    protected PDFFile(File file, String name, long lastModified, Document document) {
+      this.name = name;
       this.file = file;
-      this.type = type;
-      this.typeMode = typeMode;
       this.lastModified = lastModified;
       this.numberOfPages = document.getNumberOfPages();
       putDocumentInfo(document.getInfo());
@@ -326,11 +331,12 @@ public class PDFViewerStorage {
       }
     }
 
-    public void remove() {
+    public boolean remove() {
+      boolean res = true;
       for (ImageFile pageFile : pages.values()) {
-        pageFile.delete();
+        res &= pageFile.delete();
       }
-      file.delete();
+      return res ? file.delete() : false;
     }
 
     public int getNumberOfPages() {
@@ -355,13 +361,20 @@ public class PDFViewerStorage {
       return lastAcccessed;
     }
 
+    /**
+     * @return the name
+     */
+    public String getName() {
+      return name + PDF_EXT;
+    }
+
     public ImageFile getPageImage(int page, float rotation, float scale) throws IOException {
       touch();
       PageKey key = new PageKey(page, rotation, scale);
       ImageFile pageFile = pages.get(key);
       if (pageFile == null) {
         File image = buildFileImage(file, page, rotation, scale);
-        ImageFile imageFile = new ImageFile(image, PAGE_IMAGE_TYPE);
+        ImageFile imageFile = new ImageFile(image, name + "-" + key + PAGE_IMAGE_EXT, PAGE_IMAGE_TYPE);
         ImageFile alreadyCreated = pages.putIfAbsent(key, imageFile);
         if (alreadyCreated != null) {
           // already created by another thread
@@ -388,7 +401,7 @@ public class PDFViewerStorage {
      */
     @Override
     public String getMimeType() {
-      return type;
+      return PDF_TYPE;
     }
 
     /**
@@ -396,7 +409,7 @@ public class PDFViewerStorage {
      */
     @Override
     public String getTypeMode() {
-      return typeMode;
+      return null;
     }
 
     /**
@@ -438,8 +451,9 @@ public class PDFViewerStorage {
       for (Iterator<PDFFile> fiter = spool.values().iterator(); fiter.hasNext();) {
         PDFFile file = fiter.next();
         if (System.currentTimeMillis() - file.lastAcccessed > FILE_LIVE_TIME) {
-          // TODO don't remove if file was used recently
-          fiter.remove();
+          if (file.remove()) {
+            fiter.remove();
+          }
         }
       }
     }
@@ -470,7 +484,8 @@ public class PDFViewerStorage {
 
       rootDir = new File(probe.getParentFile(), storageName);
       if (rootDir.exists()) {
-        // TODO delete directory content
+        LOG.info("Cleaning PDFViewerStorage " + rootDir.getPath());
+        delete(rootDir);
       }
       rootDir.mkdir();
     } catch (IOException e) {
@@ -489,7 +504,7 @@ public class PDFViewerStorage {
 
   public PDFFile getFile(String repository, String workspace, CloudDrive drive, String fileId) throws DriveRemovedException,
                                                                                               RepositoryException {
-    FileKey key = new FileKey(repository, workspace, drive.getUser().getId(), drive.getTitle(), fileId);
+    FileKey key = new FileKey(repository, workspace, drive.getLocalUser(), drive.getTitle(), fileId);
     return spool.get(key);
   }
 
@@ -497,8 +512,7 @@ public class PDFViewerStorage {
                                                                                                          DriveRemovedException,
                                                                                                          RepositoryException,
                                                                                                          IOException {
-    String userId = drive.getUser().getId();
-
+    String userId = drive.getLocalUser();
     FileKey key = new FileKey(repository, workspace, userId, drive.getTitle(), file.getId());
     PDFFile pdfFile = spool.get(key);
     if (pdfFile == null) {
@@ -540,7 +554,7 @@ public class PDFViewerStorage {
       try {
         // spool remote content to temp file, convert to PDF if required
         ContentReader content = drive.getFileContent(file.getId());
-        if (file.getType().startsWith("application/pdf") || file.getType().startsWith("text/pdf")
+        if (file.getType().startsWith(PDF_TYPE) || file.getType().startsWith("text/pdf")
             || file.getType().startsWith("application/x-pdf")) {
           // copy content directly
           spoolToFile(content.getStream(), tempFile);
@@ -557,23 +571,28 @@ public class PDFViewerStorage {
             }
           } catch (OfficeException e) {
             tempFile.delete();
-            throw new IOException("Error converting office document " + file.getTitle(), e);
+            throw new IOException("Error converting office document " + file.getTitle() + " (" + cleanName
+                + ")", e);
           } finally {
             origFile.delete();
           }
         }
 
-        // build IcePDF document and consume it in PDFFile (ContentReader)
-        FileInputStream tempStream = new FileInputStream(tempFile);
-        try {
-          Document pdf = buildDocumentImage(tempStream, tempFile.getName());
+        if (tempFile.exists()) {
+          // build IcePDF document and consume it in PDFFile (ContentReader)
+          FileInputStream tempStream = new FileInputStream(tempFile);
           try {
-            pdfFile = new PDFFile(tempFile, content.getMimeType(), content.getTypeMode(), lastModified, pdf);
+            Document pdf = buildDocumentImage(tempStream, tempFile.getName());
+            try {
+              pdfFile = new PDFFile(tempFile, cleanName, lastModified, pdf);
+            } finally {
+              pdf.dispose();
+            }
           } finally {
-            pdf.dispose();
+            tempStream.close();
           }
-        } finally {
-          tempStream.close();
+        } else {
+          throw new DocumentNotFoundException("PDF file cannot be created due to previous errors.");
         }
       } catch (IOException e) {
         tempFile.delete();
@@ -739,6 +758,19 @@ public class PDFViewerStorage {
     } finally {
       inputStream.close();
     }
+  }
+
+  private boolean delete(File dir) {
+    boolean res = true;
+    if (dir.isDirectory()) {
+      for (File child : dir.listFiles()) {
+        res &= delete(child);
+      }
+    }
+    if (!res) {
+      LOG.warn("Child files not removed fully for " + dir.getAbsolutePath());
+    }
+    return dir.delete();
   }
 
 }

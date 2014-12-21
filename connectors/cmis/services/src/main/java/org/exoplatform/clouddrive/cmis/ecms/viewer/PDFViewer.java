@@ -163,25 +163,29 @@ public class PDFViewer extends AbstractFileForm {
    * @return the pageImageLink
    */
   public String getPageImageLink() {
-    StringBuilder link = new StringBuilder();
-    link.append(pdfPageLink);
-    link.append(pdfPageLink.indexOf('?') > 0 ? '&' : '?');
-    link.append("page=");
-    link.append(getPageNumber());
-    link.append("&rotation=");
-    link.append(getCurrentRotation());
-    link.append("&scale=");
-    link.append(getCurrentScale());
-    return link.toString();
+    if (pdfPageLink != null) {
+      StringBuilder link = new StringBuilder();
+      link.append(pdfPageLink);
+      link.append(pdfPageLink.indexOf('?') > 0 ? '&' : '?');
+      link.append("page=");
+      link.append(getPageNumber());
+      link.append("&rotation=");
+      link.append(getCurrentRotation());
+      link.append("&scale=");
+      link.append(getCurrentScale());
+      return link.toString();
+    } else {
+      return null;
+    }
   }
 
   /**
    * @return the PDF link
    */
-  public String getPDFLink() {
+  public String getPdfLink() {
     return pdfLink;
   }
-
+  
   public float getCurrentRotation() {
     return currentRotation;
   }

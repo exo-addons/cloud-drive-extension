@@ -20,7 +20,8 @@ public interface CloudFileViewer {
    * 
    * @param drive {@link CloudDrive}
    * @param file {@link CloudFile}
+   * @throws Exception
    */
-  void initFile(CloudDrive drive, CloudFile file);
+  void initFile(CloudDrive drive, CloudFile file) throws Exception;
   
 }

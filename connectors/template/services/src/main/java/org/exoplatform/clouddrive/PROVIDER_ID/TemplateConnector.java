@@ -187,7 +187,7 @@ public class TemplateConnector extends CloudDriveConnector {
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
                                                 CloudDriveException,
                                                 RepositoryException {
-    JCRLocalCloudDrive.checkTrashed(driveNode);
+    JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalTemplateDrive drive = new JCRLocalTemplateDrive(new API(),
                                                             getProvider(),

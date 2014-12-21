@@ -169,7 +169,7 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
                                                 CloudDriveException,
                                                 RepositoryException {
-    JCRLocalSharepointDrive.checkTrashed(driveNode);
+    JCRLocalSharepointDrive.checkNotTrashed(driveNode);
     JCRLocalSharepointDrive.migrateName(driveNode);
     JCRLocalSharepointDrive drive = new JCRLocalSharepointDrive(new API(),
                                                                 driveNode,

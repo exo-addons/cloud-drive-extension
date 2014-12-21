@@ -19,12 +19,12 @@
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
-import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
 import org.exoplatform.clouddrive.PROVIDER_ID.TemplateAPI.EventsIterator;
 import org.exoplatform.clouddrive.PROVIDER_ID.TemplateAPI.ItemsIterator;
@@ -35,7 +35,6 @@ import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.commons.utils.MimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.InputStream;
@@ -43,7 +42,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -571,6 +569,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     public boolean isTrashSupported() {
       return true;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public CloudFile restore(String id, String path) throws NotFoundException,
+                                                    CloudDriveException,
+                                                    RepositoryException {
+      // TODO implement restoration of file by id at its local path (known as part of remove/update)
+      throw new SyncNotSupportedException("Restore not supported");
+    }
   }
 
   /**
@@ -744,9 +753,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   protected void initDrive(Node driveNode) throws CloudDriveException, RepositoryException {
     super.initDrive(driveNode);
 
-    // TODO set real ID and URL (URL may be known later, then skip it here or use some dummy value)
-    driveNode.setProperty("ecd:id", "ROOT_ID");
-    driveNode.setProperty("ecd:url", "APP_URL");
+    // TODO other custom things
   }
 
   /**
@@ -884,17 +891,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * {@inheritDoc}
    */
   @Override
-  public Object getState() throws DriveRemovedException,
-                          CloudProviderException,
-                          RepositoryException,
-                          RefreshAccessException {
-    return getUser().api().getState();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   protected void refreshAccess() throws CloudDriveException {
     // TODO implement this method if Cloud API requires explicit forcing of access token renewal check
     // Some APIes do this check internally on each call (then do nothing here), others may need explicit
@@ -963,7 +959,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     boolean isFolder = false; // item instanceof APIFolder;
     String type = ""; // isFolder ? item.getType() : findMimetype(name);
     // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
-    String typeMode = mimeTypes.getMimeTypeMode(type, name); 
+    String typeMode = mimeTypes.getMimeTypeMode(type, name);
     String itemHash = ""; // item.getEtag()
 
     // read/create local node if not given

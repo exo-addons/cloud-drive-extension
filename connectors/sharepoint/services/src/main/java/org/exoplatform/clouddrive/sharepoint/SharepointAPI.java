@@ -21,12 +21,11 @@ package org.exoplatform.clouddrive.sharepoint;
 import org.apache.chemistry.opencmis.client.api.ChangeEvent;
 import org.apache.chemistry.opencmis.client.api.ChangeEvents;
 import org.apache.chemistry.opencmis.client.api.CmisObject;
-import org.apache.chemistry.opencmis.client.api.ObjectId;
+import org.apache.chemistry.opencmis.client.api.ObjectFactory;
 import org.apache.chemistry.opencmis.client.api.Property;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.commons.PropertyIds;
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
-import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
+import org.apache.chemistry.opencmis.commons.data.PropertyData;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.ObjectDataImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertiesImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertyIdImpl;
@@ -693,9 +692,9 @@ public class SharepointAPI extends CMISAPI {
    */
   protected CmisObject rename(String newName, CmisObject obj, Session session) {
     // XXX With SP we cannot just rename using existing object instance as the server will return
-    // updateConflict
-    // telling it's not current object. This is probably due to the change token in existing object. Thus we
-    // create a new object instance and try rename via it.
+    // updateConflict telling it's not current object.
+    // This is probably due to the change token in existing object. Thus we create a new object instance and
+    // try rename via it.
 
     // Other ways to try:
     // * use native SP API
@@ -706,18 +705,33 @@ public class SharepointAPI extends CMISAPI {
     // copy major properties (id, types) fron original object
     PropertiesImpl props = new PropertiesImpl();
 
-    Property<String> objectId = obj.getProperty(PropertyIds.OBJECT_ID);
-    props.addProperty(session.getObjectFactory().createProperty(objectId.getDefinition(),
-                                                                objectId.getValues()));
+    ObjectFactory factory = session.getObjectFactory();
 
-    Property<String> baseTypeId = obj.getProperty(PropertyIds.BASE_TYPE_ID);
-    props.addProperty(session.getObjectFactory().createProperty(baseTypeId.getDefinition(),
-                                                                baseTypeId.getValues()));
+    for (Property<?> prop : obj.getProperties()) {
+      PropertyData<?> pdata;
+      if (PropertyIds.OBJECT_TYPE_ID.equals(prop.getId())) {
+        Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
+        pdata = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
+      } else {
+        @SuppressWarnings("unchecked") // XXX nasty cast
+        Property<Object> p = (Property<Object>) prop;
+        pdata = factory.createProperty(p.getDefinition(), p.getValues());
+      }
+      props.addProperty(pdata);
+    }
 
-    Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
-    PropertyIdImpl objTypeIdProp = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
-
-    props.addProperty(objTypeIdProp);
+    // Property<String> objectId = obj.getProperty(PropertyIds.OBJECT_ID);
+    // props.addProperty(factory.createProperty(objectId.getDefinition(), objectId.getValues()));
+    //
+    // Property<String> name = obj.getProperty(PropertyIds.NAME);
+    // props.addProperty(factory.createProperty(name.getDefinition(), name.getValues()));
+    //
+    // Property<String> baseTypeId = obj.getProperty(PropertyIds.BASE_TYPE_ID);
+    // props.addProperty(factory.createProperty(baseTypeId.getDefinition(), baseTypeId.getValues()));
+    //
+     Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
+     PropertyIdImpl objTypeIdProp = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
+     props.addProperty(objTypeIdProp);
 
     // set props
     data.setProperties(props);
@@ -726,7 +740,7 @@ public class SharepointAPI extends CMISAPI {
     data.setAllowableActions(obj.getAllowableActions());
 
     // new object instance
-    CmisObject newObj = session.getObjectFactory().convertObject(data, objectContext);
+    CmisObject newObj = factory.convertObject(data, objectContext);
 
     // and use super's logic with it
     CmisObject renamed = super.rename(newName, newObj, session);

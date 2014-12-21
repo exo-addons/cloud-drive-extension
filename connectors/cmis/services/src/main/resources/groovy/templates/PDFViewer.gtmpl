@@ -1,18 +1,10 @@
 <%
-	import javax.jcr.Node
-	import javax.jcr.NodeIterator
-	import org.exoplatform.webui.core.UIComponent
   import org.exoplatform.ecm.webui.utils.Utils
-  import org.exoplatform.services.jcr.RepositoryService   
   import org.exoplatform.wcm.webui.reader.ContentReader
   import org.exoplatform.clouddrive.CloudDrive
   import org.exoplatform.clouddrive.CloudFile
   
-	UIComponent uiParent = uicomponent.parent
-  
-	RepositoryService rService = uicomponent.getApplicationComponent(RepositoryService.class)
-  String repository = rService.currentRepository.configuration.name
-	
+	def uiParent = uicomponent.getParent()
   def originalNode = uiParent.originalNode  
   def currentNode = uiParent.node
   
@@ -20,8 +12,8 @@
   rqcontext.getJavascriptManager().require("SHARED/ecm-utils", "ecmutil").addScripts('ecmutil.ECMUtils.onKeyPDFViewerPress();')
 	
   // should be set in CloudFileFilter
-  def drive = uicomponent.getDrive()
-  def file = uicomponent.getFile()
+  def drive = uicomponent.drive
+  def file = uicomponent.file
 %>
 <head>
   <style>
@@ -153,18 +145,24 @@
 	uiform.begin()
 
 	if (drive && file) {
-	  def numberOfPages = uicomponent.numberOfPages
+	  def serviceName = drive.user.serviceName
+    def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
 
-	  if (numberOfPages > 0) {
+%>
+<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="height: 100%; ">
+<%
+		def numberOfPages = uicomponent.numberOfPages
+
+	  // can be null if document cannot be converted to PDF (e.g. office manager stopped)
+		def pdfLink = uicomponent.pdfLink
+			
+		if (pdfLink && numberOfPages > 0) {
 			def title = ContentReader.getXSSCompatibilityContent(file.title)
-			def serviceName = drive.user.serviceName
-			def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
 			
 			// FYI this link already contains current page index, rotation and scale
 			def pageImageLink = uicomponent.pageImageLink
-			def pdfLink = uicomponent.PDFLink
+					
 %>    
-<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="height: 100%; ">
 	<div class="UIPDFViewerContainer">   
 		<div class="PDFViewerBar ClearFix">
 			<div class="ControlButton" rel="tooltip" data-placement="bottom" title="<%=uicomponent.getResourceBundle("PDFViewer.label.previousPage")%>">
@@ -236,7 +234,7 @@
 	  </div>
 	  <div class="detailContainer">
 	    <h4><%=_ctx.appRes("File.view.label.not-viewable")%></h4>
-	    <a class="btn btn-primary" href="$pdfLink"><%=_ctx.appRes("File.view.label.download")%></a>
+	    <a class="btn btn-primary" href="$file.previewLink"><%=_ctx.appRes("File.view.label.download")%></a>
 	    <span><%=_ctx.appRes("File.view.label.using-webDAV")%></span>
 	  </div>
 	</div>

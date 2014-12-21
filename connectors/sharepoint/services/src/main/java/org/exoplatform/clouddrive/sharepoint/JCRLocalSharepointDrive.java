@@ -28,13 +28,11 @@ import org.exoplatform.clouddrive.sharepoint.SharepointConnector.API;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 
 /**
@@ -76,10 +74,6 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
   @Override
   protected void initDrive(Node driveNode) throws CloudDriveException, RepositoryException {
     super.initDrive(driveNode);
-
-    // use empty values, real values will be set during the drive items fetching
-    driveNode.setProperty("ecd:id", "");
-    driveNode.setProperty("ecd:url", "");
 
     // SharePoint specific info
     driveNode.setProperty("sharepoint:siteURL", getUser().getSiteURL());

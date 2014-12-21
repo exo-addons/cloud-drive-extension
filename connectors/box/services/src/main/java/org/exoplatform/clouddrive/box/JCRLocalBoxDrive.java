@@ -27,6 +27,7 @@ import com.box.boxjavalibv2.dao.BoxTypedObject;
 import com.box.boxjavalibv2.requests.requestobjects.BoxEventRequestObject;
 
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
@@ -51,6 +52,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -599,6 +601,16 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     public boolean isTrashSupported() {
       return true;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public CloudFile restore(String id, String path) throws NotFoundException,
+                                                    CloudDriveException,
+                                                    RepositoryException {
+      throw new SyncNotSupportedException("Restore not supported");
+    }
   }
 
   /**
@@ -1105,18 +1117,86 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return applied.remove(itemId);
     }
 
-    @Deprecated
-    protected boolean isRemovedPath(String path) {
-      for (String rpath : removed) {
-        if (path.startsWith(rpath)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     protected boolean isRemoved(String itemId) {
       return removedIds.contains(itemId);
+    }
+  }
+
+  public class BoxState implements FilesState {
+
+    final ChangesLink link;
+
+    protected BoxState(ChangesLink link) {
+      this.link = link;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getUpdating() {
+      return state.getUpdating();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isUpdating(String fileIdOrPath) {
+      return state.isUpdating(fileIdOrPath);
+    }
+
+    /**
+     * @return the type
+     */
+    public String getType() {
+      return link.getType();
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl() {
+      return link.getUrl();
+    }
+
+    /**
+     * @return the ttl
+     */
+    public long getTtl() {
+      return link.getTtl();
+    }
+
+    /**
+     * @return the maxRetries
+     */
+    public long getMaxRetries() {
+      return link.getMaxRetries();
+    }
+
+    /**
+     * @return the retryTimeout
+     */
+    public long getRetryTimeout() {
+      return link.getRetryTimeout();
+    }
+
+    /**
+     * @return the outdatedTimeout
+     */
+    public long getOutdatedTimeout() {
+      return link.getOutdatedTimeout();
+    }
+
+    /**
+     * @return the created
+     */
+    public long getCreated() {
+      return link.getCreated();
+    }
+
+    public boolean isOutdated() {
+      return link.isOutdated();
     }
   }
 
@@ -1156,8 +1236,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     super.initDrive(driveNode);
 
     driveNode.setProperty("ecd:id", BoxAPI.BOX_ROOT_ID);
-    // dummy URL here, an actual one will be set during files fetching in BoxConnect
-    driveNode.setProperty("ecd:url", BoxAPI.BOX_APP_URL);
   }
 
   /**
@@ -1297,11 +1375,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  public ChangesLink getState() throws DriveRemovedException,
-                               CloudProviderException,
-                               RepositoryException,
-                               RefreshAccessException {
-    return getUser().api().getChangesLink();
+  public BoxState getState() throws DriveRemovedException,
+                            CloudProviderException,
+                            RepositoryException,
+                            RefreshAccessException {
+    return new BoxState(getUser().api().getChangesLink());
   }
 
   /**

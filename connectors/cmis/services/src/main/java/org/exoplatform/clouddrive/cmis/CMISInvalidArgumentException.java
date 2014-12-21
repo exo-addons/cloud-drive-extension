@@ -34,24 +34,10 @@ public class CMISInvalidArgumentException extends CMISException {
 
   /**
    * @param message
-   */
-  public CMISInvalidArgumentException(String message) {
-    super(message);
-  }
-
-  /**
-   * @param message
    * @param cause
    */
   public CMISInvalidArgumentException(String message, Throwable cause) {
     super(message, cause);
-  }
-
-  /**
-   * @param cause
-   */
-  public CMISInvalidArgumentException(Throwable cause) {
-    super(cause);
   }
 
 }

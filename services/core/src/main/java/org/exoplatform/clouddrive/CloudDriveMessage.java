@@ -16,33 +16,45 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis.ecms.viewer.storage;
+package org.exoplatform.clouddrive;
 
 /**
- * Document cannot be found in Viewer storage. It can be not created previously or removed for unknown reason.
- * It is not expected exception, thus it is instance of {@link RuntimeException}.<br>
+ * Message should be send to an user as result of Cloud Drive command work.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DocumentNotFoundException.java 00000 Nov 27, 2014 pnedonosko $
+ * @version $Id: CloudDriveMessage.java 00000 Nov 29, 2014 pnedonosko $
  * 
  */
-public class DocumentNotFoundException extends IllegalStateException {
+public class CloudDriveMessage {
+
+  public enum Type {ERROR, INFO, WARN};
+  
+  protected final String type;
+
+  protected final String text;
 
   /**
-   * @param s
+   * 
    */
-  public DocumentNotFoundException(String s) {
-    super(s);
+  public CloudDriveMessage(Type type, String text) {
+    this.type = type.name();
+    this.text = text;
   }
 
   /**
-   * @param message
-   * @param cause
+   * @return the type
    */
-  public DocumentNotFoundException(String message, Throwable cause) {
-    super(message, cause);
+  public String getType() {
+    return type;
+  }
+
+  /**
+   * @return the message
+   */
+  public String getText() {
+    return text;
   }
 
 }

@@ -27,10 +27,11 @@ import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.CapabilityChanges;
 import org.apache.chemistry.opencmis.commons.enums.ChangeType;
+import org.exoplatform.clouddrive.CannotConnectDriveException;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
-import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.DriveRemovedException;
@@ -46,10 +47,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.container.ExoContainer;
-import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.PortalContainer;
-import org.exoplatform.container.definition.PortalContainerConfig;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.gatein.common.util.Base64;
 
@@ -58,6 +56,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -75,6 +74,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
@@ -88,9 +88,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * Period to perform {@link FullSync} as a next sync request. See implementation of
    * {@link #getSyncCommand()}.
    */
-  public static final long   FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
-
-  public static final String EMPTY_TOKEN      = "".intern();
+  public static final long FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
 
   /**
    * Connect algorithm for Template drive.
@@ -141,14 +139,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             LOG.debug("Skipped relationship object: " + item.getId() + " " + item.getName());
           }
         } else {
-          // TODO do we need this check? parent already known in the context of the fetching - fileId
-          // List<Folder> parents = ((FileableCmisObject) item).getParents();
-          // if (parents.size() == 0) {
-          // // it is undefined item or root folder, in both cases we have nothing to do with it
-          // if (LOG.isDebugEnabled()) {
-          // LOG.debug("Skipped fileable item without parent: " + item.getId() + " " + item.getName());
-          // }
-          // } else {
           JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
           if (localItem.isChanged()) {
             changed.add(localItem);
@@ -159,7 +149,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           } else {
             throw new CMISException("Fetched item was not added to local drive storage");
           }
-          // }
         }
       }
       return items.parent;
@@ -187,147 +176,132 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        */
       protected final Set<Node> synced = new HashSet<Node>();
 
-      protected void syncFiles() throws CloudDriveException, RepositoryException {
-        ChangeToken remoteChangeToken = api.readToken(api.getRepositoryInfo().getLatestChangeLogToken());
-        ChangeToken localChangeToken = api.readToken(getChangeToken(rootNode));
+      protected ChangeToken syncFiles(ChangeToken fromChangeToken) throws CloudDriveException,
+                                                                  RepositoryException {
+        changes = api.getChanges(fromChangeToken);
+        iterators.add(changes);
+        if (changes.hasNext()) {
+          readLocalNodes(); // read all local nodes to nodes list
+          CmisObject previousItem = null;
+          ChangeEvent previousEvent = null;
+          Set<String> previousParentIds = null;
+          while (changes.hasNext() && !Thread.currentThread().isInterrupted()) {
+            CmisObject item = null;
+            Set<String> parentIds = new LinkedHashSet<String>();
 
-        if (!remoteChangeToken.equals(localChangeToken)) {
-          @Deprecated
-          long lastChangeId = getChangeId(); // TODO not used?
+            ChangeEvent change = changes.next();
+            ChangeType changeType = change.getChangeType();
+            String id = change.getObjectId();
 
-          long changeId = System.currentTimeMillis(); // time of the begin
-
-          // TODO in general it can be possible that Changes Log capability will be disabled in runtime and
-          // then remoteChangeToken can be null
-          changes = api.getChanges(localChangeToken);
-          iterators.add(changes);
-
-          if (changes.hasNext()) {
-            readLocalNodes(); // read all local nodes to nodes list
-            CmisObject previousItem = null;
-            ChangeEvent previousEvent = null;
-            Set<String> previousParentIds = null;
-            while (changes.hasNext() && !Thread.currentThread().isInterrupted()) {
-              CmisObject item = null;
-              Set<String> parentIds = new LinkedHashSet<String>();
-
-              ChangeEvent change = changes.next();
-              ChangeType changeType = change.getChangeType();
-              String id = change.getObjectId();
-
-              // use change.getProperties() to try get the object type and process document/folder only
-              if (api.isSyncableChange(change)) {
-                if (!ChangeType.DELETED.equals(changeType)) {
-                  try {
-                    item = api.getObject(change.getObjectId());
-                  } catch (NotFoundException e) {
-                    // object not found on the server side, it could be removed during the fetch or CMIS
-                    // implementation applies trashing (move to vendor specific Trash on deletion) -
-                    // delete file locally
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug("File " + changeType.value() + " " + id
-                          + " not found remotely - apply DELETED logic.");
-                    }
+            // use change.getProperties() to try get the object type and process document/folder only
+            if (api.isSyncableChange(change)) {
+              if (!ChangeType.DELETED.equals(changeType)) {
+                try {
+                  item = api.getObject(change.getObjectId());
+                } catch (NotFoundException e) {
+                  // object not found on the server side, it could be removed during the fetch or CMIS
+                  // implementation applies trashing (move to vendor specific Trash on deletion) -
+                  // delete file locally
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug("File " + changeType.value() + " " + id
+                        + " not found remotely - apply DELETED logic.");
                   }
                 }
+              }
 
-                if (item == null) {
-                  // file deleted
-                  if (hasRemoved(id)) {
-                    cleanRemoved(id);
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug(">> Returned file removal " + id);
-                    }
-                  } else {
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug(">> File removal " + id);
-                    }
+              if (item == null) {
+                // file deleted
+                if (hasRemoved(id)) {
+                  cleanRemoved(id);
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug(">> Returned file removal " + id);
                   }
-                  // even in case of local removal we check for all parents to merge possible removals done in
-                  // parallel locally and remotely
-                  // XXX empty remote parents means item fully removed in the CMIS repo
-                  // TODO check if DELETED happes in case of multi-filed file unfiling
-                  deleteFile(id, new HashSet<String>());
                 } else {
-                  // file created/updated
-                  String name = item.getName();
-                  boolean isFolder = api.isFolder(item);
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug(">> File removal " + id);
+                  }
+                }
+                // even in case of local removal we check for all parents to merge possible removals done in
+                // parallel locally and remotely
+                // XXX empty remote parents means item fully removed in the CMIS repo
+                // TODO check if DELETED happes in case of multi-filed file unfiling
+                deleteFile(id, new HashSet<String>());
+              } else {
+                // file created/updated
+                String name = item.getName();
+                boolean isFolder = api.isFolder(item);
 
-                  // get parents
-                  if (isFolder) {
-                    Folder p = ((Folder) item).getFolderParent();
-                    if (p != null) {
-                      parentIds.add(p.getId());
-                    } else {
-                      // else it's root folder
-                      if (LOG.isDebugEnabled()) {
-                        LOG.debug("Found change of folder without parent. Skipping it: " + id + " " + name);
-                      }
-                      continue;
-                    }
-                  } else if (api.isRelationship(item)) {
+                // get parents
+                if (isFolder) {
+                  Folder p = ((Folder) item).getFolderParent();
+                  if (p != null) {
+                    parentIds.add(p.getId());
+                  } else {
+                    // else it's root folder
                     if (LOG.isDebugEnabled()) {
-                      LOG.debug("Found change of relationship. Skipping it: " + id + " " + name);
+                      LOG.debug("Found change of folder without parent. Skipping it: " + id + " " + name);
+                    }
+                    continue;
+                  }
+                } else if (api.isRelationship(item)) {
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug("Found change of relationship. Skipping it: " + id + " " + name);
+                  }
+                  continue;
+                } else {
+                  // else we have fileable item
+                  List<Folder> ps = ((FileableCmisObject) item).getParents(api.folderContext);
+                  if (ps.size() == 0) {
+                    // item has no parent, it can be undefined item or root folder - we skip it
+                    if (LOG.isDebugEnabled()) {
+                      LOG.debug("Found change of fileable item without parent. Skipping it: " + id + " "
+                          + name);
                     }
                     continue;
                   } else {
-                    // else we have fileable item
-                    List<Folder> ps = ((FileableCmisObject) item).getParents(api.folderContext);
-                    if (ps.size() == 0) {
-                      // item has no parent, it can be undefined item or root folder - we skip it
-                      if (LOG.isDebugEnabled()) {
-                        LOG.debug("Found change of fileable item without parent. Skipping it: " + id + " "
-                            + name);
-                      }
-                      continue;
-                    } else {
-                      for (Folder p : ps) {
-                        parentIds.add(p.getId());
-                      }
+                    for (Folder p : ps) {
+                      parentIds.add(p.getId());
                     }
-                  }
-
-                  if (hasUpdated(id)) {
-                    cleanUpdated(id);
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug(">> Returned file update " + id + " " + name);
-                    }
-                  } else {
-                    if (LOG.isDebugEnabled()) {
-                      LOG.debug(">> File update " + id + " " + name);
-                    }
-
-                    // XXX nasty workround for Nuxeo versioning on file/folder creation (it sends all versions
-                    // in events even for cmis:folder)
-                    if (previousItem != null && name.equals(previousItem.getName()) && previousEvent != null
-                        && ChangeType.CREATED.equals(previousEvent.getChangeType())
-                        && previousParentIds != null && parentIds.containsAll(previousParentIds)) {
-                      // same name object on the same parents was created by previous event - we assume this
-                      // current as a 'version' of that previous and skip for the moment
-                      // TODO apply correct version detection for documents
-                      // TODO folder version detection can be done in dedicated connector via native API
-                      previousItem = null;
-                      previousEvent = null;
-                      previousParentIds = null;
-                      continue;
-                    }
-
-                    updateFile(item, parentIds, isFolder);
                   }
                 }
-              } // else, skip the change of unsupported object type
-              previousItem = item;
-              previousEvent = change;
-              previousParentIds = parentIds;
-            }
 
-            if (!Thread.currentThread().isInterrupted()) {
-              // update sync position
-              setChangeToken(rootNode, changes.getLastChangeToken().getString()); // TODO remoteChangeToken
-              setChangeId(changeId);
-            }
+                if (hasUpdated(id)) {
+                  cleanUpdated(id);
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug(">> Returned file update " + id + " " + name);
+                  }
+                } else {
+                  if (LOG.isDebugEnabled()) {
+                    LOG.debug(">> File update " + id + " " + name);
+                  }
+
+                  // XXX nasty workround for Nuxeo versioning on file/folder creation (it sends all versions
+                  // in events even for cmis:folder)
+                  if (previousItem != null && name.equals(previousItem.getName()) && previousEvent != null
+                      && ChangeType.CREATED.equals(previousEvent.getChangeType())
+                      && previousParentIds != null && parentIds.containsAll(previousParentIds)) {
+                    // same name object on the same parents was created by previous event - we assume this
+                    // current as a 'version' of that previous and skip for the moment
+                    // TODO apply correct version detection for documents
+                    // TODO folder version detection can be done in dedicated connector via native API
+                    previousItem = null;
+                    previousEvent = null;
+                    previousParentIds = null;
+                    continue;
+                  }
+
+                  updateFile(item, parentIds, isFolder);
+                }
+              }
+            } // else, skip the change of unsupported object type
+            previousItem = item;
+            previousEvent = change;
+            previousParentIds = parentIds;
           }
-        } // else, no new changes
+          return changes.getLastChangeToken();
+        } else {
+          return null;
+        }
       }
 
       /**
@@ -471,10 +445,20 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
         protected final String     parentId;
 
+        private boolean            postponed;
+
         protected CMISItem(CmisObject object, String parentId) {
           super();
           this.object = object;
           this.parentId = parentId;
+        }
+
+        void postpone() {
+          postponed = true;
+        }
+
+        boolean isPostponed() {
+          return postponed;
         }
       }
 
@@ -527,111 +511,44 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       }
 
       protected void syncFiles() throws RepositoryException, CloudDriveException, InterruptedException {
-        String changeToken = api.getRepositoryInfo().getLatestChangeLogToken(); // can be null
-        String localChangeToken = getChangeToken(rootNode); // can be EMPTY_TOKEN, this means it was null
-        long changeId = System.currentTimeMillis(); // time of the begin
+        // real all local nodes of this drive
+        readLocalNodes();
 
-        if (!localChangeToken.equals(EMPTY_TOKEN) && localChangeToken.equals(changeToken)) {
-          // already up to date, only set sync position as current time of the sync start
-          if (!Thread.currentThread().isInterrupted()) {
-            setChangeId(changeId);
-          }
-        } else {
-          // real all local nodes of this drive
-          readLocalNodes();
-
-          // copy all drive map to use in // sync
-          for (Map.Entry<String, List<Node>> ne : nodes.entrySet()) {
-            allLocal.put(ne.getKey(), new ArrayList<Node>(ne.getValue())); // copy lists !
-          }
-
-          // sync with cloud
-          Folder root = syncChilds(api.getRootFolder().getId());
-
-          // remove local nodes of files not existing remotely, except of root
-          nodes.remove(root.getId());
-          for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext()
-              && !Thread.currentThread().isInterrupted();) {
-            List<Node> nls = niter.next();
-            next: for (Node n : nls) {
-              String npath = n.getPath();
-              for (String rpath : removed) {
-                if (npath.startsWith(rpath)) {
-                  continue next;
-                }
-              }
-              removed.add(npath);
-              n.remove();
-            }
-          }
-
-          if (!Thread.currentThread().isInterrupted()) {
-            initCMISItem(rootNode, root); // init parent
-
-            // set change token rom the start of the connect to let next sync fetch all changes
-            setChangeToken(rootNode, changeToken);
-
-            // sync position as current time of the connect start
-            setChangeId(changeId);
-          }
-          allLocal.clear();
-          allItems.clear();
-          readers.clear();
+        // copy all drive map to use in // sync
+        for (Map.Entry<String, List<Node>> ne : nodes.entrySet()) {
+          allLocal.put(ne.getKey(), new ArrayList<Node>(ne.getValue())); // copy lists !
         }
-      }
 
-      @Deprecated
-      protected Folder syncChildsOld(final String folderId, final Node parent, final Queue<Future<?>> workers) throws RepositoryException,
-                                                                                                              CloudDriveException,
-                                                                                                              InterruptedException {
+        // sync with cloud
+        Folder root = syncChilds(api.getRootFolder().getId());
 
-        // TODO will api return multi-filed file in each related folder?
-        ChildrenIterator items = api.getFolderItems(folderId);
-        iterators.add(items);
-        while (items.hasNext() && !Thread.currentThread().isInterrupted()) {
-          CmisObject item = items.next();
-          if (api.isRelationship(item)) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Skipped relationship object: " + item.getId() + " " + item.getName());
-            }
-          } else {
-            // TODO do we need check for unfilled files
-            // List<Folder> parents = ((FileableCmisObject) item).getParents(api.folderContext); // this call
-            // goes to CMIS server
-            // if (parents.size() == 0) {
-            // // it is undefined item or root folder, in both cases we have nothing to do with it
-            // if (LOG.isDebugEnabled()) {
-            // LOG.debug("Skipped fileable item without parent: " + item.getId() + " " + item.getName());
-            // }
-            // } else {
-            JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
-            if (localItem.isChanged()) {
-              changed.add(localItem);
-            }
-
-            // remove this file (or folder subtree) from map of local to mark it as existing,
-            // others will be removed in syncFiles() after.
-            List<Node> existing = nodes.get(item.getId());
-            if (existing != null) {
-              String path = localItem.getPath();
-              for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
-                Node enode = eiter.next();
-                if (enode.getPath().startsWith(path)) {
-                  eiter.remove();
-                }
-              }
-              if (existing.size() == 0) {
-                nodes.remove(item.getId());
+        // remove local nodes of files not existing remotely, except of root
+        nodes.remove(root.getId());
+        boolean notInterrupted = true;
+        for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext()
+            && (notInterrupted = !Thread.currentThread().isInterrupted());) {
+          List<Node> nls = niter.next();
+          next: for (Node n : nls) {
+            String npath = n.getPath();
+            for (String rpath : removed) {
+              if (npath.startsWith(rpath)) {
+                continue next;
               }
             }
-
-            if (localItem.isFolder()) {
-              // go recursive to the folder in another thread
-              syncChilds(localItem.getId());
-            }
+            removed.add(npath);
+            n.remove();
           }
         }
-        return items.parent;
+
+        if (notInterrupted) {
+          initCMISItem(rootNode, root); // init parent
+
+          // we reset all saved local changes in the store as they aren't actual for history
+          rollbackAllChanges();
+        }
+        allLocal.clear();
+        allItems.clear();
+        readers.clear();
       }
 
       protected boolean isReadDone() {
@@ -691,7 +608,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
               }
             } else {
               // need wait for parent creation
-              allItems.add(item);
+              if (item.isPostponed()) {
+                throw new CloudDriveException("Inconsistency error: parent cannot be found for remote file "
+                    + obj.getName());
+              } else {
+                allItems.add(item);
+                item.postpone();
+              }
             }
           } else {
             Thread.yield();
@@ -747,6 +670,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         super.preSyncFiles();
       } catch (CMISException e) {
         this.preSyncError = e;
+        // rollback all changes done by pre-sync
+        rollback(rootNode);
         // We log the error and try fix the drive consistency by full sync (below).
         LOG.warn("Synchronization error: failed to apply local changes to CMIS repository. "
             + "Full sync will be initiated for " + title(), e);
@@ -758,31 +683,67 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     @Override
     protected void syncFiles() throws CloudDriveException, RepositoryException, InterruptedException {
+      RepositoryInfo repoInfo = api.getRepositoryInfo();
+
+      // TODO in general it can be possible that Changes Log capability will be disabled in runtime and
+      // then repoInfo.getLatestChangeLogToken() can be null
+      ChangeToken changeToken = api.readToken(repoInfo.getLatestChangeLogToken());
+      ChangeToken localChangeToken = api.readToken(getChangeToken(rootNode));
+      ChangeToken lastChangeToken = null;
+
+      // FYI ChangeId functionality not used by CMIS as we need composite token here
+      // but we maintain ChangeId for other uses
+      long changeId = System.currentTimeMillis(); // time of the sync start
+
       if (preSyncError == null) {
-        try {
-          RepositoryInfo repoInfo = getUser().api().getRepositoryInfo();
-          if (CapabilityChanges.NONE != repoInfo.getCapabilities().getChangesCapability()) {
-            // use algorithm based on CMIS Change Log
-            new ChangesAlgorithm().syncFiles();
-            return;
-          } else {
-            LOG.info("CMIS Change Log capability not supported by repository " + repoInfo.getName() + " ("
-                + repoInfo.getVendorName() + " " + repoInfo.getProductName() + " "
-                + repoInfo.getProductVersion()
-                + "). Full synchronization will be used instead of the more efficient based on Change Log. "
-                + "Check if it is possible to enable Change Log for your repository.");
+        if (!changeToken.equals(localChangeToken)) {
+          try {
+            if (CapabilityChanges.NONE != repoInfo.getCapabilities().getChangesCapability()) {
+              // use algorithm based on CMIS Change Log: sync starting since local token
+              lastChangeToken = new ChangesAlgorithm().syncFiles(localChangeToken);
+            } else {
+              LOG.info("CMIS Change Log capability not supported by repository "
+                  + repoInfo.getName()
+                  + " ("
+                  + repoInfo.getVendorName()
+                  + " "
+                  + repoInfo.getProductName()
+                  + " "
+                  + repoInfo.getProductVersion()
+                  + "). Full synchronization will be used instead of the more efficient based on Change Log. "
+                  + "Check if it is possible to enable Change Log for your repository.");
+            }
+          } catch (CMISException e) {
+            // We log the error and try fix the drive consistency by full sync (below).
+            LOG.warn("Synchronization error: failed to read CMIS Change Log. Full sync will be initiated for "
+                         + title(),
+                     e);
+            // rollback all changes done by ChangesAlgorithm
+            rollback(rootNode);
           }
-        } catch (CMISException e) {
-          // We log the error and try fix the drive consistency by full sync (below).
-          LOG.warn("Synchronization error: failed to read CMIS Change Log. Full sync will be initiated for "
-              + title(), e);
+        } else {
+          // else, no new changes
+          return;
         }
       }
 
-      // by default we use algorithm based on full repository traversing
-      LOG.info("Full synchronization initiated instead of the more efficient based on CMIS Change Log: "
-          + title());
-      new TraversingAlgorithm().syncFiles();
+      if (lastChangeToken != null && preSyncError == null) {
+        // changes sync well done, update sync position with its result and exit
+        changeToken = lastChangeToken;
+      } else {
+        // by default, or if have previous errors, we use algorithm based on full repository traversing
+        LOG.info("Full synchronization initiated instead of the more efficient based on CMIS Change Log: "
+            + title());
+        new TraversingAlgorithm().syncFiles();
+        // we reset all saved local changes in the store as they aren't actual for history
+        rollbackAllChanges();
+      }
+
+      // set change token from the start of the connect to let next sync fetch all further changes next time
+      setChangeToken(rootNode, changeToken.getString());
+
+      // sync position as current time of the connect start
+      setChangeId(changeId);
     }
   }
 
@@ -1142,6 +1103,84 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     public boolean isTrashSupported() {
       return false;
     }
+
+    private CloudFile restore(CmisObject obj, Node parent) throws NotFoundException,
+                                                          CloudDriveException,
+                                                          RepositoryException {
+      JCRLocalCloudFile localItem = updateItem(api, obj, parent, null);
+      if (localItem.getNode().isNew() && localItem.isFolder()) {
+        // folder just created - go recursive to fetch all childs from the remote side
+        ChildrenIterator childs = api.getFolderItems(localItem.getId());
+        Node localNode = localItem.getNode();
+        while (childs.hasNext()) {
+          restore(childs.next(), localNode);
+        }
+      }
+      return localItem;
+    }
+
+    public CloudFile restore(String id, String path) throws NotFoundException,
+                                                    CloudDriveException,
+                                                    RepositoryException {
+      CloudFile result = null;
+
+      CmisObject remote = api.getObject(id);
+      List<Folder> remoteParents = new ArrayList<Folder>(api.getParents(remote));
+
+      // go through all local nodes existing with given file id
+      // and restore if its parent exists remotely, or remove local node otherwise
+      for (NodeIterator niter = findNodes(Arrays.asList(id)); niter.hasNext();) {
+        Node localFile = niter.nextNode();
+        Node localParent = localFile.getParent();
+        String parentId = fileAPI.getId(localParent);
+
+        CloudFile restored = null;
+        for (Iterator<Folder> rpiter = remoteParents.iterator(); rpiter.hasNext();) {
+          Folder remoteParent = rpiter.next();
+          String rpid = remoteParent.getId();
+          if (parentId.equals(rpid)) {
+            // restore file or sub-tree: update local file
+            restored = restore(remote, localParent);
+            rpiter.remove(); // this parent restored - remove it from the scope
+            if (path.equals(localFile.getPath())) {
+              result = restored;
+            }
+            // break; we could force break here, but let's rely on remote parents consistency
+          }
+        }
+
+        if (restored == null) {
+          // nothing restored - this local parent should not contain the file
+          // only if it is not already ignored
+          if (!fileAPI.isIgnored(localFile)) {
+            try {
+              localFile.remove();
+            } catch (PathNotFoundException e) {
+              // already removed
+            }
+          }
+        }
+      }
+
+      // if this list not empty then we need restore not existing locally file(s)
+      for (Folder remoteParent : remoteParents) {
+        String rpid = remoteParent.getId();
+        // find all nodes of this remote parent, this way we respect "multifiling" of folders, what is not
+        // possible according CMIS spec, but who knows vendors :)
+        for (NodeIterator niter = findNodes(Arrays.asList(rpid)); niter.hasNext();) {
+          Node localParent = niter.nextNode();
+          // restore file or sub-tree: create local file
+          CloudFile restored = restore(remote, localParent);
+          if (result == null) {
+            result = restored;
+          }
+        }
+      }
+
+      // result will be null if no node restored but may be removed obsolete
+      return result;
+    }
+
   }
 
   protected class DocumentContent implements ContentReader {
@@ -1228,18 +1267,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                               String exoURL) throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     this.exoURL = exoURL;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected void initDrive(Node driveNode) throws CloudDriveException, RepositoryException {
-    super.initDrive(driveNode);
-
-    // use empty values, real values will be set during the drive items fetching
-    driveNode.setProperty("ecd:id", "");
-    driveNode.setProperty("ecd:url", "");
   }
 
   /**
@@ -1381,18 +1408,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * {@inheritDoc}
    */
   @Override
-  public Object getState() throws DriveRemovedException,
-                          CloudProviderException,
-                          RepositoryException,
-                          RefreshAccessException {
-    // no special state provided for the moment
-    return null;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   protected void refreshAccess() throws CloudDriveException {
     // not required for general CMIS
   }
@@ -1488,7 +1503,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @throws CMISException
    */
   protected void setChangeToken(Node localNode, String changeToken) throws RepositoryException, CMISException {
-    localNode.setProperty("cmiscd:changeToken", changeToken != null ? changeToken : EMPTY_TOKEN);
+    localNode.setProperty("cmiscd:changeToken", changeToken != null ? changeToken : CMISAPI.EMPTY_TOKEN);
   }
 
   /**
@@ -1731,6 +1746,39 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       }
     }
     return fileType;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected void ensureSame(CloudUser user, Node driveNode) throws RepositoryException,
+                                                           CannotConnectDriveException {
+    // additionally check for serviceURL
+    super.ensureSame(user, driveNode);
+
+    try {
+      String serviceURL = driveNode.getProperty("cmiscd:serviceURL").getString();
+      String repositoryId = driveNode.getProperty("cmiscd:repositoryId").getString();
+
+      CMISUser cmisUser = (CMISUser) user;
+
+      if (!repositoryId.equals(cmisUser.api().getRepositoryId())) {
+        LOG.warn("Cannot connect drive. Node " + driveNode.getPath()
+            + " was connected to another repository " + repositoryId);
+        throw new CannotConnectDriveException("Node already initialized for another repository "
+            + repositoryId);
+      }
+      if (!serviceURL.equals(cmisUser.api().getServiceURL())) {
+        LOG.warn("Cannot connect drive. Node " + driveNode.getPath() + " was connected to another server "
+            + serviceURL);
+        throw new CannotConnectDriveException("Node already initialized by another server "
+            + serviceURL);
+      }
+    } catch (PathNotFoundException e) {
+      // if something not found it's not fully initialized drive
+      throw new CannotConnectDriveException("Mandatory drive property not found: " + e.getMessage());
+    }
   }
 
   public ContentReader getFileContent(String fileId) throws CMISException,

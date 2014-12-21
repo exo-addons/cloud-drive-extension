@@ -247,7 +247,7 @@ public class BoxConnector extends CloudDriveConnector {
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
                                                 CloudDriveException,
                                                 RepositoryException {
-    JCRLocalCloudDrive.checkTrashed(driveNode);
+    JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalBoxDrive drive = new JCRLocalBoxDrive(new API(),
                                                   getProvider(),

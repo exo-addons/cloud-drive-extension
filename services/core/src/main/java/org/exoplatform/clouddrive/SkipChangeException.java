@@ -16,33 +16,32 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis.ecms.viewer.storage;
+package org.exoplatform.clouddrive;
 
 /**
- * Document cannot be found in Viewer storage. It can be not created previously or removed for unknown reason.
- * It is not expected exception, thus it is instance of {@link RuntimeException}.<br>
+ * Cloud provider's constraint or similar error was handled but related sub-tree should be ignored in
+ * synchronization. It is internal exception, it should not be thrown to an user in public API.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DocumentNotFoundException.java 00000 Nov 27, 2014 pnedonosko $
+ * @version $Id: SkipConstraintException.java 00000 Dec 10, 2014 pnedonosko $
  * 
  */
-public class DocumentNotFoundException extends IllegalStateException {
+public class SkipChangeException extends ConstraintException {
 
   /**
-   * @param s
+   * @param message
    */
-  public DocumentNotFoundException(String s) {
-    super(s);
+  public SkipChangeException(String message) {
+    super(message);
   }
 
   /**
    * @param message
    * @param cause
    */
-  public DocumentNotFoundException(String message, Throwable cause) {
+  public SkipChangeException(String message, Throwable cause) {
     super(message, cause);
   }
-
 }

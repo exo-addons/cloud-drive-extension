@@ -66,6 +66,7 @@ import org.apache.chemistry.opencmis.commons.spi.CmisBinding;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
+import org.exoplatform.clouddrive.ConstraintException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive.LocalFile;
@@ -78,6 +79,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -113,6 +115,8 @@ public class CMISAPI {
   public static final int    FOLDER_PAGE_SIZE      = 10240;
 
   public static final String TOKEN_DATATIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+  public static final String EMPTY_TOKEN           = "".intern();
 
   /**
    * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
@@ -159,6 +163,9 @@ public class CMISAPI {
           // empty iterator
           return new ArrayList<CmisObject>().iterator();
         }
+      } catch (CmisInvalidArgumentException e) {
+        throw new CMISInvalidArgumentException("Error getting folder items (parent not a folder): "
+            + e.getMessage(), e);
       } catch (CmisRuntimeException e) {
         throw new CMISException("Error getting folder items: " + e.getMessage(), e);
       }
@@ -243,6 +250,21 @@ public class CMISAPI {
           available(changesLen);
 
           return changes.iterator();
+        } catch (CmisConstraintException e) {
+          // CMIS 1.0 - The Repository MUST throw this exception if the event corresponding to the change
+          // log token provided as an input parameter is no longer available in the change log. (E.g.
+          // because the change log was truncated).
+          throw new CMISInvalidArgumentException("Error requesting Content Changes service (event corresponding "
+                                                     + "to provided change log token is no longer available): "
+                                                     + e.getMessage(),
+                                                 e);
+        } catch (CmisInvalidArgumentException e) {
+          // CMIS v1.1 - if the event corresponding to the change log token provided as an input parameter
+          // is no longer available in the change log. (E.g. because the change log was truncated).
+          throw new CMISInvalidArgumentException("Error requesting Content Changes service (event corresponding "
+                                                     + "to provided change log token is no longer available): "
+                                                     + e.getMessage(),
+                                                 e);
         } catch (CmisRuntimeException e) {
           throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
         }
@@ -358,6 +380,16 @@ public class CMISAPI {
      */
     public boolean isBefore(ChangeToken other) {
       return this.compareTo(other) < 0;
+    }
+
+    /**
+     * Return <code>true</code> if this token doesn't describe any change token, thus it equals no
+     * <code>null</code> or no token value.
+     * 
+     * @return boolean
+     */
+    public boolean isEmpty() {
+      return token.equals(EMPTY_TOKEN);
     }
 
     /**
@@ -528,7 +560,7 @@ public class CMISAPI {
    */
   protected CMISAPI(String serviceURL, String user, String password) throws CMISException,
       CloudDriveException {
-    
+
     // Prepare CMIS server parameters
     Map<String, String> parameters = new HashMap<String, String>();
 
@@ -538,14 +570,9 @@ public class CMISAPI {
 
     // Connection settings.
     parameters.put(SessionParameter.ATOMPUB_URL, serviceURL);
-    // TODO
-    // if (repository != null) {
-    // // Only necessary if there is more than one repository.
-    // parameter.put(SessionParameter.REPOSITORY_ID, repository);
-    // }
     parameters.put(SessionParameter.BINDING_TYPE, BindingType.ATOMPUB.value());
 
-    // TODO session locale
+    // TODO need session locale?
     // parameters.put(SessionParameter.LOCALE_ISO3166_COUNTRY, "");
     // parameters.put(SessionParameter.LOCALE_ISO639_LANGUAGE, "de");
 
@@ -738,7 +765,7 @@ public class CMISAPI {
       CmisObject object = readObject(objectId, session(), objectContext);
       return object;
     } catch (CmisObjectNotFoundException e) {
-      throw new NotFoundException("Error reading object: " + e.getMessage(), e);
+      throw new NotFoundException("Object not found: " + e.getMessage(), e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error reading object: " + e.getMessage(), e);
@@ -757,6 +784,42 @@ public class CMISAPI {
       throw new CMISException("Error reading document: " + e.getMessage(), e);
     } catch (CmisBaseException e) {
       throw new CMISException("Error reading document: " + e.getMessage(), e);
+    }
+  }
+
+  /**
+   * Return the parent folder(s) for the specified object. If it is not fileable object then empty result will
+   * be returned. A single parent will be always for a folder.
+   * 
+   * @param obj {@link CmisObject}
+   * @return collection of {@link Folder} parents
+   * @throws CMISException
+   * @throws CloudDriveAccessException
+   */
+  protected Collection<Folder> getParents(CmisObject obj) throws CMISException, CloudDriveAccessException {
+    try {
+      if (isFileable(obj)) {
+        return ((FileableCmisObject) obj).getParents(folderContext);
+      } else {
+        return Collections.emptyList();
+      }
+    } catch (CmisConnectionException e) {
+      // communication (REST) error
+      throw new CMISException("Error reading object parents: " + e.getMessage(), e);
+    } catch (CmisInvalidArgumentException e) {
+      // wrong input data: use dedicated exception type to let upper code to recognize it
+      throw new CMISInvalidArgumentException("Error reading object parents (not a folder or root folder): "
+          + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for object parents reading: " + e.getMessage(), e);
+    } catch (CmisUnauthorizedException e) {
+      // session credentials already checked in session() method, here is something else and we don't know
+      // how to deal with it
+      throw new CloudDriveAccessException("Unauthorized for reading object parents: " + e.getMessage(), e);
+    } catch (CmisRuntimeException e) {
+      throw new CMISException("Error reading object parents: " + e.getMessage(), e);
+    } catch (CmisBaseException e) {
+      throw new CMISException("Error reading object parents: " + e.getMessage(), e);
     }
   }
 
@@ -808,56 +871,11 @@ public class CMISAPI {
     return linkSelfEntry;
   }
 
-  // TODO cleanup
-//  /**
-//   * Link (URL) to embed a file onto external app (in PLF). It is the same as file link.
-//   * 
-//   * @param item {@link CmisObject}
-//   * @return String with the file embed URL.
-//   * @throws CMISException
-//   * @throws RefreshAccessException
-//   * @see {@link #getLink(CmisObject)}
-//   */
-//  protected String getEmbedLink(CmisObject item) throws CMISException, RefreshAccessException {
-//    return getLink(item);
-//  }
-
-//  /**
-//   * Link (URL) to embed a folder onto external app (in PLF). It is the same as file link.
-//   * 
-//   * @param folder {@link Folder}
-//   * @return String with the file embed URL.
-//   * @throws CMISException
-//   * @throws RefreshAccessException
-//   * @see {@link #getLink(CmisObject)}
-//   */
-//  protected String getEmbedLink(Folder folder) throws CMISException, RefreshAccessException {
-//    return getLink(folder);
-//  }
-
-//  /**
-//   * Link (URL) to embed a document into external app (in PLF). It is the same as document link.
-//   * 
-//   * @param doc {@link Document}
-//   * @return String with the file embed URL.
-//   * @throws CMISException
-//   * @throws RefreshAccessException
-//   * @see {@link #getLink(CmisObject)}
-//   */
-//  protected String getEmbedLink(Document doc) throws CMISException, RefreshAccessException {
-//    // return link to this server with REST service proxy to access the CMIS repo
-//    StringBuilder cmisProxyLink = new StringBuilder();
-//    cmisProxyLink.append(exoURL);
-//    cmisProxyLink.append(CMISContentService.SERVICE_PATH);
-//    cmisProxyLink.append('/');
-//    cmisProxyLink.append(doc.getId());
-//    return cmisProxyLink.toString();
-//  }
-
   protected Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
                                                                                                     NotFoundException,
                                                                                                     ConflictException,
-                                                                                                    CloudDriveAccessException {
+                                                                                                    CloudDriveAccessException,
+                                                                                                    ConstraintException {
     Session session = session();
     try {
       CmisObject obj;
@@ -903,7 +921,8 @@ public class CMISAPI {
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to create document '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to create document '" + name + "' due to repository constraints",
+                                    e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error creating document: " + e.getMessage(), e);
@@ -928,7 +947,8 @@ public class CMISAPI {
   protected Folder createFolder(String parentId, String name) throws CMISException,
                                                              NotFoundException,
                                                              ConflictException,
-                                                             CloudDriveAccessException {
+                                                             CloudDriveAccessException,
+                                                             ConstraintException {
     Session session = session();
     try {
       CmisObject obj;
@@ -953,11 +973,11 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable create folder with name '" + name
+      throw new ConflictException("Unable to create folder with name '" + name
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable create folder '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to create folder '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error creating folder: " + e.getMessage(), e);
@@ -985,11 +1005,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected void deleteDocument(String id) throws CMISException,
                                           NotFoundException,
                                           ConflictException,
-                                          CloudDriveAccessException {
+                                          CloudDriveAccessException,
+                                          ConstraintException {
     Session session = session();
     String name = "";
     try {
@@ -1003,7 +1025,8 @@ public class CMISAPI {
       throw new ConflictException("Document removal conflict for '" + name + "'", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable delete document '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to delete document '" + name + "' due to repository constraints",
+                                    e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error deleting document: " + e.getMessage(), e);
@@ -1031,11 +1054,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected void deleteFolder(String id) throws CMISException,
                                         NotFoundException,
                                         ConflictException,
-                                        CloudDriveAccessException {
+                                        CloudDriveAccessException,
+                                        ConstraintException {
     Session session = session();
     String name = "";
     try {
@@ -1053,7 +1078,7 @@ public class CMISAPI {
       throw new ConflictException("Folder removal conflict for '" + name + "'", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to delete folder '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to delete folder '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error deleting folder: " + e.getMessage(), e);
@@ -1086,11 +1111,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected Document updateContent(String id, String name, InputStream data, String mimeType, LocalFile local) throws CMISException,
                                                                                                               NotFoundException,
                                                                                                               ConflictException,
-                                                                                                              CloudDriveAccessException {
+                                                                                                              CloudDriveAccessException,
+                                                                                                              ConstraintException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1143,13 +1170,14 @@ public class CMISAPI {
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to update document '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to update document '" + name + "' due to repository constraints",
+                                    e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
-      throw new CMISException("Error updating cloud document: " + e.getMessage(), e);
+      throw new CMISException("Error updating document: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data
-      throw new CMISInvalidArgumentException("Error updating cloud document: " + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error updating document: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
       throw new RefreshAccessException("Permission denied for document content update: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
@@ -1181,11 +1209,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
                                                                                              NotFoundException,
                                                                                              ConflictException,
-                                                                                             CloudDriveAccessException {
+                                                                                             CloudDriveAccessException,
+                                                                                             ConstraintException {
     Session session = session();
     try {
       CmisObject result = null;
@@ -1285,7 +1315,7 @@ public class CMISAPI {
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to update object '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to update object '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error updating object: " + e.getMessage(), e);
@@ -1325,36 +1355,6 @@ public class CMISAPI {
   }
 
   /**
-   * Update folder name or/and its parent. If folder was actually updated (name or/and
-   * parent changed) this method return updated folder object or <code>null</code> if folder already exists
-   * with such name and parent.
-   * 
-   * @param parentId {@link String}
-   * @param id {@link String}
-   * @param name {@link String}
-   * @param local {@link LocalFile} access to local folder for move operation support
-   * @return {@link Folder} of actually changed folder or <code>null</code> if folder already exists with
-   *         such name and parent.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   */
-  @Deprecated
-  // TODO not used
-  protected Folder updateFolder(String parentId, String id, String name, LocalFile local) throws CMISException,
-                                                                                         NotFoundException,
-                                                                                         ConflictException,
-                                                                                         CloudDriveAccessException {
-    CmisObject obj = updateObject(parentId, id, name, local);
-    if (obj == null || isFolder(obj)) {
-      return (Folder) obj;
-    } else {
-      throw new CMISException("Object not a folder: " + id + ", " + obj.getName());
-    }
-  }
-
-  /**
    * Copy document to a new one. If file was successfully copied this method return new document object.
    * 
    * 
@@ -1367,11 +1367,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected Document copyDocument(String id, String parentId, String name) throws CMISException,
                                                                           NotFoundException,
                                                                           ConflictException,
-                                                                          CloudDriveAccessException {
+                                                                          CloudDriveAccessException,
+                                                                          ConstraintException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1415,11 +1417,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected Document copyDocument(Document source, Folder parent, String name) throws CMISException,
                                                                               NotFoundException,
                                                                               ConflictException,
-                                                                              CloudDriveAccessException {
+                                                                              CloudDriveAccessException,
+                                                                              ConstraintException {
     try {
       Session session = session();
 
@@ -1470,7 +1474,7 @@ public class CMISAPI {
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to copy document '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to copy document '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error copying document: " + e.getMessage(), e);
@@ -1507,13 +1511,15 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    * 
    * @see #copyFolder(Folder, Folder, String)
    */
   protected Folder copyFolder(String id, String parentId, String name) throws CMISException,
                                                                       NotFoundException,
                                                                       ConflictException,
-                                                                      CloudDriveAccessException {
+                                                                      CloudDriveAccessException,
+                                                                      ConstraintException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1560,11 +1566,13 @@ public class CMISAPI {
    * @throws NotFoundException
    * @throws ConflictException
    * @throws CloudDriveAccessException
+   * @throws ConstraintException
    */
   protected Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
                                                                         NotFoundException,
                                                                         ConflictException,
-                                                                        CloudDriveAccessException {
+                                                                        CloudDriveAccessException,
+                                                                        ConstraintException {
     try {
       Map<String, Object> properties = new HashMap<String, Object>(2);
       properties.put(PropertyIds.NAME, source.getName());
@@ -1589,7 +1597,7 @@ public class CMISAPI {
           + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new CMISException("Unable to copy document '" + name + "' due to repository constraints", e);
+      throw new ConstraintException("Unable to copy document '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error copying document: " + e.getMessage(), e);

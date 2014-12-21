@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2003-2014 eXo Platform SAS.
  *
@@ -16,33 +17,30 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis.ecms.viewer.storage;
+package org.exoplatform.clouddrive;
 
 /**
- * Document cannot be found in Viewer storage. It can be not created previously or removed for unknown reason.
- * It is not expected exception, thus it is instance of {@link RuntimeException}.<br>
+ * Context cloud drive was moved to eXo Trash (exo:trashFolder nodetype) and should be cleaned there.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DocumentNotFoundException.java 00000 Nov 27, 2014 pnedonosko $
+ * @version $Id: CloudDriveTrashedException.java 00000 Dec 1, 2014 pnedonosko $
  * 
  */
-public class DocumentNotFoundException extends IllegalStateException {
+public class DriveTrashedException extends DriveRemovedException {
+
 
   /**
-   * @param s
+   * 
    */
-  public DocumentNotFoundException(String s) {
-    super(s);
-  }
+  private static final long serialVersionUID = -7279598373473446709L;
 
   /**
    * @param message
-   * @param cause
    */
-  public DocumentNotFoundException(String message, Throwable cause) {
-    super(message, cause);
+  public DriveTrashedException(String message) {
+    super(message);
   }
 
 }
