@@ -33,6 +33,7 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
+import org.exoplatform.services.rest.ExtHttpHeaders;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 
 import javax.annotation.security.RolesAllowed;
@@ -40,15 +41,13 @@ import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
 /**
  * RESTful service to access file content in CMIS connector operations.<br>
@@ -110,20 +109,21 @@ public class ContentService implements ResourceContainer {
    * @return
    */
   @GET
+  @Path("/{workspace}/{path:.*}")
   @RolesAllowed("users")
-  public Response get(@Context UriInfo uriInfo,
-                      @Context HttpHeaders headers,
-                      @QueryParam("workspace") String workspace,
-                      @QueryParam("path") String path,
-                      @QueryParam("fileId") String fileId) {
+  public Response get(@PathParam("workspace") String workspace,
+                      @PathParam("path") String path,
+                      @QueryParam("contentId") String contentId) {
+    // TODO support for range and if-modified, if-match... in WebDAV fashion, for browser players etc.
     if (workspace != null) {
       if (path != null) {
-        if (fileId != null) {
+        path = normalizePath(path);
+        if (contentId != null) {
           try {
             CloudDrive drive = cloudDrives.findDrive(workspace, path);
             if (drive != null) {
               // work with CMIS repo only
-              ContentReader content = ((JCRLocalCMISDrive) drive).getFileContent(fileId);
+              ContentReader content = ((JCRLocalCMISDrive) drive).getFileContent(contentId);
               if (content != null) {
                 ResponseBuilder resp = Response.ok().entity(content.getStream());
                 long len = content.getLength();
@@ -182,24 +182,23 @@ public class ContentService implements ResourceContainer {
    * @return
    */
   @GET
-  @Path("/pdf/page")
+  @Path("/pdf/page/{workspace}/{path:.*}")
   @RolesAllowed("users")
-  public Response getPageImage(@Context UriInfo uriInfo,
-                               @Context HttpHeaders headers,
-                               @QueryParam("workspace") String workspace,
-                               @QueryParam("path") String path,
-                               @QueryParam("fileId") String fileId,
+  public Response getPageImage(@PathParam("workspace") String workspace,
+                               @PathParam("path") String path,
+                               @QueryParam("contentId") String contentId,
                                @DefaultValue("1") @QueryParam("page") String strPage,
                                @DefaultValue("0") @QueryParam("rotation") String strRotation,
                                @DefaultValue("1.0") @QueryParam("scale") String strScale) {
     if (workspace != null) {
       if (path != null) {
-        if (fileId != null) {
+        path = normalizePath(path);
+        if (contentId != null) {
           try {
             CloudDrive drive = cloudDrives.findDrive(workspace, path);
             if (drive != null) {
               String repository = jcrService.getCurrentRepository().getConfiguration().getName();
-              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, fileId);
+              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, contentId);
               if (pdfFile != null) {
                 // save page capture to file.
                 float scale;
@@ -242,7 +241,8 @@ public class ContentService implements ResourceContainer {
                                .build();
               } else {
                 // PDF representation not available
-                LOG.warn("PDF representation not available for " + workspace + ":" + path + " id:" + fileId);
+                LOG.warn("PDF representation not available for " + workspace + ":" + path + " id:"
+                    + contentId);
                 return Response.status(Status.NO_CONTENT).build();
               }
             }
@@ -257,9 +257,8 @@ public class ContentService implements ResourceContainer {
             return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
           } catch (CloudDriveException e) {
             LOG.warn("Error reading cloud file representation " + workspace + ":" + path, e);
-            return Response.status(Status.BAD_REQUEST)
-                           .entity("Error reading cloud file representation. " + e.getMessage())
-                           .build();
+            return Response.status(Status.BAD_REQUEST).entity("Error reading cloud file representation. "
+                + e.getMessage()).build();
           } catch (RepositoryException e) {
             LOG.error("Error reading cloud file representation " + workspace + ":" + path, e);
             return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -294,21 +293,20 @@ public class ContentService implements ResourceContainer {
    * @return
    */
   @GET
-  @Path("/pdf")
+  @Path("/pdf/{workspace}/{path:.*}")
   @RolesAllowed("users")
-  public Response getPDF(@Context UriInfo uriInfo,
-                         @Context HttpHeaders headers,
-                         @QueryParam("workspace") String workspace,
-                         @QueryParam("path") String path,
-                         @QueryParam("fileId") String fileId) {
+  public Response getPDF(@PathParam("workspace") String workspace,
+                         @PathParam("path") String path,
+                         @QueryParam("contentId") String contentId) {
     if (workspace != null) {
       if (path != null) {
-        if (fileId != null) {
+        path = normalizePath(path);
+        if (contentId != null) {
           try {
             CloudDrive drive = cloudDrives.findDrive(workspace, path);
             if (drive != null) {
               String repository = jcrService.getCurrentRepository().getConfiguration().getName();
-              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, fileId);
+              PDFFile pdfFile = pdfStorage.getFile(repository, workspace, drive, contentId);
               if (pdfFile != null) {
                 ResponseBuilder resp = Response.ok(pdfFile.getStream(), pdfFile.getMimeType())
                                                .header("Last-Modified", pdfFile.getLastModified())
@@ -319,7 +317,8 @@ public class ContentService implements ResourceContainer {
                 return resp.build();
               } else {
                 // PDF representation not available
-                LOG.warn("PDF representation not available for " + workspace + ":" + path + " id:" + fileId);
+                LOG.warn("PDF representation not available for " + workspace + ":" + path + " id:"
+                    + contentId);
                 return Response.status(Status.NO_CONTENT).build();
               }
             }
@@ -336,9 +335,8 @@ public class ContentService implements ResourceContainer {
             return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
           } catch (CloudDriveException e) {
             LOG.warn("Error reading cloud file PDF representation " + workspace + ":" + path, e);
-            return Response.status(Status.BAD_REQUEST)
-                           .entity("Error reading cloud file PDF representation. " + e.getMessage())
-                           .build();
+            return Response.status(Status.BAD_REQUEST).entity("Error reading cloud file PDF representation. "
+                + e.getMessage()).build();
           } catch (RepositoryException e) {
             LOG.error("Error reading cloud file representation " + workspace + ":" + path, e);
             return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -359,5 +357,15 @@ public class ContentService implements ResourceContainer {
     } else {
       return Response.status(Status.BAD_REQUEST).entity("Null workspace.").build();
     }
+  }
+
+  /**
+   * Normalize JCR path (as eXo WebDAV does).
+   * 
+   * @param path {@link String}
+   * @return normalized path
+   */
+  protected String normalizePath(String path) {
+    return path.length() > 0 && path.endsWith("/") ? "/" + path.substring(0, path.length() - 1) : "/" + path;
   }
 }

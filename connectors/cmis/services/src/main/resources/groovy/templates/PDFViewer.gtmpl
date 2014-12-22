@@ -5,7 +5,6 @@
   import org.exoplatform.clouddrive.CloudFile
   
 	def uiParent = uicomponent.getParent()
-  def originalNode = uiParent.originalNode  
   def currentNode = uiParent.node
   
   def rqcontext = _ctx.getRequestContext()

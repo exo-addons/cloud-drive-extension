@@ -331,6 +331,200 @@
             </field>
           </object>
         </object-param>
+        <object-param>
+          <name>ShowCmisFlash</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisFlash</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.FlashViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>40</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                        <value><string>sharepoint</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
+                    <field name="mimeTypes">
+                      <collection type="java.util.ArrayList">
+                        <value><string>application/x-shockwave-flash</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ShowCmisH264Video</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisH264Video</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.H264VideoViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>40</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                        <value><string>sharepoint</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
+                    <field name="mimeTypes">
+                      <collection type="java.util.ArrayList">
+                        <value><string>video/mp4</string></value>
+                        <value><string>video/ogg</string></value>
+                        <value><string>video/ogv</string></value>
+                        <value><string>video/webm</string></value>
+                        <value><string>video/quicktime</string></value>
+                        <value><string>video/avi</string></value>
+                        <value><string>video/msvideo</string></value>
+                        <value><string>video/x-msvideo</string></value>
+                        <value><string>audio/wav</string></value>
+                        <value><string>audio/x-wav</string></value>
+                        <value><string>audio/x-ms-wma</string></value>
+                        <value><string>audio/flac</string></value>
+                        <value><string>audio/x-flac</string></value>
+                        <value><string>video/3gpp</string></value>
+                        <value><string>video/3gpp2</string></value>
+                        <value><string>audio/3gpp</string></value>
+                        <value><string>audio/3gpp2</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ShowCmisMpegVideo</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisMpegVideo</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.MpegVideoViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>40</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                        <value><string>sharepoint</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
+                    <field name="mimeTypes">
+                      <collection type="java.util.ArrayList">
+                        <value><string>video/mpg</string></value>
+                        <value><string>video/mpeg</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ShowCmisVideoAudio</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisVideoAudio</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.VideoAudioViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>40</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                        <value><string>sharepoint</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+                <value>
+                  <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
+                    <field name="mimeTypes">
+                      <collection type="java.util.ArrayList">
+                        <value><string>video/x-flv</string></value>
+                        <value><string>video/x-f4v</string></value>
+                        <value><string>audio/mp3</string></value>
+                        <value><string>audio/mpeg</string></value>
+                        <value><string>audio/mpeg3</string></value>
+                        <value><string>audio/x-mpeg</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
       </init-params>
     </component-plugin>
   </external-component-plugins>

@@ -30,7 +30,6 @@ import org.apache.chemistry.opencmis.commons.enums.ChangeType;
 import org.exoplatform.clouddrive.CannotConnectDriveException;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
@@ -54,6 +53,8 @@ import org.gatein.common.util.Base64;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1104,9 +1105,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       return false;
     }
 
-    private CloudFile restore(CmisObject obj, Node parent) throws NotFoundException,
-                                                          CloudDriveException,
-                                                          RepositoryException {
+    private JCRLocalCloudFile restore(CmisObject obj, Node parent) throws NotFoundException,
+                                                                  CloudDriveException,
+                                                                  RepositoryException {
       JCRLocalCloudFile localItem = updateItem(api, obj, parent, null);
       if (localItem.getNode().isNew() && localItem.isFolder()) {
         // folder just created - go recursive to fetch all childs from the remote side
@@ -1119,10 +1120,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       return localItem;
     }
 
-    public CloudFile restore(String id, String path) throws NotFoundException,
-                                                    CloudDriveException,
-                                                    RepositoryException {
-      CloudFile result = null;
+    public JCRLocalCloudFile restore(String id, String path) throws NotFoundException,
+                                                            CloudDriveException,
+                                                            RepositoryException {
+      JCRLocalCloudFile result = null;
 
       CmisObject remote = api.getObject(id);
       List<Folder> remoteParents = new ArrayList<Folder>(api.getParents(remote));
@@ -1134,7 +1135,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         Node localParent = localFile.getParent();
         String parentId = fileAPI.getId(localParent);
 
-        CloudFile restored = null;
+        JCRLocalCloudFile restored = null;
         for (Iterator<Folder> rpiter = remoteParents.iterator(); rpiter.hasNext();) {
           Folder remoteParent = rpiter.next();
           String rpid = remoteParent.getId();
@@ -1170,7 +1171,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         for (NodeIterator niter = findNodes(Arrays.asList(rpid)); niter.hasNext();) {
           Node localParent = niter.nextNode();
           // restore file or sub-tree: create local file
-          CloudFile restored = restore(remote, localParent);
+          JCRLocalCloudFile restored = restore(remote, localParent);
           if (result == null) {
             result = restored;
           }
@@ -1640,30 +1641,40 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * Create a link to get this file content via eXo REST service as a proxy to remote CMIS. It is a path
    * relative to the current server.
    * 
+   * @param path {@link String}
    * @param fileId {@link String}
    * @return {@link String}
    * @throws DriveRemovedException
    * @throws RepositoryException
    */
-  protected String createContentLink(String fileId) throws DriveRemovedException, RepositoryException {
+  protected String createContentLink(String path, String fileId) throws DriveRemovedException,
+                                                                RepositoryException {
     // return link to this server with REST service proxy to access the CMIS repo
-    StringBuilder cmisProxyLink = new StringBuilder();
-    cmisProxyLink.append('/');
-    cmisProxyLink.append(PortalContainer.getCurrentPortalContainerName());
-    cmisProxyLink.append('/');
-    cmisProxyLink.append(PortalContainer.getCurrentRestContextName());
-    cmisProxyLink.append(ContentService.SERVICE_PATH);
-    cmisProxyLink.append("?workspace=");
-    cmisProxyLink.append(rootWorkspace);
-    cmisProxyLink.append("&path=");
+    StringBuilder link = new StringBuilder();
+    link.append('/');
+
+    StringBuilder linkPath = new StringBuilder();
+    linkPath.append(PortalContainer.getCurrentPortalContainerName());
+    linkPath.append('/');
+    linkPath.append(PortalContainer.getCurrentRestContextName());
+    linkPath.append(ContentService.SERVICE_PATH);
+    linkPath.append('/');
+    linkPath.append(rootWorkspace);
+    linkPath.append(path); // path already starts with slash
+
     try {
-      cmisProxyLink.append(URLEncoder.encode(rootNode().getPath(), "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      cmisProxyLink.append(rootNode().getPath());
+      // we need properly escaped path of the URL, for a case of non-ASCI JCR name etc
+      URI uri = new URI(null, null, linkPath.toString(), "contentId=" + fileId, null);
+      link.append(uri.getRawPath());
+      // add query
+      link.append('?');
+      link.append(uri.getRawQuery());
+  
+      return link.toString();
+    } catch (URISyntaxException e) {
+      LOG.warn("Error creating content link for " + path + ": " + e.getMessage());
+      return null;
     }
-    cmisProxyLink.append("&fileId=");
-    cmisProxyLink.append(fileId);
-    return cmisProxyLink.toString();
   }
 
   /**
@@ -1671,9 +1682,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    */
   @Override
   protected String previewLink(Node fileNode) throws RepositoryException {
-    String fileId = fileAPI.getId(fileNode);
     try {
-      return createContentLink(fileId);
+      return createContentLink(fileNode.getPath(), fileAPI.getId(fileNode));
     } catch (DriveRemovedException e) {
       return null;
     }
@@ -1772,8 +1782,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       if (!serviceURL.equals(cmisUser.api().getServiceURL())) {
         LOG.warn("Cannot connect drive. Node " + driveNode.getPath() + " was connected to another server "
             + serviceURL);
-        throw new CannotConnectDriveException("Node already initialized by another server "
-            + serviceURL);
+        throw new CannotConnectDriveException("Node already initialized by another server " + serviceURL);
       }
     } catch (PathNotFoundException e) {
       // if something not found it's not fully initialized drive

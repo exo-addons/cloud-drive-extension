@@ -1146,6 +1146,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNew(String fileIdOrPath) {
+      return state.isNew(fileIdOrPath);
+    }
+
+    /**
      * @return the type
      */
     public String getType() {

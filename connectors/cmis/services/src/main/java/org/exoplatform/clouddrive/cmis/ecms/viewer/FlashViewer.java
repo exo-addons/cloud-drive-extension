@@ -17,15 +17,12 @@
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
 import org.exoplatform.webui.config.annotation.ComponentConfig;
-import org.exoplatform.webui.core.UIComponent;
 
 /**
- * 
+ * Flash files viewer for Cloud Drive.
  */
-@ComponentConfig(
-    template = "classpath:groovy/templates/FlashViewer.gtmpl"
-)
-public class FlashViewer extends UIComponent {
+@ComponentConfig(template = "classpath:groovy/templates/FlashViewer.gtmpl")
+public class FlashViewer extends AbstractFileViewer {
 
   public FlashViewer() throws Exception {
   }

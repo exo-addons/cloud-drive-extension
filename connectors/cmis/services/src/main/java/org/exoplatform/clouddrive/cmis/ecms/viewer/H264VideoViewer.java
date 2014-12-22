@@ -17,15 +17,12 @@
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
 import org.exoplatform.webui.config.annotation.ComponentConfig;
-import org.exoplatform.webui.core.UIComponent;
 
 /**
- *
+ * H.264 media files viewer for Cloud Drive.
  */
-@ComponentConfig(
-    template = "classpath:groovy/templates/H264VideoViewer.gtmpl"
-)
-public class H264VideoViewer extends UIComponent {
+@ComponentConfig(template = "classpath:groovy/templates/H264VideoViewer.gtmpl")
+public class H264VideoViewer extends AbstractFileViewer {
 
   public H264VideoViewer() throws Exception {
   }

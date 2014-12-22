@@ -3,9 +3,6 @@
   import org.exoplatform.clouddrive.CloudFile
   import org.exoplatform.wcm.webui.reader.ContentReader
   
-	def uiParent = uicomponent.parent
-	def currentNode = uiParent.node
-
 	// should be set in CloudFileFilter
   def drive = uicomponent.drive
   def file = uicomponent.file

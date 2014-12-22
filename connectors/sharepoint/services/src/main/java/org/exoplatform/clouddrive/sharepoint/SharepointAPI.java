@@ -707,31 +707,32 @@ public class SharepointAPI extends CMISAPI {
 
     ObjectFactory factory = session.getObjectFactory();
 
-    for (Property<?> prop : obj.getProperties()) {
-      PropertyData<?> pdata;
-      if (PropertyIds.OBJECT_TYPE_ID.equals(prop.getId())) {
-        Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
-        pdata = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
-      } else {
-        @SuppressWarnings("unchecked") // XXX nasty cast
-        Property<Object> p = (Property<Object>) prop;
-        pdata = factory.createProperty(p.getDefinition(), p.getValues());
-      }
-      props.addProperty(pdata);
-    }
+    // for (Property<?> prop : obj.getProperties()) {
+    // PropertyData<?> pdata;
+    // if (PropertyIds.OBJECT_TYPE_ID.equals(prop.getId())) {
+    // Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
+    // pdata = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
+    // } else {
+    // @SuppressWarnings("unchecked")
+    // // XXX nasty cast
+    // Property<Object> p = (Property<Object>) prop;
+    // pdata = factory.createProperty(p.getDefinition(), p.getValues());
+    // }
+    // props.addProperty(pdata);
+    // }
 
-    // Property<String> objectId = obj.getProperty(PropertyIds.OBJECT_ID);
-    // props.addProperty(factory.createProperty(objectId.getDefinition(), objectId.getValues()));
-    //
-    // Property<String> name = obj.getProperty(PropertyIds.NAME);
-    // props.addProperty(factory.createProperty(name.getDefinition(), name.getValues()));
-    //
-    // Property<String> baseTypeId = obj.getProperty(PropertyIds.BASE_TYPE_ID);
-    // props.addProperty(factory.createProperty(baseTypeId.getDefinition(), baseTypeId.getValues()));
-    //
-     Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
-     PropertyIdImpl objTypeIdProp = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
-     props.addProperty(objTypeIdProp);
+    Property<String> objectId = obj.getProperty(PropertyIds.OBJECT_ID);
+    props.addProperty(factory.createProperty(objectId.getDefinition(), objectId.getValues()));
+
+    Property<String> name = obj.getProperty(PropertyIds.NAME);
+    props.addProperty(factory.createProperty(name.getDefinition(), name.getValues()));
+
+    Property<String> baseTypeId = obj.getProperty(PropertyIds.BASE_TYPE_ID);
+    props.addProperty(factory.createProperty(baseTypeId.getDefinition(), baseTypeId.getValues()));
+
+    Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
+    PropertyIdImpl objTypeIdProp = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
+    props.addProperty(objTypeIdProp);
 
     // set props
     data.setProperties(props);

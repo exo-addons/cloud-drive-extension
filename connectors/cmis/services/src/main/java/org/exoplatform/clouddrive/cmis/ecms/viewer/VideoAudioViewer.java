@@ -17,73 +17,14 @@
  **************************************************************************/
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
-import org.exoplatform.container.xml.PortalContainerInfo;
-import org.exoplatform.services.cms.impl.Utils;
-import org.exoplatform.services.wcm.core.NodeLocation;
-import org.exoplatform.services.wcm.utils.WCMCoreUtils;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
-import org.exoplatform.webui.core.UIComponent;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 
 /**
- *
+ * Flash video/audio/mp3 files viewer for Cloud Drive.
  */
 @ComponentConfig(template = "classpath:groovy/templates/VideoAudioViewer.gtmpl")
-public class VideoAudioViewer extends UIComponent {
-
-  private List<NodeLocation> presentNodes = new ArrayList<NodeLocation>();
-
-  private String             repository;
+public class VideoAudioViewer extends AbstractFileViewer {
 
   public VideoAudioViewer() throws Exception {
   }
-
-  public List<Node> getPresentNodes() {
-    List<Node> result = new ArrayList<Node>();
-    result.addAll(NodeLocation.getNodeListByLocationList(presentNodes));
-    return result;
-  }
-
-  public void setPresentNodes(List<Node> presentNodes) {
-    this.presentNodes = NodeLocation.getLocationsByNodeList(presentNodes);
-  }
-
-  public void setRepository(String repository) {
-    this.repository = repository;
-  }
-
-  public String getRepository() {
-    return repository;
-  }
-
-  public String getPortalName() {
-    PortalContainerInfo containerInfo = WCMCoreUtils.getService(PortalContainerInfo.class);
-    return containerInfo.getContainerName();
-  }
-
-  public Node getFileLangNode(Node currentNode) throws Exception {
-    if (currentNode.isNodeType("nt:unstructured")) {
-      if (currentNode.getNodes().getSize() > 0) {
-        NodeIterator nodeIter = currentNode.getNodes();
-        while (nodeIter.hasNext()) {
-          Node ntFile = nodeIter.nextNode();
-          if (ntFile.isNodeType("nt:file")) {
-            return ntFile;
-          }
-        }
-        return currentNode;
-      }
-    }
-    return currentNode;
-  }
-
-  public Node getChildNode(Node parent, String childType) throws Exception {
-    return Utils.getChildOfType(parent, childType);
-  }
-
 }

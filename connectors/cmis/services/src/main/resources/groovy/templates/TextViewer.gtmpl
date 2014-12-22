@@ -3,14 +3,10 @@
   import org.exoplatform.clouddrive.CloudFile
   import org.exoplatform.wcm.webui.reader.ContentReader
 
-	def uiParent = uicomponent.parent
-	def currentNode = uiParent.node
-
 	// should be set in CloudFileFilter
   def drive = uicomponent.drive
   def file = uicomponent.file
   if (drive && file) {
-    def title = ContentReader.getXSSCompatibilityContent(file.title)
     def serviceName = drive.user.serviceName
     def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
 %>

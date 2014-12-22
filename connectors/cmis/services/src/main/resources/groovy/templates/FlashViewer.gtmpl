@@ -1,42 +1,25 @@
 <%
-	import java.util.List;
-	import java.util.ArrayList;
-	import javax.jcr.Node;
-	import javax.jcr.NodeIterator;
-	import org.exoplatform.webui.core.UIComponent;
-  import org.exoplatform.services.jcr.util.Text;
-  import org.exoplatform.container.PortalContainer;
-  import org.exoplatform.services.jcr.RepositoryService;
-  import org.exoplatform.wcm.webui.Utils;
+import org.exoplatform.clouddrive.CloudDrive
+import org.exoplatform.clouddrive.CloudFile
+import org.exoplatform.wcm.webui.reader.ContentReader
 
-
-	UIComponent uiParent = uicomponent.getParent();
-  RepositoryService rService = uicomponent.getApplicationComponent(RepositoryService.class);
-  String repository = rService.getCurrentRepository().getConfiguration().getName();
-
-  public Node getFileLangNode(Node currentNode) throws Exception {
-    if(currentNode.isNodeType("nt:unstructured")) {
-      if(currentNode.getNodes().getSize() > 0) {
-        NodeIterator nodeIter = currentNode.getNodes() ;
-        while(nodeIter.hasNext()) {
-          Node ntFile = nodeIter.nextNode() ;
-          if(ntFile.getPrimaryNodeType().getName().equals("nt:file")) {
-            return ntFile ;
-          }
-        }
-        return currentNode ;
-      }
-    }
-    return currentNode ;
-  }
-
-  def originalNode = uiParent.getOriginalNode();
-  def currentNode = getFileLangNode(uiParent.getNode()) ;
-  def contentNode = currentNode.getNode("jcr:content") ;
-  def mimeType = contentNode.getProperty("jcr:mimeType").getString() ;
-  def binarySrc = Utils.getWebdavURL(currentNode);
-
+// should be set in CloudFileFilter
+def drive = uicomponent.drive
+def file = uicomponent.file
+if (drive && file) {
+  def title = ContentReader.getXSSCompatibilityContent(file.title)
+  def serviceName = drive.user.serviceName
+  def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
 %>
-
-<!-- ############################ FLASH ########################################## -->
-<embed width="610" allowscriptaccess="always" wmode="opaque" quality="high" bgcolor="#ffffff" name="$originalNode.name" id="$originalNode.name" src="$binarySrc" type="application/x-shockwave-flash"/>
+<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="position: relative; height: 100%; overflow: hidden;">
+  <div style="text-align:center; display: none;" class="file-content">
+    <embed width="610" allowscriptaccess="always" wmode="opaque" quality="high" bgcolor="#ffffff" 
+				name="$title" id="$title" src="$file.previewLink" type="application/x-shockwave-flash"/>
+  </div>
+<%
+} else {%>
+	<p>Cannot load cloud file viewer. Refresh the page.</p>
+<%
+}
+%>
+</div>
