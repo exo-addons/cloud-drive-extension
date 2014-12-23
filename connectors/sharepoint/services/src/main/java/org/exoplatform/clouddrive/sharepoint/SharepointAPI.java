@@ -146,18 +146,18 @@ public class SharepointAPI extends CMISAPI {
 
     protected SPChangeToken(String token) throws CMISException {
       super(token);
-
-      String[] ta = token.split(";");
+      
+      String[] ta = this.token.split(";");
       if (ta.length >= 6) {
         try {
           this.timestamp = Long.valueOf(ta[3]);
         } catch (NumberFormatException e) {
-          throw new CMISException("Cannot parse change token timestamp: " + token, e);
+          throw new CMISException("Cannot parse change token timestamp: " + this.token, e);
         }
         try {
           this.index = Long.valueOf(ta[4]);
         } catch (NumberFormatException e) {
-          throw new CMISException("Cannot parse change token index: " + token, e);
+          throw new CMISException("Cannot parse change token index: " + this.token, e);
         }
       } else {
         throw new CMISException("Unexpected change token format: too short");
