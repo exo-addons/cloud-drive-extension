@@ -61,7 +61,8 @@
 							clearTimeout(linkLive);
 							//utils.log(">>> changes fail " + JSON.stringify(response) + " " + status + " " + err);
 							if (err != "abort") {// if not aborted by linkLive timer or browser
-								if (( typeof err === "string" && err.indexOf("max_retries") >= 0) || (response && response.error.indexOf("max_retries") >= 0)) {
+								if (( typeof err === "string" && err.indexOf("max_retries") >= 0) 
+										|| (response && response.err && response.error.indexOf("max_retries") >= 0)) {
 									// need reconnect
 									renewState(process, drive);
 								} else {

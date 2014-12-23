@@ -25,7 +25,6 @@ import org.apache.chemistry.opencmis.client.api.ObjectFactory;
 import org.apache.chemistry.opencmis.client.api.Property;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.commons.PropertyIds;
-import org.apache.chemistry.opencmis.commons.data.PropertyData;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.ObjectDataImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertiesImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertyIdImpl;
@@ -146,7 +145,7 @@ public class SharepointAPI extends CMISAPI {
 
     protected SPChangeToken(String token) throws CMISException {
       super(token);
-      
+
       String[] ta = this.token.split(";");
       if (ta.length >= 6) {
         try {
@@ -160,7 +159,8 @@ public class SharepointAPI extends CMISAPI {
           throw new CMISException("Cannot parse change token index: " + this.token, e);
         }
       } else {
-        throw new CMISException("Unexpected change token format: too short");
+        this.timestamp = 0;
+        this.index = 0;
       }
     }
 
@@ -169,23 +169,18 @@ public class SharepointAPI extends CMISAPI {
      */
     @Override
     public boolean equals(ChangeToken other) {
-      if (other instanceof SPChangeToken) {
+      if (!isEmpty() && !other.isEmpty() && other instanceof SPChangeToken) {
         SPChangeToken otherSP = (SPChangeToken) other;
         return this.getIndex() == otherSP.getIndex() && this.getTimestamp() == otherSP.getTimestamp();
       }
-      return super.equals(other);
+      return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int compareTo(ChangeToken other) {
-      if (other instanceof SPChangeToken) {
-        SPChangeToken otherSP = (SPChangeToken) other;
-        return (int) (this.getIndex() - otherSP.getIndex());
+    public boolean equals(SPChangeToken other) {
+      if (!isEmpty() && !other.isEmpty()) {
+        return this.getIndex() == other.getIndex() && this.getTimestamp() == other.getTimestamp();
       }
-      return super.compareTo(other);
+      return false;
     }
 
     /**

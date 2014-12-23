@@ -230,7 +230,7 @@ public class CMISAPI {
 
             if (events.getHasMoreItems() && changesLen > 0) {
               ChangeToken nextToken;
-              if (latestChunkToken == null) {
+              if (latestChunkToken.isEmpty()) {
                 nextToken = readToken(changes.get(changesLen - 1));
               } else {
                 nextToken = latestChunkToken;
@@ -239,11 +239,11 @@ public class CMISAPI {
               changeToken = hasMoreItems ? nextToken : null;
             } else {
               hasMoreItems = false;
-              changeToken = null;
+              changeToken = emptyToken();
             }
           } else {
             hasMoreItems = false;
-            changeToken = null;
+            changeToken = emptyToken();
           }
 
           available(changesLen);
@@ -335,7 +335,7 @@ public class CMISAPI {
     }
   }
 
-  protected class ChangeToken implements Comparable<ChangeToken> {
+  protected class ChangeToken {
     protected final String token;
 
     protected ChangeToken(String token) {
@@ -348,21 +348,17 @@ public class CMISAPI {
 
     /**
      * Compare this token with the given and return <code>true</code> if they are equal, <code>false</code>
-     * otherwise.
+     * otherwise. Empty tokens aren't equal.
      * 
      * @param other {@link ChangeToken}
      * @return boolean <code>true</code> if tokens equal, <code>false</code> otherwise
      */
     public boolean equals(ChangeToken other) {
-      if (other != null) {
+      if (other != null && !isEmpty() && !other.isEmpty()) {
         return this.getString().equals(other.getString());
       } else {
         return false;
       }
-    }
-
-    public int compareTo(ChangeToken other) {
-      return this.getString().compareTo(other.getString());
     }
 
     /**
@@ -411,6 +407,10 @@ public class CMISAPI {
     public String toString() {
       return getString();
     }
+
+    protected int compareTo(ChangeToken other) {
+      return this.getString().compareTo(other.getString());
+    }
   }
 
   protected class TimeChangeToken extends ChangeToken {
@@ -437,7 +437,7 @@ public class CMISAPI {
       if (other instanceof TimeChangeToken) {
         return this.getTime().equals(((TimeChangeToken) other).getTime());
       }
-      return super.equals(other);
+      return false;
     }
 
     /**
@@ -515,6 +515,16 @@ public class CMISAPI {
   private final Lock                       lock                = new ReentrantLock();
 
   /**
+   * Session holder.
+   */
+  protected final AtomicReference<Session> session             = new AtomicReference<Session>();
+
+  /**
+   * Singleton of empty change token.
+   */
+  protected final ChangeToken              emptyToken  = new ChangeToken(EMPTY_TOKEN);
+
+  /**
    * Client session parameters.
    */
   protected Map<String, String>            parameters;
@@ -546,11 +556,6 @@ public class CMISAPI {
    * OpenCMIS context for folder operations.
    */
   protected OperationContext               folderContext;
-
-  /**
-   * Session holder.
-   */
-  protected final AtomicReference<Session> session             = new AtomicReference<Session>();
 
   /**
    * Create API from user credentials.
@@ -1807,7 +1812,7 @@ public class CMISAPI {
   }
 
   protected ChangeToken emptyToken() {
-    return new ChangeToken(EMPTY_TOKEN);
+    return emptyToken;
   }
 
   protected boolean isVersionable(ObjectType type) {
