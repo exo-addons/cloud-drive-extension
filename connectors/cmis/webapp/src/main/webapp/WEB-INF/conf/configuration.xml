@@ -103,7 +103,7 @@
                       <string>Nuxeo Online</string>
                     </field>
                     <field name="url">
-                      <string>http://YOUR-DOMAIN.nuxeo.io/nuxeo/atom/cmis</string>
+                      <string>https://YOUR-DOMAIN.nuxeo.io/nuxeo/atom/cmis</string>
                     </field>
                   </object>
                 </value>
