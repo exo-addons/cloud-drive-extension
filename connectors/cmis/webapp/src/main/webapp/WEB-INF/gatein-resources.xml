@@ -78,7 +78,7 @@
   <module>
     <name>codeMirror</name>
     <script>
-      <path>/js/codemirror.js</path>
+      <path>/js/codemirror-bundle.min.js</path>
     </script>
   </module>
 
@@ -97,9 +97,9 @@
     <depends>
       <module>cloudDriveUtils</module>
     </depends>
-    <depends>
+    <!-- depends>
       <module>codeMirror</module>
-    </depends>
+    </depends -->
   </module>
 
   <portlet>

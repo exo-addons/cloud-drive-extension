@@ -1,8 +1,8 @@
 /**
  * CMIS support for eXo Cloud Drive.
- * 
+ *
  */
-(function($, cloudDrive, utils, codeMirror) {
+(function($, cloudDrive, utils) {
 
 	/**
 	 * CMIS connector class.
@@ -41,15 +41,22 @@
 									codeMode = "htmlmixed";
 								}
 							}
-							var codeMirror = CodeMirror($code.get(0), {
-							  value : code,
-							  lineNumbers : true,
-							  readOnly : true,
-							  mode : codeMode
+
+							// XXX CodeMirror script already minified and cannot be loaded via PLF AMD mechanism
+							// load it be direct path from the server
+							// FYI PLF's RequireJS baseUrl is /portal/intranet, thus we need relative moduleId to reach the WAR location
+							// after all this CodeMirror will be available globally as 'require' inside the module wrapper doesn't have amd
+							// function.
+							window.require(["../../cloud-drive-cmis/js/codemirror-bundle.min"], function() {
+								CodeMirror($code.get(0), {
+									value : code,
+									lineNumbers : true,
+									readOnly : true,
+									mode : codeMode
+								});
 							});
 						} catch(e) {
-							utils.log("ERROR: CodeMirror creaton error " + provider.name + "(" + provider.id + "). " + e.message + ": "
-							    + JSON.stringify(e));
+							utils.log("ERROR: CodeMirror creation error " + provider.name + "(" + provider.id + "). " + e.message + ": " + JSON.stringify(e));
 						} finally {
 							$viewer.css("cursor", cursorCss);
 						}
@@ -78,7 +85,7 @@
 		};
 	}
 
-	if (window == top) { // run only in window (not in iframe as gadgets may do)
+	if (window == top) {// run only in window (not in iframe as gadgets may do)
 		try {
 			// load codemirror styles
 			utils.loadStyle("/cloud-drive-cmis/skin/codemirror.css");
@@ -88,4 +95,4 @@
 	}
 
 	return new CMIS();
-})($, cloudDrive, cloudDriveUtils, codeMirror);
+})($, cloudDrive, cloudDriveUtils);

@@ -1,5 +1,5 @@
 
-package org.exoplatform.clouddrive.cmis.ecms.viewer;
+package org.exoplatform.clouddrive.ecms.viewer;
 
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudFile;

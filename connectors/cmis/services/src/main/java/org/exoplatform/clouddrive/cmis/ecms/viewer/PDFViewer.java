@@ -25,6 +25,7 @@ import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.DocumentNotFoundExcep
 import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage;
 import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage.PDFFile;
 import org.exoplatform.clouddrive.cmis.rest.ContentService;
+import org.exoplatform.clouddrive.ecms.viewer.AbstractFileForm;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.config.annotation.EventConfig;

@@ -16,6 +16,7 @@
  */
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
+import org.exoplatform.clouddrive.ecms.viewer.AbstractFileViewer;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 
 /**
