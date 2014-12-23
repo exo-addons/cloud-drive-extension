@@ -100,10 +100,10 @@
                 <value>
                   <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
                     <field name="name">
-                      <string>Public Nuxeo Demo</string>
+                      <string>Nuxeo Online</string>
                     </field>
                     <field name="url">
-                      <string>http://demo.nuxeo.com/nuxeo/atom/cmis</string>
+                      <string>http://YOUR-DOMAIN.nuxeo.io/nuxeo/atom/cmis</string>
                     </field>
                   </object>
                 </value>

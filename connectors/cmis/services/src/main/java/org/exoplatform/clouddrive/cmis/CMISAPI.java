@@ -198,7 +198,7 @@ public class CMISAPI {
 
     protected ChangesIterator(ChangeToken startChangeToken) throws CMISException, RefreshAccessException {
       this.changeToken = startChangeToken;
-      this.lastFetchedToken = null;
+      this.lastFetchedToken = latestChunkToken = emptyToken();
 
       // fetch first
       this.iter = nextChunk();
@@ -207,16 +207,15 @@ public class CMISAPI {
     }
 
     protected Iterator<ChangeEvent> nextChunk() throws CMISException, RefreshAccessException {
-      if (changeToken != null) {
+      if (!changeToken.isEmpty()) {
         try {
-          // includeProperties = true
           ChangeEvents events = session().getContentChanges(changeToken.getString(), true, FOLDER_PAGE_SIZE);
 
           changes = events.getChangeEvents();
 
-          // latest token can be null for some CMIS impl (e.g. SP)
-          String latestChangeToken = events.getLatestChangeLogToken();
-          latestChunkToken = latestChangeToken != null ? readToken(latestChangeToken) : null;
+          // latest token can be empty (null) for some CMIS impl (e.g. SP)
+          // latestChunkToken = latestChangeToken != null ? readToken(latestChangeToken) : null;
+          latestChunkToken = readToken(events.getLatestChangeLogToken());
 
           int changesLen = changes.size();
 
@@ -236,7 +235,7 @@ public class CMISAPI {
               } else {
                 nextToken = latestChunkToken;
               }
-              hasMoreItems = lastFetchedToken != null ? nextToken.isAfter(lastFetchedToken) : true;
+              hasMoreItems = lastFetchedToken.isEmpty() ? true : nextToken.isAfter(lastFetchedToken);
               changeToken = hasMoreItems ? nextToken : null;
             } else {
               hasMoreItems = false;
@@ -331,8 +330,8 @@ public class CMISAPI {
     protected ChangeToken getLastChangeToken() {
       // first priority in actually fetched token, then if nothing fetched we'll try a token from last fetched
       // chunk, and if not available, return last used for fetching token (it can be null also)
-      return lastFetchedToken != null ? lastFetchedToken : (latestChunkToken != null ? latestChunkToken
-                                                                                    : changeToken);
+      return !lastFetchedToken.isEmpty() ? lastFetchedToken : (!latestChunkToken.isEmpty() ? latestChunkToken
+                                                                                          : changeToken);
     }
   }
 
@@ -340,7 +339,11 @@ public class CMISAPI {
     protected final String token;
 
     protected ChangeToken(String token) {
-      this.token = token;
+      if (token == null) {
+        this.token = EMPTY_TOKEN;
+      } else {
+        this.token = token;
+      }
     }
 
     /**
@@ -369,7 +372,7 @@ public class CMISAPI {
      * @return boolean
      */
     public boolean isAfter(ChangeToken other) {
-      return this.compareTo(other) > 0;
+      return !isEmpty() && this.compareTo(other) > 0;
     }
 
     /**
@@ -379,7 +382,7 @@ public class CMISAPI {
      * @return boolean
      */
     public boolean isBefore(ChangeToken other) {
-      return this.compareTo(other) < 0;
+      return !isEmpty() && this.compareTo(other) < 0;
     }
 
     /**
@@ -1800,10 +1803,11 @@ public class CMISAPI {
   }
 
   protected ChangeToken readToken(String tokenString) throws CMISException {
-    if (tokenString != null) {
-      return new ChangeToken(tokenString);
-    }
-    throw new CMISException("ChangeToken string is null");
+    return new ChangeToken(tokenString);
+  }
+
+  protected ChangeToken emptyToken() {
+    return new ChangeToken(EMPTY_TOKEN);
   }
 
   protected boolean isVersionable(ObjectType type) {

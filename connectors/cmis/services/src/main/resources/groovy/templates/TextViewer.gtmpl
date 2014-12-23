@@ -9,8 +9,10 @@
   if (drive && file) {
     def serviceName = drive.user.serviceName
     def openOn = _ctx.appRes("CloudFileViewer.event.OpenOn")
+    def viewable = uicomponent.isViewable()
 %>
-<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" style="position: relative; height: 100%; overflow: hidden;">
+<div id="CloudFileViewer" file-open-on="${openOn} ${serviceName}" 
+				style="position: relative; height: <%=viewable ? "100%" : "200px"%>; overflow: hidden;">
 <%	
     if(uicomponent.isWebDocument()) {
 %>
@@ -48,7 +50,7 @@
 		</div>  
 	</div>  
 <%  
-		} else if(uicomponent.isViewable()) {
+		} else if(viewable) {
 %>
 	<div class="file-content" style="display: none;">
 		<iframe frameborder="0" style="position: absolute; width: 98%; height: 95%;" src=""></iframe>
@@ -56,7 +58,15 @@
 <% 
 	  } else {
 %><div class="center">
-<%=_ctx.appRes("File.view.label.file-size-too-big")%>
+		<div class="uiUnEditable clearfix">
+			<div class="iconContainer">
+			  <i class="<%=Utils.getNodeTypeIcon(uicomponent.getParent().node, "uiIcon64x64")%>"></i>
+			</div>
+			<div class="detailContainer">
+			  <h4><%=_ctx.appRes("File.view.label.file-size-too-big")%></h4>
+			  <a class="btn btn-primary" href="$file.link"><%=_ctx.appRes("File.view.label.download")%></a>
+		  </div>
+		</div>
 	</div>
 <%
 	  }

@@ -27,6 +27,7 @@ import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.CapabilityChanges;
 import org.apache.chemistry.opencmis.commons.enums.ChangeType;
+import org.apache.chemistry.opencmis.commons.impl.MimeTypes;
 import org.exoplatform.clouddrive.CannotConnectDriveException;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -74,6 +75,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.activation.MimeType;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -107,7 +109,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     @Override
     protected void fetchFiles() throws CloudDriveException, RepositoryException {
-      String changeToken = api.getRepositoryInfo().getLatestChangeLogToken();
+      ChangeToken changeToken = api.readToken(api.getRepositoryInfo().getLatestChangeLogToken());
       long changeId = System.currentTimeMillis(); // time of the begin
 
       // Folder root = fetchRoot(rootNode);
@@ -123,7 +125,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         initCMISItem(rootNode, root); // init parent
 
         // set change token rom the start of the connect to let next sync fetch all changes
-        setChangeToken(rootNode, changeToken);
+        setChangeToken(rootNode, changeToken.getString());
 
         // sync position as current time of the connect start
         setChangeId(changeId);
@@ -301,7 +303,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           }
           return changes.getLastChangeToken();
         } else {
-          return null;
+          return api.emptyToken();
         }
       }
 
@@ -690,13 +692,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       // then repoInfo.getLatestChangeLogToken() can be null
       ChangeToken changeToken = api.readToken(repoInfo.getLatestChangeLogToken());
       ChangeToken localChangeToken = api.readToken(getChangeToken(rootNode));
-      ChangeToken lastChangeToken = null;
+      ChangeToken lastChangeToken = api.emptyToken();
 
       // FYI ChangeId functionality not used by CMIS as we need composite token here
       // but we maintain ChangeId for other uses
       long changeId = System.currentTimeMillis(); // time of the sync start
 
-      if (preSyncError == null) {
+      if (!changeToken.isEmpty() && preSyncError == null) {
         if (!changeToken.equals(localChangeToken)) {
           try {
             if (CapabilityChanges.NONE != repoInfo.getCapabilities().getChangesCapability()) {
@@ -728,7 +730,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         }
       }
 
-      if (lastChangeToken != null && preSyncError == null) {
+      if (!lastChangeToken.isEmpty() && preSyncError == null) {
         // changes sync well done, update sync position with its result and exit
         changeToken = lastChangeToken;
       } else {
@@ -1504,7 +1506,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @throws CMISException
    */
   protected void setChangeToken(Node localNode, String changeToken) throws RepositoryException, CMISException {
-    localNode.setProperty("cmiscd:changeToken", changeToken != null ? changeToken : CMISAPI.EMPTY_TOKEN);
+    localNode.setProperty("cmiscd:changeToken", changeToken);
   }
 
   /**
@@ -1550,7 +1552,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       Document document = (Document) item;
       contentLength = document.getContentStreamLength();
       type = document.getContentStreamMimeType();
-      if (type == null) {
+      if (type == null || type.equals(mimeTypes.getDefaultMimeType())) {
         type = mimeTypes.getMimeType(name);
       }
       typeMode = mimeTypes.getMimeTypeMode(type, name);

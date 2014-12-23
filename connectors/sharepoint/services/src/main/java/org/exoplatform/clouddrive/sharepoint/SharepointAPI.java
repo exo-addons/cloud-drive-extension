@@ -681,10 +681,7 @@ public class SharepointAPI extends CMISAPI {
    */
   @Override
   protected ChangeToken readToken(String tokenString) throws CMISException {
-    if (tokenString != null) {
-      return new SPChangeToken(tokenString);
-    }
-    throw new CMISException("ChangeToken string is null");
+    return new SPChangeToken(tokenString);
   }
 
   /**
