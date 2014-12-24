@@ -19,12 +19,12 @@
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
-import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
 import org.exoplatform.clouddrive.PROVIDER_ID.TemplateAPI.EventsIterator;
 import org.exoplatform.clouddrive.PROVIDER_ID.TemplateAPI.ItemsIterator;
@@ -34,7 +34,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.InputStream;
@@ -42,7 +42,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -570,6 +569,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     public boolean isTrashSupported() {
       return true;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public CloudFile restore(String id, String path) throws NotFoundException,
+                                                    CloudDriveException,
+                                                    RepositoryException {
+      // TODO implement restoration of file by id at its local path (known as part of remove/update)
+      throw new SyncNotSupportedException("Restore not supported");
+    }
   }
 
   /**
@@ -708,8 +718,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     }
   }
 
-  protected final MimeTypeResolver mimeTypes = new MimeTypeResolver();
-
   /**
    * @param user
    * @param driveNode
@@ -717,11 +725,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * @throws CloudDriveException
    * @throws RepositoryException
    */
-  public JCRLocalTemplateDrive(TemplateUser user,
-                               Node driveNode,
-                               SessionProviderService sessionProviders,
-                               NodeFinder finder) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+  protected JCRLocalTemplateDrive(TemplateUser user,
+                                  Node driveNode,
+                                  SessionProviderService sessionProviders,
+                                  NodeFinder finder,
+                                  ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException,
+      RepositoryException {
+    super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -729,8 +739,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                   TemplateProvider provider,
                                   Node driveNode,
                                   SessionProviderService sessionProviders,
-                                  NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder);
+                                  NodeFinder finder,
+                                  ExtendedMimeTypeResolver mimeTypes) throws RepositoryException,
+      CloudDriveException {
+    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -741,9 +753,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   protected void initDrive(Node driveNode) throws CloudDriveException, RepositoryException {
     super.initDrive(driveNode);
 
-    // TODO set real ID and URL (URL may be known later, then skip it here or use some dummy value)
-    driveNode.setProperty("ecd:id", "ROOT_ID");
-    driveNode.setProperty("ecd:url", "APP_URL");
+    // TODO other custom things
   }
 
   /**
@@ -881,17 +891,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * {@inheritDoc}
    */
   @Override
-  public Object getState() throws DriveRemovedException,
-                          CloudProviderException,
-                          RepositoryException,
-                          RefreshAccessException {
-    return getUser().api().getState();
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   protected void refreshAccess() throws CloudDriveException {
     // TODO implement this method if Cloud API requires explicit forcing of access token renewal check
     // Some APIes do this check internally on each call (then do nothing here), others may need explicit
@@ -959,6 +958,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     String name = ""; // item.getName();
     boolean isFolder = false; // item instanceof APIFolder;
     String type = ""; // isFolder ? item.getType() : findMimetype(name);
+    // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
+    String typeMode = mimeTypes.getMimeTypeMode(type, name);
     String itemHash = ""; // item.getEtag()
 
     // read/create local node if not given
@@ -966,7 +967,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       if (isFolder) {
         node = openFolder(id, name, parent);
       } else {
-        node = openFile(id, name, type, parent);
+        node = openFile(id, name, parent);
       }
     }
 
@@ -1012,10 +1013,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                  id,
                                  name,
                                  link,
-                                 editLink(link),
+                                 editLink(node),
                                  embedLink,
                                  thumbnailLink,
                                  type,
+                                 typeMode,
                                  createdBy,
                                  modifiedBy,
                                  created,
@@ -1030,17 +1032,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(String link) {
+  protected String previewLink(Node fileNode) throws RepositoryException {
     // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return link;
+    return super.previewLink(fileNode);
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  protected String editLink(String link) {
-    // TODO Return actual link for embedded editing (in iframe) or null if that not supported
+  protected String editLink(Node fileNode) {
+    // TODO Return actual link for embedded editing (in iframe) or null if edit not supported
     return null;
   }
 

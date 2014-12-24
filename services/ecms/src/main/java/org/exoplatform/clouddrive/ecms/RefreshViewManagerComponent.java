@@ -38,7 +38,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * RefreshView hidden action in working area used by Cloud Drive Javascript to refresh the user view automatically.
+ * RefreshView hidden action in working area used by Cloud Drive Javascript to refresh the user view
+ * automatically.
  * 
  * Created by The eXo Platform SAS.
  * 

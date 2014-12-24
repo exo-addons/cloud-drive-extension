@@ -64,3 +64,17 @@
 	transform: scale(0.7);
 	background: url("icons/cmis-logo-gray-32x32.png") no-repeat center center transparent !important;
 }
+
+/*
+ * File View style
+ */
+.file-content {
+	position: relative;
+	min-height: 600px;
+	height: auto !important;
+}
+
+.file-content .CodeMirror {
+	min-height: 600px;
+	height: 800px; !important;
+}

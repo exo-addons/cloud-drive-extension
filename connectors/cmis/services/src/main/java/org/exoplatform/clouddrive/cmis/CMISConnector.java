@@ -14,7 +14,9 @@ import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -119,9 +121,10 @@ public class CMISConnector extends CloudDriveConnector {
   public CMISConnector(RepositoryService jcrService,
                        SessionProviderService sessionProviders,
                        NodeFinder finder,
+                       ExtendedMimeTypeResolver mimeTypes,
                        InitParams params,
                        CodeAuthentication codeAuth) throws ConfigurationException {
-    super(jcrService, sessionProviders, finder, params);
+    super(jcrService, sessionProviders, finder, mimeTypes, params);
     this.codeAuth = codeAuth;
   }
 
@@ -140,7 +143,11 @@ public class CMISConnector extends CloudDriveConnector {
     redirectURL.append(getConnectorSchema());
     redirectURL.append("://");
     redirectURL.append(getConnectorHost());
-    redirectURL.append("/portal/rest/clouddrive/connect/");
+    redirectURL.append('/');
+    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
+    redirectURL.append('/');
+    redirectURL.append(PortalContainer.getCurrentRestContextName());
+    redirectURL.append("/clouddrive/connect/");
     redirectURL.append(getProviderId());
 
     // Auth URL lead to a webpage on eXo side, it should ask for username/password and store somehow on the
@@ -149,7 +156,9 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getConnectorSchema());
     authURL.append("://");
     authURL.append(getConnectorHost());
-    authURL.append("/portal/clouddrive/");
+    authURL.append('/');
+    authURL.append(PortalContainer.getCurrentPortalContainerName());
+    authURL.append("/clouddrive/");
     // by this auth provider id, dedicated CMIS connectors can use CMIS connector's login form
     authURL.append(getAuthProviderId());
     authURL.append("/login?state=");
@@ -221,7 +230,7 @@ public class CMISConnector extends CloudDriveConnector {
         String context = userId.getServiceContext();
         if (context != null) {
           // set current repo first (before getting repo info)!
-          user.setCurrentRepository(context);
+          user.setRepositoryId(context);
 
           RepositoryInfo repo = user.api().getRepositoryInfo();
           // XXX a bit nasty way to get things
@@ -238,7 +247,7 @@ public class CMISConnector extends CloudDriveConnector {
                 }
                 // create user instance dedicated to the CMIS connector implementation
                 user = c.createUser(userId);
-                user.setCurrentRepository(context); // set context for the new user!
+                user.setRepositoryId(context); // set context for the new user!
                 break;
               }
             }
@@ -259,7 +268,12 @@ public class CMISConnector extends CloudDriveConnector {
                                                                   RepositoryException {
     if (user instanceof CMISUser) {
       CMISUser apiUser = (CMISUser) user;
-      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser, driveNode, sessionProviders, jcrFinder);
+      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser,
+                                                      driveNode,
+                                                      sessionProviders,
+                                                      jcrFinder,
+                                                      mimeTypes,
+                                                      exoURL());
       return drive;
     } else {
       throw new CloudDriveException("Not cloud user: " + user);
@@ -270,16 +284,26 @@ public class CMISConnector extends CloudDriveConnector {
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
                                                 CloudDriveException,
                                                 RepositoryException {
-    JCRLocalCloudDrive.checkTrashed(driveNode);
+    JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(),
                                                     driveNode,
                                                     sessionProviders,
-                                                    jcrFinder);
+                                                    jcrFinder,
+                                                    mimeTypes,
+                                                    exoURL());
     return drive;
   }
 
   // ***** specifics ******
+
+  protected String exoURL() {
+    StringBuilder exoURL = new StringBuilder();
+    exoURL.append(getConnectorSchema());
+    exoURL.append("://");
+    exoURL.append(getConnectorHost());
+    return exoURL.toString();
+  }
 
   /**
    * Create {@link CMISAPI} instance.<b>

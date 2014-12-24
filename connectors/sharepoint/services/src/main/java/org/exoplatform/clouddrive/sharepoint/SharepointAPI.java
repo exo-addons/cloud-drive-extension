@@ -21,12 +21,10 @@ package org.exoplatform.clouddrive.sharepoint;
 import org.apache.chemistry.opencmis.client.api.ChangeEvent;
 import org.apache.chemistry.opencmis.client.api.ChangeEvents;
 import org.apache.chemistry.opencmis.client.api.CmisObject;
-import org.apache.chemistry.opencmis.client.api.ObjectId;
+import org.apache.chemistry.opencmis.client.api.ObjectFactory;
 import org.apache.chemistry.opencmis.client.api.Property;
 import org.apache.chemistry.opencmis.client.api.Session;
 import org.apache.chemistry.opencmis.commons.PropertyIds;
-import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
-import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.ObjectDataImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertiesImpl;
 import org.apache.chemistry.opencmis.commons.impl.dataobjects.PropertyIdImpl;
@@ -148,20 +146,21 @@ public class SharepointAPI extends CMISAPI {
     protected SPChangeToken(String token) throws CMISException {
       super(token);
 
-      String[] ta = token.split(";");
+      String[] ta = this.token.split(";");
       if (ta.length >= 6) {
         try {
           this.timestamp = Long.valueOf(ta[3]);
         } catch (NumberFormatException e) {
-          throw new CMISException("Cannot parse change token timestamp: " + token, e);
+          throw new CMISException("Cannot parse change token timestamp: " + this.token, e);
         }
         try {
           this.index = Long.valueOf(ta[4]);
         } catch (NumberFormatException e) {
-          throw new CMISException("Cannot parse change token index: " + token, e);
+          throw new CMISException("Cannot parse change token index: " + this.token, e);
         }
       } else {
-        throw new CMISException("Unexpected change token format: too short");
+        this.timestamp = 0;
+        this.index = 0;
       }
     }
 
@@ -170,23 +169,18 @@ public class SharepointAPI extends CMISAPI {
      */
     @Override
     public boolean equals(ChangeToken other) {
-      if (other instanceof SPChangeToken) {
+      if (!isEmpty() && !other.isEmpty() && other instanceof SPChangeToken) {
         SPChangeToken otherSP = (SPChangeToken) other;
         return this.getIndex() == otherSP.getIndex() && this.getTimestamp() == otherSP.getTimestamp();
       }
-      return super.equals(other);
+      return false;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int compareTo(ChangeToken other) {
-      if (other instanceof SPChangeToken) {
-        SPChangeToken otherSP = (SPChangeToken) other;
-        return (int) (this.getIndex() - otherSP.getIndex());
+    public boolean equals(SPChangeToken other) {
+      if (!isEmpty() && !other.isEmpty()) {
+        return this.getIndex() == other.getIndex() && this.getTimestamp() == other.getTimestamp();
       }
-      return super.compareTo(other);
+      return false;
     }
 
     /**
@@ -682,10 +676,7 @@ public class SharepointAPI extends CMISAPI {
    */
   @Override
   protected ChangeToken readToken(String tokenString) throws CMISException {
-    if (tokenString != null) {
-      return new SPChangeToken(tokenString);
-    }
-    throw new CMISException("ChangeToken string is null");
+    return new SPChangeToken(tokenString);
   }
 
   /**
@@ -693,9 +684,9 @@ public class SharepointAPI extends CMISAPI {
    */
   protected CmisObject rename(String newName, CmisObject obj, Session session) {
     // XXX With SP we cannot just rename using existing object instance as the server will return
-    // updateConflict
-    // telling it's not current object. This is probably due to the change token in existing object. Thus we
-    // create a new object instance and try rename via it.
+    // updateConflict telling it's not current object.
+    // This is probably due to the change token in existing object. Thus we create a new object instance and
+    // try rename via it.
 
     // Other ways to try:
     // * use native SP API
@@ -706,17 +697,33 @@ public class SharepointAPI extends CMISAPI {
     // copy major properties (id, types) fron original object
     PropertiesImpl props = new PropertiesImpl();
 
+    ObjectFactory factory = session.getObjectFactory();
+
+    // for (Property<?> prop : obj.getProperties()) {
+    // PropertyData<?> pdata;
+    // if (PropertyIds.OBJECT_TYPE_ID.equals(prop.getId())) {
+    // Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
+    // pdata = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
+    // } else {
+    // @SuppressWarnings("unchecked")
+    // // XXX nasty cast
+    // Property<Object> p = (Property<Object>) prop;
+    // pdata = factory.createProperty(p.getDefinition(), p.getValues());
+    // }
+    // props.addProperty(pdata);
+    // }
+
     Property<String> objectId = obj.getProperty(PropertyIds.OBJECT_ID);
-    props.addProperty(session.getObjectFactory().createProperty(objectId.getDefinition(),
-                                                                objectId.getValues()));
+    props.addProperty(factory.createProperty(objectId.getDefinition(), objectId.getValues()));
+
+    Property<String> name = obj.getProperty(PropertyIds.NAME);
+    props.addProperty(factory.createProperty(name.getDefinition(), name.getValues()));
 
     Property<String> baseTypeId = obj.getProperty(PropertyIds.BASE_TYPE_ID);
-    props.addProperty(session.getObjectFactory().createProperty(baseTypeId.getDefinition(),
-                                                                baseTypeId.getValues()));
+    props.addProperty(factory.createProperty(baseTypeId.getDefinition(), baseTypeId.getValues()));
 
     Property<String> objTypeId = obj.getProperty(PropertyIds.OBJECT_TYPE_ID);
     PropertyIdImpl objTypeIdProp = new PropertyIdImpl(PropertyIds.OBJECT_TYPE_ID, objTypeId.getValues());
-
     props.addProperty(objTypeIdProp);
 
     // set props
@@ -726,7 +733,7 @@ public class SharepointAPI extends CMISAPI {
     data.setAllowableActions(obj.getAllowableActions());
 
     // new object instance
-    CmisObject newObj = session.getObjectFactory().convertObject(data, objectContext);
+    CmisObject newObj = factory.convertObject(data, objectContext);
 
     // and use super's logic with it
     CmisObject renamed = super.rename(newName, newObj, session);

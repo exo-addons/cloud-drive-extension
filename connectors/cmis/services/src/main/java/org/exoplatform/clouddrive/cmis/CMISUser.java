@@ -134,12 +134,12 @@ public class CMISUser extends CloudUser {
   }
 
   /**
-   * Set current CMIS repository for operations of this user.
+   * Set current CMIS repository ID for operations of this user.
    * 
    * @param repositoryId {@link String}
    * @throws RefreshAccessException
    */
-  public void setCurrentRepository(String repositoryId) throws CMISException, RefreshAccessException {
+  public void setRepositoryId(String repositoryId) throws CMISException, RefreshAccessException {
     api().initRepository(repositoryId);
   }
 

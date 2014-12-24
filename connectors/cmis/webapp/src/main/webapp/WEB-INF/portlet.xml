@@ -34,7 +34,7 @@ http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
     <portlet-class>org.exoplatform.clouddrive.cmis.portlet.CMISLoginPortlet</portlet-class>
     <init-param>
       <name>juzu.app_name</name>
-      <value>org.exoplatform.clouddrive.cmis.portlet  </value>
+      <value>org.exoplatform.clouddrive.cmis.portlet</value>
     </init-param>
     <init-param>
       <name>juzu.run_mode</name>
@@ -45,7 +45,7 @@ http://java.sun.com/xml/ns/portlet/portlet-app_2_0.xsd">
     </supports>
      
     <!-- <supported-locale>en</supported-locale> -->
-    <resource-bundle>locale.clouddrive.cmis.site</resource-bundle>
+    <!-- resource-bundle>locale.clouddrive.cmis.site</resource-bundle -->
     <portlet-info>
       <title>Cloud Drive CMIS connector login page</title>
       <keywords>Cloud Drive - CMIS</keywords>

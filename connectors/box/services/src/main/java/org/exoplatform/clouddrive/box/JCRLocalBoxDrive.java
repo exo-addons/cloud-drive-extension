@@ -27,6 +27,7 @@ import com.box.boxjavalibv2.dao.BoxTypedObject;
 import com.box.boxjavalibv2.requests.requestobjects.BoxEventRequestObject;
 
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
@@ -44,7 +45,7 @@ import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
-import org.exoplatform.commons.utils.MimeTypeResolver;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.InputStream;
@@ -196,7 +197,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     protected BoxFolder syncChilds(String folderId, Node parent) throws RepositoryException,
                                                                 CloudDriveException {
-      
+
       ItemsIterator items = api.getFolderItems(folderId);
       iterators.add(items);
       while (items.hasNext() && !Thread.currentThread().isInterrupted()) {
@@ -598,6 +599,16 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     @Override
     public boolean isTrashSupported() {
       return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public CloudFile restore(String id, String path) throws NotFoundException,
+                                                    CloudDriveException,
+                                                    RepositoryException {
+      throw new SyncNotSupportedException("Restore not supported");
     }
   }
 
@@ -1105,22 +1116,96 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return applied.remove(itemId);
     }
 
-    @Deprecated
-    protected boolean isRemovedPath(String path) {
-      for (String rpath : removed) {
-        if (path.startsWith(rpath)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
     protected boolean isRemoved(String itemId) {
       return removedIds.contains(itemId);
     }
   }
 
-  protected final MimeTypeResolver mimeTypes = new MimeTypeResolver();
+  public class BoxState implements FilesState {
+
+    final ChangesLink link;
+
+    protected BoxState(ChangesLink link) {
+      this.link = link;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Collection<String> getUpdating() {
+      return state.getUpdating();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isUpdating(String fileIdOrPath) {
+      return state.isUpdating(fileIdOrPath);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isNew(String fileIdOrPath) {
+      return state.isNew(fileIdOrPath);
+    }
+
+    /**
+     * @return the type
+     */
+    public String getType() {
+      return link.getType();
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl() {
+      return link.getUrl();
+    }
+
+    /**
+     * @return the ttl
+     */
+    public long getTtl() {
+      return link.getTtl();
+    }
+
+    /**
+     * @return the maxRetries
+     */
+    public long getMaxRetries() {
+      return link.getMaxRetries();
+    }
+
+    /**
+     * @return the retryTimeout
+     */
+    public long getRetryTimeout() {
+      return link.getRetryTimeout();
+    }
+
+    /**
+     * @return the outdatedTimeout
+     */
+    public long getOutdatedTimeout() {
+      return link.getOutdatedTimeout();
+    }
+
+    /**
+     * @return the created
+     */
+    public long getCreated() {
+      return link.getCreated();
+    }
+
+    public boolean isOutdated() {
+      return link.isOutdated();
+    }
+  }
 
   /**
    * @param user
@@ -1129,11 +1214,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * @throws CloudDriveException
    * @throws RepositoryException
    */
-  public JCRLocalBoxDrive(BoxUser user,
-                          Node driveNode,
-                          SessionProviderService sessionProviders,
-                          NodeFinder finder) throws CloudDriveException, RepositoryException {
-    super(user, driveNode, sessionProviders, finder);
+  protected JCRLocalBoxDrive(BoxUser user,
+                             Node driveNode,
+                             SessionProviderService sessionProviders,
+                             NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException,
+      RepositoryException {
+    super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -1141,8 +1228,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                              BoxProvider provider,
                              Node driveNode,
                              SessionProviderService sessionProviders,
-                             NodeFinder finder) throws RepositoryException, CloudDriveException {
-    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder);
+                             NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes) throws RepositoryException,
+      CloudDriveException {
+    super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
@@ -1154,8 +1243,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     super.initDrive(driveNode);
 
     driveNode.setProperty("ecd:id", BoxAPI.BOX_ROOT_ID);
-    // dummy URL here, an actual one will be set during files fetching in BoxConnect
-    driveNode.setProperty("ecd:url", BoxAPI.BOX_APP_URL);
   }
 
   /**
@@ -1295,11 +1382,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  public ChangesLink getState() throws DriveRemovedException,
-                               CloudProviderException,
-                               RepositoryException,
-                               RefreshAccessException {
-    return getUser().api().getChangesLink();
+  public BoxState getState() throws DriveRemovedException,
+                            CloudProviderException,
+                            RepositoryException,
+                            RefreshAccessException {
+    return new BoxState(getUser().api().getChangesLink());
   }
 
   /**
@@ -1400,7 +1487,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         if (isFolder) {
           node = openFolder(id, name, parent);
         } else {
-          node = openFile(id, name, type, parent);
+          node = openFile(id, name, parent);
         }
       }
 
@@ -1419,9 +1506,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFolder(node, id, name, type, // type=folder
-                     link, // gf.getAlternateLink(),
-                     createdBy, // gf.getOwnerNames().get(0),
-                     modifiedBy, // gf.getLastModifyingUserName(),
+                     link,
+                     createdBy,
+                     modifiedBy,
                      created,
                      modified);
           initBoxItem(node, item);
@@ -1434,24 +1521,21 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         thumbnailLink = api.getThumbnailLink(item);
         if (changed) {
           initFile(node, id, name, type, // mimetype
-                   link, // gf.getAlternateLink(),
-                   embedLink, // gf.getEmbedLink(),
-                   thumbnailLink, // gf.getThumbnailLink(),
-                   createdBy, // gf.getOwnerNames().get(0),
-                   modifiedBy, // gf.getLastModifyingUserName(),
+                   link,
+                   embedLink,
+                   thumbnailLink,
+                   createdBy,
+                   modifiedBy,
                    created,
                    modified);
           initBoxItem(node, item);
         }
       }
-      return new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   editLink(link),
+      return new JCRLocalCloudFile(node.getPath(), id, name, link, null, // editLink
                                    embedLink,
                                    thumbnailLink,
                                    type,
+                                   null, // typeMode not required for Box
                                    createdBy,
                                    modifiedBy,
                                    created,
@@ -1491,14 +1575,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(String link) {
+  protected String previewLink(Node fileNode) throws RepositoryException {
     BoxUser user = getUser();
-    if (user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
+    String link = super.previewLink(fileNode);
+    if (link != null && user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
       // append encoded link to access URL
       try {
         link = URLEncoder.encode(link, "UTF-8");
       } catch (UnsupportedEncodingException e) {
-        LOG.warn("Cannot encode URL " + link + ":" + e);
+        LOG.warn("Cannot encode URL " + fileNode + ":" + e);
       }
       return String.format(BoxAPI.BOX_EMBED_URL_SSO, user.getEnterpriseId(), link);
     }
@@ -1509,7 +1594,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String editLink(String link) {
+  protected String editLink(Node fileNode) {
     // Box does not support embedded editor (due to SAMEORIGIN cross-domain policy)
     return null;
   }

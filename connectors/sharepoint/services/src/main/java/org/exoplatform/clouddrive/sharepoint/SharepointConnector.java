@@ -17,6 +17,7 @@ import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication.Identity;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.sharepoint.SharepointAPI.User;
+import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.ExoContainerContext;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -92,9 +93,10 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
   public SharepointConnector(RepositoryService jcrService,
                              SessionProviderService sessionProviders,
                              NodeFinder finder,
+                             ExtendedMimeTypeResolver mimeTypes,
                              InitParams params,
                              CodeAuthentication codeAuth) throws ConfigurationException {
-    super(jcrService, sessionProviders, finder, params, codeAuth);
+    super(jcrService, sessionProviders, finder, mimeTypes, params, codeAuth);
   }
 
   /**
@@ -148,7 +150,12 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
                                                                   RepositoryException {
     if (user instanceof SharepointUser) {
       SharepointUser apiUser = (SharepointUser) user;
-      JCRLocalCMISDrive drive = new JCRLocalSharepointDrive(apiUser, driveNode, sessionProviders, jcrFinder);
+      JCRLocalCMISDrive drive = new JCRLocalSharepointDrive(apiUser,
+                                                            driveNode,
+                                                            sessionProviders,
+                                                            jcrFinder,
+                                                            mimeTypes,
+                                                            exoURL());
       return drive;
     } else {
       throw new CloudDriveException("Not SharePoint user: " + user);
@@ -162,12 +169,14 @@ public class SharepointConnector extends CMISConnector implements CMISConnectorI
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
                                                 CloudDriveException,
                                                 RepositoryException {
-    JCRLocalSharepointDrive.checkTrashed(driveNode);
+    JCRLocalSharepointDrive.checkNotTrashed(driveNode);
     JCRLocalSharepointDrive.migrateName(driveNode);
     JCRLocalSharepointDrive drive = new JCRLocalSharepointDrive(new API(),
                                                                 driveNode,
                                                                 sessionProviders,
-                                                                jcrFinder);
+                                                                jcrFinder,
+                                                                mimeTypes,
+                                                                exoURL());
     return drive;
   }
 

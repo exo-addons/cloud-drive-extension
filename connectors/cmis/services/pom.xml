@@ -185,6 +185,7 @@
           <include>**/*.properties</include>
           <include>**/*.xml</include>
           <include>**/*.conf</include>
+          <include>**/*.gtmpl</include>
         </includes>
       </resource>
     </resources>

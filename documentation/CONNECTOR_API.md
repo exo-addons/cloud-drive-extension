@@ -469,9 +469,9 @@ Javascript API
 
 Cloud Drive comes with Javascript client module for integration in eXo Platform web applications. Client provides support of drive connection and synchronization in user interface. It also customizes Documents client app to render cloud drive properly: drive and files styling, context and action bar menus, embedded file preview and editing. 
 
-Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). 
+Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). Module can provide a special method for implicit on-load initialization: a method `onLoad(provider)`, if exisists, will be invoked by the client on the provider initialization for page or its gragment loading (see example code below).
 
-Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drive provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below).
+Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below). 
 
 Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. Most of Cloud Drive methods return [jQuery Promise](http://api.jquery.com/deferred.promise/) object which can be used for callbacks registration for connect or synchronization operations. 
 
@@ -508,6 +508,36 @@ It is an example how a connector module can looks (simplified Template connector
 			return newState;
 		};
 
+    /**
+     * Initialize this module on its load to the page (or page updated within a fragment). 
+     * This method will be invoked by Cloud Drive client on a page or its fragment loading to the browser.
+     */
+    this.onLoad = function(provider) {
+			$(function() {
+				// Add an action to some button "Show File Comments"
+				$("#file_comments_button").click(function() {
+					var drive = cloudDrive.getContextDrive();
+					var file = cloudDrive.getContextFile();
+					if (drive && file) {
+						var comments = client.readComments(drive.workspace, file.path);
+						comments.done(function(commentsArray, status) {
+							if (status != 204) { // NO CONTENT means no drive found or drive not connected
+								// Append comments to a some invisible div on the page and then show it
+								var container = $("#file_comments_div");
+								$.each(commentsArray, function(i, c) {
+									$("<div class='myCloudFileComment'>" + c + "</div>").appendTo(container);
+								});
+								container.show();
+							} // else do nothing
+						});
+						comments.fail(function(response, status, err) {
+							utils.log("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+						});
+					}
+				});
+			});
+    });
+      
 		/**
 		 * Check if given drive has remote changes. Return jQuery Promise object that will be resolved
 		 * when some change will appear, or rejected on error. It is a method that Cloud Drive core
@@ -561,34 +591,13 @@ It is an example how a connector module can looks (simplified Template connector
 
 	var client = new TemplateClient();
 
-	// On DOM-ready handler to initialize custom UI (or any other specific work on a client)
+	// apply per-app customization (e.g. load global styles or images), see also onLoad() above
 	if (window == top) { // run only in window (not in iframe as gadgets may do)
-		try {
-			$(function() {
-				// Add an action to some button "Show File Comments"
-				$("#file_comments_button").click(function() {
-					var drive = cloudDrive.getContextDrive();
-					var file = cloudDrive.getContextFile();
-					if (drive && file) {
-						var comments = client.readComments(drive.workspace, file.path);
-						comments.done(function(commentsArray, status) {
-							if (status != 204) { // NO CONTENT means no drive found or drive not connected
-								// Append comments to a some invisible div on the page and then show it
-								var container = $("#file_comments_div");
-								$.each(commentsArray, function(i, c) {
-									$("<div class='myCloudFileComment'>" + c + "</div>").appendTo(container);
-								});
-								container.show();
-							} // else do nothing
-						});
-						comments.fail(function(response, status, err) {
-							utils.log("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
-						});
-					}
-				});
-			});
+	  try {
+			// load custom/parties style
+			utils.loadStyle("/cloud-drive-mycloud/skin/thirparty-style.css");
 		} catch(e) {
-			utils.log("Error intializing Template client.", e);
+			utils.log("Error intializing mycloud client.", e);
 		}
 	}
 

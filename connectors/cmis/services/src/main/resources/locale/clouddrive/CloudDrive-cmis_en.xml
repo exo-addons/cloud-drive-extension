@@ -3,7 +3,7 @@
   <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
   <UITabForm>
     <label>
-      <connectTemplate>Connect CMIS Server</connectTemplate>
+      <connectCMIS>Connect CMIS Server</connectCMIS>
     </label>
   </UITabForm>
   <!-- For menu caption in Action Bar -->
@@ -30,4 +30,12 @@
     <login>Login</login>
     <cancel>Cancel</cancel>
   </CMISLoginController>
+  <File>
+    <view>
+      <label>
+        <sourceview>View source code</sourceview>
+        <webview>View as Web page</webview>
+      </label>
+    </view>
+  </File>
 </bundle>

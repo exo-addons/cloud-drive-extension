@@ -25,7 +25,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>exo-clouddrive-connectors</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
   </parent>
 
   <!-- Replace PROVIDER_ID with your provider ID -->  
@@ -42,13 +42,13 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-services-core</artifactId>
-        <version>1.1.0-RC1</version>
+        <version>1.1.0-RC4</version>
         <type>jar</type>
       </dependency>
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-services-ecms</artifactId>
-        <version>1.1.0-RC1</version>
+        <version>1.1.0-RC4</version>
         <type>jar</type>
       </dependency>
       <!-- dependency>
