@@ -33,7 +33,6 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.services.rest.ExtHttpHeaders;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 
 import javax.annotation.security.RolesAllowed;
@@ -41,7 +40,6 @@ import javax.jcr.LoginException;
 import javax.jcr.RepositoryException;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;

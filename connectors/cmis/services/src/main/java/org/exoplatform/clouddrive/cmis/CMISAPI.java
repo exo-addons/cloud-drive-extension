@@ -1688,6 +1688,8 @@ public class CMISAPI {
     } catch (CmisObjectNotFoundException e) {
       // Wrong service end-point used or incompatible CMIS version
       throw new WrongCMISProviderException("Error reading repositories list: " + e.getMessage(), e);
+    } catch(CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(), e);
     } catch (CmisRuntimeException e) {
       throw new CMISException("Runtime error when reading CMIS repositories list", e);
     } catch (CmisBaseException e) {

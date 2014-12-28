@@ -287,7 +287,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       try {
         file = api.createFile(parentId, title, created, content);
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here and make local file to reflect the cloud side
+        // we assume name as factor of equality here and make local file to reflect the cloud side
         BoxFile existing = null;
         ItemsIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -341,7 +341,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       try {
         folder = api.createFolder(getParentId(folderNode), getTitle(folderNode), created);
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here
+        // we assume name as factor of equality here
         BoxFolder existing = null;
         ItemsIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -706,7 +706,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         history.add(es);
       }
 
-      // XXX Box API tells about Events service:
+      // FYI Box API tells about Events service:
       // Events will occasionally arrive out of order. For example a file-upload might show up
       // before the Folder-create event. You may need to buffer events and apply them in a logical
       // order.
@@ -774,7 +774,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
               if (parent == null) {
                 // parent not (yet) found or was removed, we postpone the event and wait for it in the order
                 // and fail at the end if will be not applied.
-                // XXX special logic for childs removal of already removed parent, JCR removes all together
+                // FYI special logic for child removal of already removed parent, JCR removes all together
                 // with the parent - we skip such events.
                 if (!(isRemoved(parentId) && eventType.equals(BoxEvent.EVENT_TYPE_ITEM_TRASH))) {
                   postpone(event);
@@ -1325,7 +1325,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     Calendar now = Calendar.getInstance();
     Calendar last = rootNode().getProperty("box:streamDate").getDate();
 
-    // XXX we force a full sync (a whole drive traversing) each defined period.
+    // FYI we force a full sync (a whole drive traversing) each defined period.
     // We do this for a case when Box will not provide a full history for files connected long time ago and
     // weren't synced day by day (Box drive was rarely used).
     // Their doc tells: Box does not store all events for all time on your account. We store somewhere between

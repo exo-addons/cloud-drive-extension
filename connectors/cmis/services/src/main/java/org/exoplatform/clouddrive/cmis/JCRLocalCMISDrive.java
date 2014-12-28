@@ -27,7 +27,6 @@ import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.CapabilityChanges;
 import org.apache.chemistry.opencmis.commons.enums.ChangeType;
-import org.apache.chemistry.opencmis.commons.impl.MimeTypes;
 import org.exoplatform.clouddrive.CannotConnectDriveException;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -56,7 +55,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -75,7 +73,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.activation.MimeType;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -116,7 +113,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       Folder root = api.getRootFolder();
       // actual drive Id (its root folder's id) and URL, see initDrive() also
       rootNode.setProperty("ecd:id", root.getId());
-      // TODO api.getRepositoryInfo().getThinClientUri() ?
       rootNode.setProperty("ecd:url", api.getLink(root));
 
       fetchChilds(root.getId(), rootNode);
@@ -226,7 +222,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 }
                 // even in case of local removal we check for all parents to merge possible removals done in
                 // parallel locally and remotely
-                // XXX empty remote parents means item fully removed in the CMIS repo
+                // FYI empty remote parents means item fully removed in the CMIS repo
                 // TODO check if DELETED happes in case of multi-filed file unfiling
                 deleteFile(id, new HashSet<String>());
               } else {
@@ -279,14 +275,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                   }
 
                   // XXX nasty workround for Nuxeo versioning on file/folder creation (it sends all versions
-                  // in events even for cmis:folder)
+                  // in events even for cmis:folder) - move to dedicated extension
                   if (previousItem != null && name.equals(previousItem.getName()) && previousEvent != null
                       && ChangeType.CREATED.equals(previousEvent.getChangeType())
                       && previousParentIds != null && parentIds.containsAll(previousParentIds)) {
                     // same name object on the same parents was created by previous event - we assume this
                     // current as a 'version' of that previous and skip for the moment
                     // TODO apply correct version detection for documents
-                    // TODO folder version detection can be done in dedicated connector via native API
                     previousItem = null;
                     previousEvent = null;
                     previousParentIds = null;
@@ -688,8 +683,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     protected void syncFiles() throws CloudDriveException, RepositoryException, InterruptedException {
       RepositoryInfo repoInfo = api.getRepositoryInfo();
 
-      // TODO in general it can be possible that Changes Log capability will be disabled in runtime and
-      // then repoInfo.getLatestChangeLogToken() can be null
       ChangeToken changeToken = api.readToken(repoInfo.getLatestChangeLogToken());
       ChangeToken localChangeToken = api.readToken(getChangeToken(rootNode));
       ChangeToken lastChangeToken = api.emptyToken();
@@ -812,7 +805,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       try {
         file = api.createDocument(parentId, title, mimeType, content);
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here and make local file to reflect the cloud side
+        // FYI we assume name as factor of equality here and make local file to reflect the cloud side
         CmisObject existing = null;
         ChildrenIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -856,15 +849,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     public String createFolder(Node folderNode, Calendar created) throws CloudDriveException,
                                                                  RepositoryException {
 
-      // TODO create folder logic
-
       String parentId = getParentId(folderNode);
       String title = getTitle(folderNode);
       Folder folder;
       try {
         folder = api.createFolder(getParentId(folderNode), getTitle(folderNode));
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here
+        // we assume name as factor of equality here
         CmisObject existing = null;
         ChildrenIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -1453,7 +1444,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     // changeToken used for synchronization
     setChangeToken(localNode, item.getChangeToken());
 
-    // XXX probably useless - seems it is OpenCMIS internal time since last update of caches with the server
+    // TODO probably useless - seems it is OpenCMIS internal time since last update of caches with the server
     localNode.setProperty("cmiscd:refreshTimestamp", item.getRefreshTimestamp());
 
     // properties below not actually used by the Cloud Drive,
@@ -1580,13 +1571,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
     boolean changed = node.isNew();
     if (!changed) {
-      String changeToken = item.getChangeToken();
-      if (changeToken == null) {
-        // XXX if changeToken is null, then we will use last-modified date to decide for local update
-        // TODO try use checksums or hashes, to find status of changes
+      String changeTokenText = item.getChangeToken();
+      if (changeTokenText == null) {
+        // if changeToken is null, then we will use last-modified date to decide for local update
         changed = modified.after(node.getProperty("ecd:modified").getDate());
       } else {
-        changed = !getChangeToken(node).equals(changeToken);
+        changed = !getChangeToken(node).equals(changeTokenText);
       }
     }
 
@@ -1696,7 +1686,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    */
   @Override
   protected String editLink(Node fileNode) {
-    // TODO Return actual link for embedded editing (in iframe) or null if that not supported
+    // Not general support for editing UI in CMIS, can be overridden in vendor specific extension
     return null;
   }
 
@@ -1804,21 +1794,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String name = document.getName();
       String mimeType = document.getContentStreamMimeType();
       if (mimeType == null || mimeType.startsWith(mimeTypes.getDefaultMimeType())) {
-        // XXX guessing from locally stored MIME type is less relevant as local data is a result of last sync
-        // with remote service whch we already read and found null or default type.
-        // Reading local JCR also is slow op we already do when reading the file to know its ID for this
-        // method.
-        // Node fileNode = findNode(fileId);
-        // if (fileNode != null) {
-        // try {
-        // mimeType = fileNode.getProperty("ecd:type").getString();
-        // } catch (PathNotFoundException e) {
-        // throw new NotFoundException("Local node not cloud file (" + fileId + ") " + fileNode.getPath());
-        // }
-        // } else {
-        // throw new NotFoundException("Local file not found " + fileId);
-        // }
-
         // try guess the type from name/extension
         String fileType = mimeTypes.getMimeType(name);
         if (fileType != null) {

@@ -512,12 +512,25 @@ public class PDFViewerStorage {
                                                                                                          DriveRemovedException,
                                                                                                          RepositoryException,
                                                                                                          IOException {
+    long lastModified = file.getModifiedDate().getTimeInMillis();
+
     String userId = drive.getLocalUser();
     FileKey key = new FileKey(repository, workspace, userId, drive.getTitle(), file.getId());
     PDFFile pdfFile = spool.get(key);
-    if (pdfFile == null) {
-      long lastModified = file.getModifiedDate().getTimeInMillis();
+    if (pdfFile != null) {
+      if (lastModified > pdfFile.getLastModified()) {
+        // file preview outdated in the storage - reset it and create a fresh representation
+        if (pdfFile.remove()) {
+          // null file only if it was successfully removed,
+          pdfFile = null;
+        } else {
+          // otherwise file in use and we stay use the old version
+          LOG.warn("Cannot remove PDF view of cloud file from the storage: " + file.getTitle());
+        }
+      }
+    }
 
+    if (pdfFile == null) {
       StringBuilder filePath = new StringBuilder();
       filePath.append(repository);
       filePath.append(File.separatorChar);
