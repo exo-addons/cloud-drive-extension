@@ -75,6 +75,7 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -522,7 +523,7 @@ public class CMISAPI {
   /**
    * Singleton of empty change token.
    */
-  protected final ChangeToken              emptyToken  = new ChangeToken(EMPTY_TOKEN);
+  protected final ChangeToken              emptyToken          = new ChangeToken(EMPTY_TOKEN);
 
   /**
    * Client session parameters.
@@ -886,12 +887,33 @@ public class CMISAPI {
                                                                                                     ConstraintException {
     Session session = session();
     try {
-      CmisObject obj;
-      try {
-        obj = readObject(parentId, session, objectContext);
-      } catch (CmisObjectNotFoundException e) {
-        throw new NotFoundException("Parent not found: " + parentId, e);
+      CmisObject obj = null;
+      
+      // XXX workaround of CmisRuntimeException: null - read 3 times with pause
+      int i = 0;
+      CmisRuntimeException unexpected;
+      do {
+        i++;
+        unexpected = null;
+        try {
+          obj = readObject(parentId, session, folderContext);
+        } catch (CmisObjectNotFoundException e) {
+          throw new NotFoundException("Parent not found: " + parentId, e);
+        } catch (CmisRuntimeException e) {
+          if (e.getMessage() == null && e.getErrorContent() == null) {
+            unexpected = e;
+            try {
+              Thread.sleep(500);
+            } catch (InterruptedException e1) {
+              LOG.warn("Error sleeping in createDocument " + e.getMessage());
+            }
+          }
+        }
+      } while (obj == null && i <= 3);
+      if (obj == null) {
+        throw new CMISException("Cannot read parent object " + parentId + " of " + name, unexpected);
       }
+      
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
 
@@ -921,7 +943,8 @@ public class CMISAPI {
       throw new ConflictException("Document update conflict for '" + name + "'", e);
     } catch (CmisObjectNotFoundException e) {
       // this can be a rice condition when parent just deleted or similar happened remotely
-      throw new NotFoundException("Error creating document: " + e.getMessage(), e);
+      throw new NotFoundException("Error creating document: "
+          + (e.getMessage() != null ? e.getMessage() : "object not found"), e);
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
@@ -961,7 +984,7 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = readObject(parentId, session, objectContext);
+        obj = readObject(parentId, session, folderContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
@@ -1688,8 +1711,9 @@ public class CMISAPI {
     } catch (CmisObjectNotFoundException e) {
       // Wrong service end-point used or incompatible CMIS version
       throw new WrongCMISProviderException("Error reading repositories list: " + e.getMessage(), e);
-    } catch(CmisPermissionDeniedException e) {
-      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(),
+                                       e);
     } catch (CmisRuntimeException e) {
       throw new CMISException("Runtime error when reading CMIS repositories list", e);
     } catch (CmisBaseException e) {

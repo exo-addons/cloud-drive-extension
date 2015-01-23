@@ -128,7 +128,7 @@ public class PDFViewer extends AbstractFileForm {
       // init PDF viewer data (aka initDatas())
       String repository = jcrService.getCurrentRepository().getConfiguration().getName();
       this.pdfFile = storage.createFile(repository, workspace, (JCRLocalCMISDrive) drive, file);
-
+      
       String previewLink = file.getPreviewLink();
       this.pdfLink = previewLink.replace(ContentService.SERVICE_PATH, ContentService.SERVICE_PATH + "/pdf");
       this.pdfPageLink = previewLink.replace(ContentService.SERVICE_PATH, ContentService.SERVICE_PATH

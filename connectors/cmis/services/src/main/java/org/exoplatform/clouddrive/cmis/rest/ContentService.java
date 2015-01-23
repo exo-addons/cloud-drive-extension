@@ -21,6 +21,7 @@ package org.exoplatform.clouddrive.cmis.rest;
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudDriveService;
+import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.cmis.ContentReader;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.clouddrive.cmis.ecms.viewer.storage.DocumentNotFoundException;
@@ -141,6 +142,11 @@ public class ContentService implements ResourceContainer {
             LOG.warn("Error login to read cloud file content " + workspace + ":" + path + ": "
                 + e.getMessage());
             return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
+          } catch (NotFoundException e) {
+            LOG.warn("File not found to read its content " + workspace + ":" + path, e);
+            return Response.status(Status.NOT_FOUND)
+                           .entity("File not found. " + e.getMessage())
+                           .build();
           } catch (CloudDriveException e) {
             LOG.warn("Error reading file content " + workspace + ":" + path, e);
             return Response.status(Status.BAD_REQUEST)
