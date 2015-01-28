@@ -330,7 +330,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   editLink(fileNode),
                                    previewLink(fileNode),
                                    thumbnailLink,
                                    type,
@@ -339,7 +338,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    fileNode,
                                    true);
     }
@@ -393,16 +391,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   editLink(folderNode),
-                                   previewLink(folderNode),
-                                   null,
                                    type,
-                                   null,
                                    modifiedBy,
                                    createdBy,
                                    created,
                                    created,
-                                   true,
                                    folderNode,
                                    true);
     }
@@ -440,7 +433,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        id,
                                        name,
                                        link,
-                                       editLink(fileNode),
                                        previewLink(fileNode),
                                        thumbnailLink,
                                        type,
@@ -449,7 +441,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        createdBy,
                                        created,
                                        modified,
-                                       false,
                                        fileNode,
                                        true);
         } catch (ParseException e) {
@@ -494,16 +485,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        id,
                                        name,
                                        link,
-                                       editLink(folderNode),
-                                       previewLink(folderNode),
-                                       null,
                                        type,
-                                       null,
                                        modifiedBy,
                                        createdBy,
                                        created,
                                        modified,
-                                       true,
                                        folderNode,
                                        true);
         } catch (ParseException e) {
@@ -549,7 +535,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      id,
                                      name,
                                      link,
-                                     editLink(fileNode),
                                      previewLink(fileNode),
                                      thumbnailLink,
                                      type,
@@ -558,7 +543,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      createdBy,
                                      created,
                                      modified,
-                                     false,
                                      fileNode,
                                      true);
       } catch (ParseException e) {
@@ -597,7 +581,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      id,
                                      name,
                                      link,
-                                     editLink(destFileNode),
                                      previewLink(destFileNode),
                                      thumbnailLink,
                                      type,
@@ -606,7 +589,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      createdBy,
                                      created,
                                      modified,
-                                     false,
                                      destFileNode,
                                      true);
       } catch (ParseException e) {
@@ -645,16 +627,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      id,
                                      name,
                                      link,
-                                     editLink(destFolderNode),
-                                     previewLink(destFolderNode),
-                                     null,
                                      type,
-                                     null,
                                      modifiedBy,
                                      createdBy,
                                      created,
                                      modified,
-                                     true,
                                      destFolderNode,
                                      true);
       } catch (ParseException e) {
@@ -729,7 +706,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        id,
                                        name,
                                        link,
-                                       editLink(fileNode),
                                        previewLink(fileNode),
                                        thumbnailLink,
                                        type,
@@ -738,7 +714,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        createdBy,
                                        created,
                                        modified,
-                                       false,
                                        fileNode,
                                        true);
         } catch (ParseException e) {
@@ -777,16 +752,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        id,
                                        name,
                                        link,
-                                       editLink(folderNode),
-                                       previewLink(folderNode),
-                                       null,
                                        type,
-                                       null,
                                        modifiedBy,
                                        createdBy,
                                        created,
                                        modified,
-                                       true,
                                        folderNode,
                                        true);
         } catch (ParseException e) {
@@ -1704,6 +1674,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String modifiedBy = item.getModifiedBy().getLogin();
 
       String link, embedLink, thumbnailLink;
+      JCRLocalCloudFile file;
       if (isFolder) {
         link = embedLink = api.getLink(item);
         thumbnailLink = api.getThumbnailLink(item);
@@ -1716,6 +1687,17 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                      modified);
           initBoxItem(node, item);
         }
+        file = new JCRLocalCloudFile(node.getPath(),
+                                     id,
+                                     name,
+                                     link,
+                                     type,
+                                     modifiedBy,
+                                     createdBy,
+                                     created,
+                                     modified,
+                                     node,
+                                     true);
       } else {
         // TODO for thumbnail we can use Thumbnail service
         // https://api.box.com/2.0/files/FILE_ID/thumbnail.png?min_height=256&min_width=256
@@ -1733,19 +1715,22 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                    modified);
           initBoxItem(node, item);
         }
+        file = new JCRLocalCloudFile(node.getPath(),
+                                     id,
+                                     name,
+                                     link,
+                                     embedLink,
+                                     thumbnailLink,
+                                     type,
+                                     null,
+                                     createdBy,
+                                     modifiedBy,
+                                     created,
+                                     modified,
+                                     node,
+                                     changed);
       }
-      return new JCRLocalCloudFile(node.getPath(), id, name, link, null, // editLink
-                                   embedLink,
-                                   thumbnailLink,
-                                   type,
-                                   null, // typeMode not required for Box
-                                   createdBy,
-                                   modifiedBy,
-                                   created,
-                                   modified,
-                                   isFolder,
-                                   node,
-                                   changed);
+      return file;
     } catch (ParseException e) {
       throw new BoxFormatException("Error parsing date of " + parent.getPath() + "/" + item.getName(), e);
     }
@@ -1791,14 +1776,5 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return String.format(BoxAPI.BOX_EMBED_URL_SSO, user.getEnterpriseId(), link);
     }
     return link;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String editLink(Node fileNode) {
-    // Box does not support embedded editor (due to SAMEORIGIN cross-domain policy)
-    return null;
   }
 }

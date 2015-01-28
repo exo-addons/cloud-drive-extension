@@ -844,7 +844,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   editLink(fileNode),
                                    previewLink(fileNode),
                                    thumbnailLink,
                                    type,
@@ -853,7 +852,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    fileNode,
                                    true);
     }
@@ -907,16 +905,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   editLink(folderNode),
-                                   previewLink(folderNode),
-                                   null,
                                    type,
-                                   null,
                                    modifiedBy,
                                    createdBy,
                                    created,
                                    created,
-                                   true,
                                    folderNode,
                                    true);
     }
@@ -955,7 +948,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                        id,
                                        name,
                                        link,
-                                       editLink(fileNode),
                                        previewLink(fileNode),
                                        thumbnailLink,
                                        type,
@@ -964,7 +956,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                        createdBy,
                                        created,
                                        modified,
-                                       false,
                                        fileNode,
                                        true);
         } else {
@@ -1007,16 +998,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                        id,
                                        name,
                                        link,
-                                       editLink(folderNode),
-                                       previewLink(folderNode),
-                                       null,
                                        type,
-                                       null,
                                        modifiedBy,
                                        createdBy,
                                        created,
                                        modified,
-                                       true,
                                        folderNode,
                                        true);
         } else {
@@ -1057,7 +1043,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   editLink(fileNode),
                                    previewLink(fileNode),
                                    thumbnailLink,
                                    type,
@@ -1066,7 +1051,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    fileNode,
                                    true);
     }
@@ -1101,7 +1085,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   editLink(destFileNode),
                                    previewLink(destFileNode),
                                    thumbnailLink,
                                    type,
@@ -1110,7 +1093,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    destFileNode,
                                    true);
     }
@@ -1146,16 +1128,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   editLink(destFolderNode),
-                                   previewLink(destFolderNode),
-                                   null,
                                    type,
-                                   null,
                                    modifiedBy,
                                    createdBy,
                                    created,
                                    modified,
-                                   true,
                                    destFolderNode,
                                    true);
     }
@@ -1701,6 +1678,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     }
 
     String link, thumbnailLink;
+    JCRLocalCloudFile file;
     if (isFolder) {
       link = api.getLink((Folder) item);
       thumbnailLink = null;
@@ -1708,6 +1686,17 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         initFolder(node, id, name, type, link, createdBy, modifiedBy, created, modified);
         initCMISItem(node, item);
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   type,
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   node,
+                                   true);
     } else {
       link = api.getLink(item);
       // TODO use real thumbnailLink if available or null
@@ -1722,31 +1711,29 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  created,
                  modified);
         initCMISItem(node, item);
-
         if (contentLength >= 0) {
           // File size
           // TODO exo's property to show the size: jcr:content's length?
           node.setProperty("cmiscd:size", contentLength);
         }
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   previewLink(node),
+                                   thumbnailLink,
+                                   type,
+                                   typeMode,
+                                   createdBy,
+                                   modifiedBy,
+                                   created,
+                                   modified,
+                                   node,
+                                   changed);
     }
 
-    return new JCRLocalCloudFile(node.getPath(),
-                                 id,
-                                 name,
-                                 link,
-                                 editLink(node),
-                                 previewLink(node),
-                                 thumbnailLink,
-                                 type,
-                                 typeMode,
-                                 createdBy,
-                                 modifiedBy,
-                                 created,
-                                 modified,
-                                 isFolder,
-                                 node,
-                                 changed);
+    return file;
   }
 
   /**
@@ -1799,15 +1786,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     } catch (DriveRemovedException e) {
       return null;
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String editLink(Node fileNode) {
-    // Not general support for editing UI in CMIS, can be overridden in vendor specific extension
-    return null;
   }
 
   /**

@@ -303,7 +303,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    id,
                                    name,
                                    link,
-                                   editLink(fileNode),
+                                   null,
                                    previewLink(fileNode),
                                    thumbnailLink,
                                    type,
@@ -312,7 +312,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    fileNode,
                                    true);
     }
@@ -368,16 +367,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    id,
                                    name,
                                    link,
-                                   editLink(folderNode),
-                                   previewLink(folderNode),
-                                   null,
                                    type,
-                                   null,
                                    modifiedBy,
                                    createdBy,
                                    created,
                                    created,
-                                   true,
                                    folderNode,
                                    true);
     }
@@ -415,7 +409,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                      id,
                                      name,
                                      link,
-                                     editLink(fileNode),
+                                     null,
                                      previewLink(fileNode),
                                      thumbnailLink,
                                      type,
@@ -424,7 +418,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                      createdBy,
                                      created,
                                      modified,
-                                     false,
                                      fileNode,
                                      true);
       } // else file wasn't changed actually
@@ -466,16 +459,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                      id,
                                      name,
                                      link,
-                                     editLink(folderNode),
-                                     previewLink(folderNode),
-                                     null,
                                      type,
-                                     null,
                                      modifiedBy,
                                      createdBy,
                                      created,
                                      modified,
-                                     true,
                                      folderNode,
                                      true);
       } // else folder wasn't changed actually
@@ -517,7 +505,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    id,
                                    name,
                                    link,
-                                   editLink(fileNode),
+                                   null,
                                    previewLink(fileNode),
                                    thumbnailLink,
                                    type,
@@ -526,7 +514,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    fileNode,
                                    true);
     }
@@ -561,7 +548,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    id,
                                    name,
                                    link,
-                                   editLink(destFileNode),
+                                   null,
                                    previewLink(destFileNode),
                                    thumbnailLink,
                                    type,
@@ -570,7 +557,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
-                                   false,
                                    destFileNode,
                                    true);
     }
@@ -605,16 +591,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    id,
                                    name,
                                    link,
-                                   editLink(destFolderNode),
-                                   previewLink(destFolderNode),
-                                   null,
                                    type,
-                                   null,
                                    modifiedBy,
                                    createdBy,
                                    created,
                                    modified,
-                                   true,
                                    destFolderNode,
                                    true);
     }
@@ -1098,6 +1079,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     String modifiedBy = ""; // item.getModifiedBy().getLogin();
 
     String link, embedLink, thumbnailLink;
+    JCRLocalCloudFile file;
     if (isFolder) {
       link = embedLink = api.getLink(item);
       thumbnailLink = null;
@@ -1110,6 +1092,17 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                    modified);
         initCloudItem(node, item);
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   type,
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   node,
+                                   true);
     } else {
       link = api.getLink(item);
       embedLink = api.getEmbedLink(item);
@@ -1126,24 +1119,24 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                  modified);
         initCloudItem(node, item);
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   null,
+                                   embedLink,
+                                   thumbnailLink,
+                                   type,
+                                   typeMode,
+                                   createdBy,
+                                   modifiedBy,
+                                   created,
+                                   modified,
+                                   node,
+                                   changed);
     }
 
-    return new JCRLocalCloudFile(node.getPath(),
-                                 id,
-                                 name,
-                                 link,
-                                 editLink(node),
-                                 embedLink,
-                                 thumbnailLink,
-                                 type,
-                                 typeMode,
-                                 createdBy,
-                                 modifiedBy,
-                                 created,
-                                 modified,
-                                 isFolder,
-                                 node,
-                                 changed);
+    return file;
   }
 
   /**
@@ -1153,15 +1146,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   protected String previewLink(Node fileNode) throws RepositoryException {
     // TODO return specially formatted preview link or using a special URL if that required by the cloud API
     return super.previewLink(fileNode);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String editLink(Node fileNode) {
-    // TODO Return actual link for embedded editing (in iframe) or null if edit not supported
-    return null;
   }
 
   protected boolean notInRange(String path, Collection<String> range) {
