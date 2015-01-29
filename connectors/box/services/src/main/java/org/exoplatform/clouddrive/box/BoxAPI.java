@@ -944,9 +944,9 @@ public class BoxAPI {
                                                                               RefreshAccessException,
                                                                               ConflictException {
     try {
-      BoxFolderRequestObject obj = BoxFolderRequestObject.createSharedLinkRequestObject(null); // TODO
+      BoxFolderRequestObject obj = BoxFolderRequestObject.createSharedLinkRequestObject(null);
       obj.put("created_at", formatDate(created));
-      return client.getSharedFoldersManager("sharedLink", "password").createFolder(obj); // TODO
+      return client.getSharedFoldersManager("sharedLink", "password").createFolder(obj);
     } catch (BoxRestException e) {
       throw new BoxException("Error creating folder: " + e.getMessage(), e);
     } catch (BoxServerException e) {

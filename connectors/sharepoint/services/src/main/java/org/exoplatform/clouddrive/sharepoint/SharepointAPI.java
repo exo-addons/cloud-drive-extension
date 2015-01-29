@@ -259,7 +259,7 @@ public class SharepointAPI extends CMISAPI {
 
       DefaultHttpClient client = new DefaultHttpClient(connectionManager);
 
-      // TODO force BASIC only
+      // TODO force BASIC only?
       // List<String> authpref = new ArrayList<String>();
       // authpref.add(AuthPolicy.BASIC);
       // client.getParams().setParameter(AuthPNames.PROXY_AUTH_PREF, authpref);
@@ -415,17 +415,9 @@ public class SharepointAPI extends CMISAPI {
     // extract site host URL from CMIS AtomPub service
     try {
       URI uri = new URI(serviceURL);
-      // StringBuilder host = new StringBuilder();
       String scheme = uri.getScheme();
-      // host.append(scheme);
-      // host.append("://");
       String hostname = uri.getHost();
-      // host.append(hostname);
       int port = uri.getPort();
-      if (uri.getPort() != 80 || uri.getPort() != 443) {
-        // host.append(':');
-        // host.append(port);
-      }
       this.siteHost = new HttpHost(hostname, port, scheme);
       this.siteURL = this.siteHost.toURI().toString();
     } catch (URISyntaxException e) {
@@ -434,7 +426,6 @@ public class SharepointAPI extends CMISAPI {
 
     this.nativeClient = new RESTClient();
 
-    // TODO throw proper ex if not Sharepoint site
     this.siteTitle = readSiteTitle();
     this.siteUser = readSiteUser();
   }

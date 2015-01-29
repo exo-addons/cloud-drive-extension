@@ -18,6 +18,5 @@
  */
 /**
  * Box.com connector. In general in it based on GoogleDrive's connector due to OAuth2 used in both.
- * TODO unification for OAuth2.
  */
 package org.exoplatform.clouddrive.box;

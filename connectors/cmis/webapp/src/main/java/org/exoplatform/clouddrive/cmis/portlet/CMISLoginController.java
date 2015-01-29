@@ -252,13 +252,7 @@ public class CMISLoginController {
       KeyPair keyPair = keyGen.genKeyPair();
       PublicKey publicKey = keyPair.getPublic();
       PrivateKey privateKey = keyPair.getPrivate();
-
       keys.put(user, privateKey);
-      // TODO cleanup
-      // StringBuilder retString = new StringBuilder();
-      // for (int i = 0; i < key.length; ++i) {
-      // retString.append(Integer.toHexString(0x0100 + (key[i] & 0x00FF)).substring(1));
-      // }
       return Base64.encodeBytes(publicKey.getEncoded());
     } catch (NoSuchAlgorithmException e) {
       LOG.error("Error creating " + KEY_ALGORITHM + " key pair for user " + user, e);

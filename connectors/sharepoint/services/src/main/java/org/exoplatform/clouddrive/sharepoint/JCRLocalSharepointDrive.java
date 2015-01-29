@@ -109,21 +109,6 @@ public class JCRLocalSharepointDrive extends JCRLocalCMISDrive {
   }
 
   /**
-   * Initialize CMIS specifics of files and folders.
-   * 
-   * @param localNode {@link Node}
-   * @param item {@link CmisObject}
-   * @throws RepositoryException
-   * @throws CMISException
-   */
-  protected void initCMISItem(Node localNode, CmisObject item) throws RepositoryException, CMISException {
-    super.initCMISItem(localNode, item);
-
-    // TODO add specific props
-    // localNode.setProperty("cmiscd:refreshTimestamp", item.getRefreshTimestamp());
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override

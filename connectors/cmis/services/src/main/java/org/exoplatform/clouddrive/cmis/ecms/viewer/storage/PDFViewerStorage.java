@@ -527,14 +527,6 @@ public class PDFViewerStorage {
         cleanFile(extractName(rpath));
       }
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onError(CloudDriveEvent event, Throwable error, String operationName) {
-      // TODO remove changed & removed or do nothing?
-    }
   }
 
   protected final ConcurrentHashMap<FileKey, PDFFile>     spool    = new ConcurrentHashMap<FileKey, PDFFile>();

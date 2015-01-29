@@ -236,8 +236,6 @@ public class ContentService implements ResourceContainer {
 
                 ImageFile image = pdfFile.getPageImage(page, rotation, scale);
 
-                // TODO instead of use Content-Disposition for file name, keep file name in URL
-                // http://stackoverflow.com/questions/1361604/how-to-encode-utf8-filename-for-http-headers-python-django
                 return Response.ok(image.getStream(), image.getType())
                                .header("Last-Modified", pdfFile.getLastModified())
                                .header("Content-Length", image.getLength())
@@ -315,8 +313,6 @@ public class ContentService implements ResourceContainer {
                 ResponseBuilder resp = Response.ok(pdfFile.getStream(), pdfFile.getMimeType())
                                                .header("Last-Modified", pdfFile.getLastModified())
                                                .header("Content-Length", pdfFile.getLength());
-                // TODO instead of use Content-Disposition for file name, keep file name in URL
-                // http://stackoverflow.com/questions/1361604/how-to-encode-utf8-filename-for-http-headers-python-django
                 resp.header("Content-Disposition", "attachment; filename=\"" + pdfFile.getName() + "\"");
                 return resp.build();
               } else {

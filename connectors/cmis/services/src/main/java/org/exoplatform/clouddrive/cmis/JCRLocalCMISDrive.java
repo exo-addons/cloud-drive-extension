@@ -827,7 +827,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = findMimetype(file, mimeType);
@@ -929,7 +929,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           id = file.getId();
           String name = file.getName();
           String link = api.getLink(file);
-          String thumbnailLink = link; // TODO need real thumbnail
+          String thumbnailLink = link;
           String createdBy = file.getCreatedBy();
           String modifiedBy = file.getLastModifiedBy();
           String type = file.getContentStreamMimeType();
@@ -1024,7 +1024,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = file.getContentStreamMimeType();
@@ -1066,7 +1066,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = file.getContentStreamMimeType();
@@ -1699,7 +1699,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    true);
     } else {
       link = api.getLink(item);
-      // TODO use real thumbnailLink if available or null
       thumbnailLink = link;
       if (changed) {
         initFile(node, id, name, type, // mimetype

@@ -75,7 +75,6 @@ import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -153,7 +152,6 @@ public class CMISAPI {
           // it is folder
           parent = (Folder) obj;
           children = parent.getChildren(folderContext);
-          // TODO reorder folders first in the iterator?
           long total = children.getTotalNumItems();
           if (total == -1) {
             total = children.getPageNumItems();
@@ -581,7 +579,7 @@ public class CMISAPI {
     parameters.put(SessionParameter.ATOMPUB_URL, serviceURL);
     parameters.put(SessionParameter.BINDING_TYPE, BindingType.ATOMPUB.value());
 
-    // TODO need session locale?
+    // if need session locale?
     // parameters.put(SessionParameter.LOCALE_ISO3166_COUNTRY, "");
     // parameters.put(SessionParameter.LOCALE_ISO639_LANGUAGE, "de");
 
@@ -849,11 +847,7 @@ public class CMISAPI {
    * @throws RefreshAccessException
    */
   protected String getLink(CmisObject file) throws CMISException, RefreshAccessException {
-    // XXX type Constants.MEDIATYPE_FEED assumed as better fit, need confirm this with the doc
-    // TODO org.apache.chemistry.opencmis.client.bindings.spi.atompub.CmisAtomPubConstants.LINK_HREF,
-
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
-
     String linkContent = link.loadContentLink(repositoryId, file.getId());
     if (linkContent != null) {
       return linkContent;
@@ -872,7 +866,6 @@ public class CMISAPI {
    */
   protected String getLink(Folder file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
-
     String linkSelfEntry = link.loadLink(repositoryId,
                                          file.getId(),
                                          Constants.REL_SELF,
@@ -1249,7 +1242,7 @@ public class CMISAPI {
                                                                                              ConstraintException {
     Session session = session();
     try {
-      CmisObject result = null;
+      CmisObject result;
       CmisObject obj;
       try {
         obj = readObject(id, session, objectContext);
@@ -1327,6 +1320,8 @@ public class CMISAPI {
           } else {
             throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
           }
+        } else {
+          result = obj;
         }
 
         return result; // resulting object updated to reflect remote changes

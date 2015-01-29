@@ -111,7 +111,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       rootNode.setProperty("ecd:url", api.getLink(boxRoot));
 
       // sync stream
-      // TODO run first sync here
       setChangeId(eventsInit.getNextStreamPosition());
       rootNode.setProperty("box:streamHistory", ""); // empty history
     }

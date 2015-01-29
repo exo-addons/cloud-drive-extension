@@ -44,7 +44,7 @@ public class CodeAuthentication {
   /**
    * Lifetime of an identity in milliseconds.
    */
-  public static final long   IDENTITY_LIFETIME = 1000 * 60; // TODO 10sec
+  public static final long   IDENTITY_LIFETIME = 1000 * 60;
 
   protected static final Log LOG               = ExoLogger.getLogger(CodeAuthentication.class);
 

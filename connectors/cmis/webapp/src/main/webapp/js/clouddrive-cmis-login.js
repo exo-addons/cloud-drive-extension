@@ -163,9 +163,7 @@
 						console.log("WARN: user key not found");
 					}
 				});
-			} else {
-				// TODO form not valid
-			}
+			} // else form not valid
 		});
 	});
 
