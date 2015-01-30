@@ -831,13 +831,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = findMimetype(file, mimeType);
+      long size = file.getContentStreamLength();
 
       initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(fileNode, file);
 
       return new JCRLocalCloudFile(fileNode.getPath(),
@@ -852,6 +854,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    fileNode,
                                    true);
     }
@@ -935,13 +938,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           String type = file.getContentStreamMimeType();
           Calendar created = file.getCreationDate();
           modified = file.getLastModificationDate();
+          long size = file.getContentStreamLength();
 
           initFile(fileNode, id, name, type, link, null, // embedLink=null
                    thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
                    created,
-                   modified);
+                   modified,
+                   size);
           initCMISItem(fileNode, file);
 
           return new JCRLocalCloudFile(fileNode.getPath(),
@@ -956,6 +961,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                        createdBy,
                                        created,
                                        modified,
+                                       size,
                                        fileNode,
                                        true);
         } else {
@@ -1030,13 +1036,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String type = file.getContentStreamMimeType();
       Calendar created = file.getCreationDate();
       modified = file.getLastModificationDate();
+      long size = file.getContentStreamLength();
 
       initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(fileNode, file);
 
       return new JCRLocalCloudFile(fileNode.getPath(),
@@ -1051,6 +1059,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    fileNode,
                                    true);
     }
@@ -1072,13 +1081,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String type = file.getContentStreamMimeType();
       Calendar created = file.getCreationDate();
       Calendar modified = file.getLastModificationDate();
+      long size = file.getContentStreamLength();
 
       initFile(destFileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(destFileNode, file);
 
       return new JCRLocalCloudFile(destFileNode.getPath(),
@@ -1093,6 +1104,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    destFileNode,
                                    true);
     }
@@ -1563,7 +1575,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                           String author,
                           String lastUser,
                           Calendar created,
-                          Calendar modified) throws RepositoryException {
+                          Calendar modified,
+                          long size) throws RepositoryException {
 
     // clarify type: try guess more relevant MIME type from file name/extension.
     String recommendedType = findMimetype(title, type);
@@ -1581,7 +1594,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                    author,
                    lastUser,
                    created,
-                   modified);
+                   modified,
+                   size);
   }
 
   /**
@@ -1633,12 +1647,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     String name = item.getName();
     String type, typeMode;
     boolean isFolder, isDocument;
-    long contentLength;
+    long size;
     if (api.isDocument(item)) {
       isFolder = false;
       isDocument = true;
       Document document = (Document) item;
-      contentLength = document.getContentStreamLength();
+      size = document.getContentStreamLength();
       type = document.getContentStreamMimeType();
       if (type == null || type.equals(mimeTypes.getDefaultMimeType())) {
         type = mimeTypes.getMimeType(name);
@@ -1647,7 +1661,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     } else {
       isDocument = false;
       isFolder = api.isFolder(item);
-      contentLength = -1;
+      size = -1;
       type = item.getType().getId();
       typeMode = null;
     }
@@ -1708,13 +1722,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  createdBy,
                  modifiedBy,
                  created,
-                 modified);
+                 modified,
+                 size);
         initCMISItem(node, item);
-        if (contentLength >= 0) {
-          // File size
-          // TODO exo's property to show the size: jcr:content's length?
-          node.setProperty("cmiscd:size", contentLength);
-        }
       }
       file = new JCRLocalCloudFile(node.getPath(),
                                    id,
@@ -1728,6 +1738,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    modifiedBy,
                                    created,
                                    modified,
+                                   size,
                                    node,
                                    changed);
     }

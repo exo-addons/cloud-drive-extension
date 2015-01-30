@@ -290,13 +290,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       String createdBy = "TODO"; // file.getCreatedBy().getLogin();
       String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
       String type = "TODO"; // file.getType();
+      long size = 0; // TODO file.getSize()
 
       initFile(fileNode, id, name, type, link, embedLink, //
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCloudItem(fileNode, file);
 
       return new JCRLocalCloudFile(fileNode.getPath(),
@@ -312,6 +314,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    fileNode,
                                    true);
     }
@@ -396,13 +399,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
         String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
         String type = "TODO"; // item.getType();
+        long size = 0; // TODO file.getSize()
 
         initFile(fileNode, id, name, type, link, embedLink, //
                  thumbnailLink, // downloadLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
-                 modified);
+                 modified,
+                 size);
         initCloudItem(fileNode, file);
 
         return new JCRLocalCloudFile(fileNode.getPath(),
@@ -418,6 +423,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                      createdBy,
                                      created,
                                      modified,
+                                     size,
                                      fileNode,
                                      true);
       } // else file wasn't changed actually
@@ -492,13 +498,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
       String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
       String type = "TODO"; // folder.getType();
+      long size = 0; // TODO file.getSize()
 
       initFile(fileNode, id, name, type, link, embedLink, //
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCloudItem(fileNode, file);
 
       return new JCRLocalCloudFile(fileNode.getPath(),
@@ -514,6 +522,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    fileNode,
                                    true);
     }
@@ -535,13 +544,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
       Calendar modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
       String type = "TODO"; // folder.getType();
+      long size = 0; // TODO file.getSize()
 
       initFile(destFileNode, id, name, type, link, embedLink, //
                thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCloudItem(destFileNode, file);
 
       return new JCRLocalCloudFile(destFileNode.getPath(),
@@ -557,6 +568,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    destFileNode,
                                    true);
     }
@@ -1030,7 +1042,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
     // File/folder size
     // TODO exo's property to show the size: jcr:content's length?
-    localNode.setProperty("PROVIDER_ID:size", ""); // item.getSize()
+    localNode.setProperty("ecd:size", ""); // item.getSize()
 
     // properties below not actually used by the Cloud Drive,
     // they are just for information available to PLF user
@@ -1077,6 +1089,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     Calendar modified = Calendar.getInstance(); // api.parseDate(item.getModifiedAt());
     String createdBy = ""; // item.getCreatedBy().getLogin();
     String modifiedBy = ""; // item.getModifiedBy().getLogin();
+    long size = 0; // TODO file.getSize()
 
     String link, embedLink, thumbnailLink;
     JCRLocalCloudFile file;
@@ -1116,7 +1129,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                  createdBy,
                  modifiedBy,
                  created,
-                 modified);
+                 modified,
+                 size);
         initCloudItem(node, item);
       }
       file = new JCRLocalCloudFile(node.getPath(),
@@ -1132,6 +1146,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                    modifiedBy,
                                    created,
                                    modified,
+                                   size,
                                    node,
                                    changed);
     }

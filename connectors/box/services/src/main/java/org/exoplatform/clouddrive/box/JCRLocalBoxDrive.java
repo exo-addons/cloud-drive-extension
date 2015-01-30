@@ -316,13 +316,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String thumbnailLink = api.getThumbnailLink(file);
       String createdBy = file.getCreatedBy().getLogin();
       String modifiedBy = file.getModifiedBy().getLogin();
+      long size = Math.round(file.getSize());
 
       initFile(fileNode, id, name, type, link, embedLink, //
                thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initBoxItem(fileNode, file);
 
       return new JCRLocalCloudFile(fileNode.getPath(),
@@ -337,6 +339,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    createdBy,
                                    created,
                                    modified,
+                                   size,
                                    fileNode,
                                    true);
     }
@@ -419,13 +422,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           Calendar created = api.parseDate(file.getCreatedAt());
           modified = api.parseDate(file.getModifiedAt());
           String modifiedBy = file.getModifiedBy().getLogin();
+          long size = Math.round(file.getSize());
 
           initFile(fileNode, id, name, type, link, embedLink, //
                    thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
                    created,
-                   modified);
+                   modified,
+                   size);
           initBoxItem(fileNode, file);
 
           return new JCRLocalCloudFile(fileNode.getPath(),
@@ -440,6 +445,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        createdBy,
                                        created,
                                        modified,
+                                       size,
                                        fileNode,
                                        true);
         } catch (ParseException e) {
@@ -521,13 +527,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         Calendar created = api.parseDate(file.getCreatedAt());
         modified = api.parseDate(file.getModifiedAt());
         String modifiedBy = file.getModifiedBy().getLogin();
+        long size = Math.round(file.getSize());
 
         initFile(fileNode, id, name, type, link, embedLink, //
                  thumbnailLink, // downloadLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
-                 modified);
+                 modified,
+                 size);
         initBoxItem(fileNode, file);
 
         return new JCRLocalCloudFile(fileNode.getPath(),
@@ -542,6 +550,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      createdBy,
                                      created,
                                      modified,
+                                     size,
                                      fileNode,
                                      true);
       } catch (ParseException e) {
@@ -567,13 +576,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         String modifiedBy = file.getModifiedBy().getLogin();
         Calendar created = api.parseDate(file.getCreatedAt());
         Calendar modified = api.parseDate(file.getModifiedAt());
+        long size = Math.round(file.getSize());
 
         initFile(destFileNode, id, name, type, link, embedLink, //
                  thumbnailLink, // thumbnailLink
                  createdBy, // author
                  modifiedBy, // lastUser
                  created,
-                 modified);
+                 modified,
+                 size);
         initBoxItem(destFileNode, file);
 
         return new JCRLocalCloudFile(destFileNode.getPath(),
@@ -588,6 +599,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      createdBy,
                                      created,
                                      modified,
+                                     size,
                                      destFileNode,
                                      true);
       } catch (ParseException e) {
@@ -692,13 +704,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           Calendar created = api.parseDate(file.getCreatedAt());
           Calendar modified = api.parseDate(file.getModifiedAt());
           String modifiedBy = file.getModifiedBy().getLogin();
+          long size = Math.round(file.getSize());
 
           initFile(fileNode, id, name, type, link, embedLink, //
                    thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
                    created,
-                   modified);
+                   modified,
+                   size);
           initBoxItem(fileNode, file);
 
           return new JCRLocalCloudFile(fileNode.getPath(),
@@ -713,6 +727,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                        createdBy,
                                        created,
                                        modified,
+                                       size,
                                        fileNode,
                                        true);
         } catch (ParseException e) {
@@ -1604,10 +1619,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       throw new BoxException("Error parsing sequence_id of " + localNode.getPath(), e);
     }
 
-    // File/folder size
-    // TODO exo's property to show the size: jcr:content's length?
-    localNode.setProperty("box:size", item.getSize());
-
     // properties below not actually used by the Cloud Drive,
     // they are just for information available to PLF user
     localNode.setProperty("box:ownedBy", item.getOwnedBy().getLogin());
@@ -1703,6 +1714,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         link = api.getLink(item);
         embedLink = api.getEmbedLink(item);
         thumbnailLink = api.getThumbnailLink(item);
+        long size = Math.round(item.getSize());
         if (changed) {
           initFile(node, id, name, type, // mimetype
                    link,
@@ -1711,7 +1723,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                    createdBy,
                    modifiedBy,
                    created,
-                   modified);
+                   modified,
+                   size);
           initBoxItem(node, item);
         }
         file = new JCRLocalCloudFile(node.getPath(),
@@ -1726,6 +1739,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      modifiedBy,
                                      created,
                                      modified,
+                                     size,
                                      node,
                                      changed);
       }
