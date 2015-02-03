@@ -80,16 +80,6 @@
                 <value>
                   <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
                     <field name="name">
-                      <string>eXo SharePoint Demo</string>
-                    </field>
-                    <field name="url">
-                      <string>http://exosharepoint.no-ip.info:8000/_vti_bin/cmis/rest?getRepositories</string>
-                    </field>
-                  </object>
-                </value>
-                <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
-                    <field name="name">
                       <string>Public Alfresco Demo</string>
                     </field>
                     <field name="url">
@@ -171,7 +161,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -205,7 +194,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -269,7 +257,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -322,7 +309,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -390,7 +376,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -433,7 +418,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -492,7 +476,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -536,7 +519,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>

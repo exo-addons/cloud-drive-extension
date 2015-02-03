@@ -29,7 +29,7 @@
 
   <artifactId>exo-clouddrive-config</artifactId>
   <packaging>jar</packaging>
-  <name>eXo Cloud Drive Extension :: Config</name>
+  <name>eXo Cloud Drive :: Extension Config</name>
   <description>eXo Cloud Drive configuration of portal extension</description>
 
 </project>
