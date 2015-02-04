@@ -8,8 +8,9 @@ Thanks to this extension it's possible connect cloud drives as folders in eXo Do
 Currently supported cloud drives:
 * Google Drive
 * Box
+* Any CMIS compliant repository
 
-This addon is for eXo Platform version 4.0.
+This addon is for eXo Platform version 4.0 and 4.1.
 
 Getting started
 ===============
@@ -37,9 +38,17 @@ Go to packaging bundle file created by last build in `cloud-drive-extension/pack
 Deploy to eXo Platform
 ----------------------
 
-Install [eXo Platform 4.0 Tomcat bundle](http://learn.exoplatform.com/Download-eXo-Platform-Express-Edition-En.html) to some directory, e.g. `/opt/platform-tomcat`.
+Install [eXo Platform 4.1 Tomcat bundle](http://learn.exoplatform.com/Download-eXo-Platform-Express-Edition-En.html) to some directory, e.g. `/opt/platform-tomcat`.
 
-Extract the add-on bundle archive to `extensions` subfolder in the Platform folder.
+Users of Platform 4.1, and those who installed [Addons Manager](https://github.com/exoplatform/addons-manager) in Platform 4.0, can simple install the add-on from central catalog by command:
+
+```
+./addon install exo-cloud-drive
+```
+
+If want install latest development milestone use "--unstable" key with the _addon_ tool.
+
+Users of base Platform 4.0 need [download](http://sourceforge.net/projects/exo/files/Addons/Cloud%20Drive/) the add-on bundle and extract it to `extensions` subfolder in the Platform folder.
 
 ```
 unzip ./cloud-drive-bundle-packaging.zip -d /opt/platform-tomcat/clouddrive
@@ -51,7 +60,7 @@ Install the add-on extension from root of the Platform:
 ./extension.sh --install clouddrive
 ```
 
-This will copy required files to the Platform Tomcat folders, details will print to the console.
+This will copy required files to the Platform Tomcat folders, details will be printed to the console.
 
 Enable Google Drive API
 -----------------------
@@ -81,12 +90,22 @@ Enable Box API
 - Create a new app with API Key Type: Content API. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: don't need point `redirect_uri` for the app, it will be submited by the add-on in the authentication requests.
 - Use your `client_id` and `client_secret` values for configuration below.
 
+CMIS repositories
+-----------------
+
+To connect CMIS repository you need following: 
+- an URL of AtomPub binding of your CMIS server
+- username and password to authenticate to the server
+- if the the server has several repositories you'll need to select an one: each repository can be connected as separate drive
+
+Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection. 
+
 Configuration
 -------------
 
-Open the configuration file of your Platform server `/opt/platform-tomcat/gatein/conf/configuration.properties`
+Open the configuration file of your Platform server `/opt/platform-tomcat/gatein/conf/exo.properties` (`configuration.properties` for Platform 4.0).
 
-Add the two following variables :
+Add the two following variables:
 
     #clouddrive.service.schema=https
     #clouddrive.service.host=mysecureplatform.com
@@ -103,6 +122,8 @@ The same way `clouddrive.box.client.id` and `clouddrive.box.client.secret` refer
 By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled HTTPS connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
 
 For more details check [configuration section](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/README.md) on connectors page. 
+
+CMIS connector has additional optional settings to [configure](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/cmis/README.md).
 
 Single Sign-On support
 ----------------------
