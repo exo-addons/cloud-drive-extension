@@ -96,9 +96,9 @@ CMIS repositories
 To connect CMIS repository you need following: 
 - an URL of AtomPub binding of your CMIS server
 - username and password to authenticate to the server
-- if the the server has several repositories you'll need to select an one: each repository can be connected as separate drive
+- if the the server has several repositories you'll need to select an one: each repository can be connected as a separate drive
 
-Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection. 
+Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
 
 Configuration
 -------------

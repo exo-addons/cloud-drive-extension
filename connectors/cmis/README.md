@@ -4,6 +4,13 @@ eXo Cloud Drive CMIS Connector
 CMIS connector for eXo Cloud Drive. This connect can connect any CMIS compliant repository as a cloud drive in eXo documents. 
 This connector is embedded into core Cloud Drive by default.
 
+To connect CMIS repository you need following: 
+- an URL of AtomPub binding of your CMIS server
+- username and password to authenticate to the server
+- if the the server has several repositories you'll need to select an one: each repository can be connected as a separate drive.
+
+Important notice: username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
+
 Configuration
 -------------
 
