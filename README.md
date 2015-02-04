@@ -100,7 +100,7 @@ To connect CMIS repository you need following:
 
 Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
 
-More information find on [CMIS connector page](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/cmis/README.md).
+More information find on [CMIS connector page](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
 
 Configuration
 -------------
@@ -123,9 +123,9 @@ The same way `clouddrive.box.client.id` and `clouddrive.box.client.secret` refer
 
 By default, Cloud Drive assumes that it runs on non-secure host (http protocol). But Box API requires secure URI for a production, thus it needs https URL for OAuth2 redirect and you have to configure your production to support SSL HTTP. You also may use your Platform server with enabled HTTPS connector for other needs. In both cases you need add `clouddrive.service.schema` to the configuration with proper value "https".
 
-For more details check [configuration section](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/README.md) on connectors page. 
+For more details check [configuration section](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/README.md) on connectors page. 
 
-CMIS connector has additional optional settings to [configure](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/cmis/README.md).
+CMIS connector has additional optional settings to [configure](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
 
 Single Sign-On support
 ----------------------
