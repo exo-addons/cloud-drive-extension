@@ -100,6 +100,8 @@ To connect CMIS repository you need following:
 
 Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
 
+More information find on [CMIS connector page](https://raw.github.com/exo-addons/cloud-drive-extension/master/connectors/cmis/README.m).
+
 Configuration
 -------------
 
