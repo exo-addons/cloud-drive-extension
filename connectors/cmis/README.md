@@ -1,13 +1,13 @@
 eXo Cloud Drive CMIS Connector
 ==============================
 
-CMIS connector for eXo Cloud Drive. This connect can connect any CMIS compliant repository as a cloud drive in eXo documents. 
-This connector is embedded into core Cloud Drive by default.
+CMIS connector for eXo Cloud Drive. This connector can connect any CMIS compliant repository as a cloud drive in eXo documents. 
+CMIS support embedded into core Cloud Drive by default.
 
 To connect CMIS repository you need following: 
 - an URL of AtomPub binding of your CMIS server
 - username and password to authenticate to the server
-- if the the server has several repositories you'll need to select an one: each repository can be connected as a separate drive.
+- if the server has several repositories you'll need to select an one: each repository can be connected as a separate cloud drive.
 
 Important notice: username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
 
@@ -17,7 +17,7 @@ Configuration
 CMIS connector doesn't require any configuration for getting started. But you may find useful to predefine list of your CMIS servers for better user experience. When user try connect CMIS repository as a cloud drive, the add-on will show a form where need fill server URL and username with password. If several repositories found on the server, then user will need to choose one of them. Predefined services allow configure list of named URLs in the form available from dropdown menu of _Service URL_ field. 
 Name of predefined service, in conjunction with the username and repository name, later will be used for cloud drive folder naming when connecting in eXo. It is form: ${Predefined Name} - ${Repository Name} - ${User Title}. When no predefined service was used (user entered an URL manually), then drive folder name will be: ${Vendor Name} CMIS - ${Repository Name} - ${User Title}. An username will be used as user title. But connectors extended from the CMIS one, can change this behaviour to offer more specific format.
 
-![CMIS login - predefined services](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/cmis/cmis-login-predefined.png)
+![CMIS login - predefined services](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/cmis/cmis-login-predefined.png =1000x)
 
 Predefined services a part of Cloud Drive add-on and they can be configured via connector plugin. This method good on development level, when need add predefined services to the packaged connector (e.g. when extending a connector).
 The CMIS connector additionally allows configure predefined AtomPub bindings via settings in eXo properties. Below both ways described with sample configuration.
