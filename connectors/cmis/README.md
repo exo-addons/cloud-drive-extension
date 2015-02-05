@@ -108,6 +108,36 @@ Note that settings keys (on the left) are case-sensitive and must be in lower ca
 Development
 -----------
 
-This project consist of two modules: services and webapp. For more info refer to [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md). 
+This project consist of two modules: services and webapp. 
 
+As described in core Cloud Drive documentation, there is a single entry point to the Cloud Drive API - _CloudDriveService_ component. Use this component to create or access your drives. As CMIS connector doesn't built on OAuth2 authentication flow, it requires additional steps to connect a repository as cloud drive. Below adapted sample from core add-on but with CMIS connector specific. 
+
+Having _CloudDriveService_ componnets in the hands you can use it to get available providers and proceed with a flow to connect your remote drive:
+* obtain instance of cloud provider via _getProvider(String id)_ with required connector id (_cmis_ here).
+* authenticate your user _authenticate(CloudProvider cloudProvider, String key)_, this method historically build for OAuth2 flow, it's why for CMIS we have _CodeAuthentication_ component which is a part of CMIS connector and works as a helper for UI (connect form).
+* having cloud user instance you can connect remote drive (CMIS repository) to any JCR node (it should be nt:folder). Core add-on doesn't care about what is it a node and where it located. Limitation to Personal Documents placed on WebUI level via component filter _PersonalDocumentsFilter_ for regarding action components in ECMS UI. Choose for a node from your requirements. Use method _createDrive(CloudUser user, Node driveNode)_ to create cloud drive in this node. The add-on will use it as a root of the remote drive and will manage its content respectively. Under creation it assumes initial fetch of all remote files and creation of meta-objects as sub-nodes in the JCR.
+* if you need find/test if some node already are connected cloud drive - use _findDrive()_ methods for this purpose.
+* how synchronization works: it should be invoked from outside the core via a method on drive instance _CloudDrive.synchronize()_. Cloud Drive integration with ECMS UI does this automatically thanks to Javascript client loaded in ECMS pages as part of the add-on WebUI components managed by set of filters (_CloudDriveFilter_, _CloudFileFilter_, _BelongToCloudDriveFilter_). If you'll open your node in ECMS file explorer they should work for you and you don't need anything to invoke the synchronization. For other pages you'll need use Javascript client to invoke synchronization according your app logic.
+
+Let's get close to CMIS specific, as it doesn't use OAuth2 flow, it's where we need authorization code to connect the user. You properly get the _CodeAuthentication_ component and obtained a code from it. Use this code as described above and obtain _CloudUser_ instance, then create a drive with it and your target JCR node.
+
+```java
+// Your JCR node of type nt:folder, it will be a root folder of cloud drive in eXo
+Node node = ...;
+// get eXo container
+ExoContainer myContainer = ExoContainerContext.getCurrentContainer(); 
+// obtain authentication code from CMIS authenticator
+CodeAuthentication codeAuth = (CodeAuthentication) myContainer.getComponentInstance(CodeAuthentication.class); 
+String code = codeAuth.authenticate(codeAuthServiceURL, codeAuthUser, codeAuthPasswordText); 
+// use CloudDriveService 
+CloudDriveService cloudDrives = (CloudDriveService) myContainer.getComponentInstance(CloudDriveService.class); 
+CloudProvider cmisProvider = cloudDrives.getProvider("cmis"); 
+CloudUser cmisUser = cloudDrives.authenticate(cmisProvider, code);
+// reference your code to target CMIS repository
+codeAuth.setCodeContext(code, repository);
+CloudDrive cmisRepoDrive = cloudDrives.createDrive(cmisUser, node); 
+// you may store cmisRepoDrive for later use, e.g. add listeners, get its files or invoke sync explicitly
+```
+
+For information about connectors development refer to [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md). 
 

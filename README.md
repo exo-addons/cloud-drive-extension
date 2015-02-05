@@ -168,6 +168,40 @@ Use Cloud Drive extension
 In running Platform go to Documents app, open Personal Documents folder root and click "Connect your Google Drive".
 Detailed steps described in this post [eXo Add-on in Action: Connecting your Google Drive to eXo Platform](http://blog.exoplatform.com/2013/02/28/exo-add-on-in-action-connecting-your-google-drive-to-exo-platform).
 
+Developing with Cloud Drive
+===========================
+
+There is a single entry point to the Cloud Drive API: _CloudDriveService_ component, you can get from eXo container. When you need interact with cloud drives (connect, find etc.), you need use this component only.
+
+Cloud Drive consists of core and ECMS services and extension webapp. The core offers common logic implementation for connecting, synchronizing and storing remote files in JCR. These common abstractions can be adapted to many external file storages and cloud services. To make the architecture pluggable Cloud Drive introduced [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md), see a paragraph below about creation of new connectors for further details. All connectors, are component plugins of _CloudDriveService_ and don't need get/create/invoke them explicitly to work with particular type of cloud drive, this component will do this for you. 
+
+When you work from outside the Platform's JVM, you may use existing RESTful services: _ConnectService_, _DriveService_, _ProviderService_, _FeaturesService_. Refer to javadoc of these classes for usage interfaces.
+
+There is also a Javascript client which can be loaded as AMD module (via RequireJS). It offers UI support for ECMS views and collection of helpful methods to access Cloud Drive web-services. This client described more in [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md).
+
+Having _CloudDriveService_ componnets in the hands you can use it to get available providers and proceed with a flow to connect your remote drive:
+* obtain instance of cloud provider via _getProvider(String id)_ with required connector id (cmis in your case).
+* authenticate your user _authenticate(CloudProvider cloudProvider, String key)_, this method historically build for OAuth2 flow and assume that you already have a _key_ - an authorization code from your OAuth2 service. It also assumes that related connectors already configured with required client credentials.
+* having cloud user instance you can connect remote drive to any JCR node (it should be _nt:folder_). The add-on doesn't care about what is it a node and where it located. Limitation to Personal Documents placed on WebUI level via component filter _PersonalDocumentsFilter_ for action components in ECMS UI. You can choose for a node from your requirements. Use method _createDrive(CloudUser user, Node driveNode)_ to create cloud drive in this node. The add-on will use it as a root of the remote drive and will manage its content respectively. Under drive creation it assumes initial fetch of all remote files and creation of meta-objects as sub-nodes in the JCR.
+* if you need find/test if some node already is a connected cloud drive - use _findDrive()_ methods for this purpose.
+* how synchronization works: it should be invoked from outside the add-on via a method on drive instance _CloudDrive.synchronize()_. Cloud Drive integration with ECMS UI does this automatically thanks to Javascript client, loaded in ECMS pages as part of the add-on WebUI components and managed by set of filters (_CloudDriveFilter_, _CloudFileFilter_, _BelongToCloudDriveFilter_). When you open your node in ECMS file explorer they should work for you and you don't need anything to invoke the synchronization. For other pages you'll need use Javascript client to invoke synchronization according your app logic.
+
+Below a sample code to connect Google Drive to some JCR node you prepared:
+```java
+// Your JCR node of type nt:folder, it will be a root folder of cloud drive in eXo
+Node node = ...;
+// get eXo container
+ExoContainer myContainer = ExoContainerContext.getCurrentContainer(); 
+// obtain OAuth2 authentication code in your app
+String code = ...; 
+// use CloudDriveService 
+CloudDriveService cloudDrives = (CloudDriveService) myContainer.getComponentInstance(CloudDriveService.class); 
+CloudProvider googleProvider = cloudDrives.getProvider("gdrive"); 
+CloudUser googleUser = cloudDrives.authenticate(googleProvider, code);
+CloudDrive myGoogleDrive = cloudDrives.createDrive(googleUser, node); 
+// you may store myGoogleDrive instance for later use, e.g. add listeners, get its files or invoke synchronization explicitly
+```
+
 Features Management
 ===================
 
