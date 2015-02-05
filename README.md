@@ -179,8 +179,8 @@ When you work from outside the Platform's JVM, you may use existing RESTful serv
 
 There is also a Javascript client which can be loaded as AMD module (via RequireJS). It offers UI support for ECMS views and collection of helpful methods to access Cloud Drive web-services. This client described more in [Connector API](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md).
 
-Having _CloudDriveService_ componnets in the hands you can use it to get available providers and proceed with a flow to connect your remote drive:
-* obtain instance of cloud provider via _getProvider(String id)_ with required connector id (cmis in your case).
+Having _CloudDriveService_ components in the hands you can use it to get available providers and proceed with a flow to connect your remote drive:
+* obtain instance of cloud provider via _getProvider(String id)_ with required connector id.
 * authenticate your user _authenticate(CloudProvider cloudProvider, String key)_, this method historically build for OAuth2 flow and assume that you already have a _key_ - an authorization code from your OAuth2 service. It also assumes that related connectors already configured with required client credentials.
 * having cloud user instance you can connect remote drive to any JCR node (it should be _nt:folder_). The add-on doesn't care about what is it a node and where it located. Limitation to Personal Documents placed on WebUI level via component filter _PersonalDocumentsFilter_ for action components in ECMS UI. You can choose for a node from your requirements. Use method _createDrive(CloudUser user, Node driveNode)_ to create cloud drive in this node. The add-on will use it as a root of the remote drive and will manage its content respectively. Under drive creation it assumes initial fetch of all remote files and creation of meta-objects as sub-nodes in the JCR.
 * if you need find/test if some node already is a connected cloud drive - use _findDrive()_ methods for this purpose.
