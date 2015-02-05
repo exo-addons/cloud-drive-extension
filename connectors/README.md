@@ -7,6 +7,7 @@ The add-on it is a portal extension to Platform. And each connector it is also a
 Currently existing connectors embedded in Cloud Drive add-on package:
 * Google Drive
 * Box
+* Any CMIS compliant repository
 
 Below it is described how to configure existing connectors. For development of a new connector refer to [Connector API documentation](https://github.com/exo-addons/cloud-drive-extension/blob/master/documentation/CONNECTOR_API.md).
 
@@ -86,6 +87,12 @@ Box connector sample configuration with SSO support (via provider ID):
     clouddrive.box.client.id=YYYYYY
     clouddrive.box.client.secret=ZZZZZZ
     clouddrive.box.sso.partneridpid=RRRRRRR
+
+CMIS
+----
+
+CMIS connector doesn't require any configuration for getting started. But you may find useful to predefine your CMIS servers for better user experience. When user try connect CMIS repository as a cloud drive, the add-on will show a form where need fill server URL and username with password. If several repositories found on the server, then user will need to choose one of them. Predefined services allow set list of named URLs in the form available from dropdown menu of _Service URL_ field. Find more on CMIS connector [page](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md). 
+
 
 Deployment
 ==========

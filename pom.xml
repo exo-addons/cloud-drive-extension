@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2013 eXo Platform SAS.
+    Copyright (C) 2015 eXo Platform SAS.
     
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
@@ -24,13 +24,12 @@
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>addons-parent-pom</artifactId>
-    <version>4</version>
+    <version>5</version>
   </parent>
-
   <artifactId>exo-clouddrive-parent</artifactId>
   <version>1.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>eXo Cloud Drive Extension :: Parent</name>
+  <name>eXo Cloud Drive :: Parent</name>
   <description>eXo Cloud Drive extension project reactor</description>
 
   <scm>
@@ -46,7 +45,7 @@
     <maven.compiler.target>1.6</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.1-M2</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.1.0</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.18.0-rc</com.google.api.client.version>
@@ -61,7 +60,7 @@
     <org.apache.chemistry.opencmis.version>0.12.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.15.10-GA</org.exoplatform.jcr-services.version>
+    <org.exoplatform.jcr-services.version>1.15.11-GA</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.0.8</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>0.7-groovy-2.0</spock.version>
@@ -145,18 +144,6 @@
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-cmis-webapp</artifactId>
-        <version>${project.version}</version>
-        <type>war</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-sharepoint-services</artifactId>
-        <version>${project.version}</version>
-        <type>jar</type>
-      </dependency>
-      <dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-sharepoint-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>

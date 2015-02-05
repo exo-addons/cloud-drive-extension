@@ -22,7 +22,6 @@
 					var cursorCss = $viewer.css("cursor");
 					$viewer.css("cursor", "wait");
 
-					// TODO use context file for url if it is null?
 					var contextFile = cloudDrive.getContextFile();
 					utils.log("contextFile: " + contextFile.path + " " + contextFile.typeMode);
 					if (!codeURL && contextFile) {

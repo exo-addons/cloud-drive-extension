@@ -152,7 +152,6 @@ public class CMISAPI {
           // it is folder
           parent = (Folder) obj;
           children = parent.getChildren(folderContext);
-          // TODO reorder folders first in the iterator?
           long total = children.getTotalNumItems();
           if (total == -1) {
             total = children.getPageNumItems();
@@ -522,7 +521,7 @@ public class CMISAPI {
   /**
    * Singleton of empty change token.
    */
-  protected final ChangeToken              emptyToken  = new ChangeToken(EMPTY_TOKEN);
+  protected final ChangeToken              emptyToken          = new ChangeToken(EMPTY_TOKEN);
 
   /**
    * Client session parameters.
@@ -580,7 +579,7 @@ public class CMISAPI {
     parameters.put(SessionParameter.ATOMPUB_URL, serviceURL);
     parameters.put(SessionParameter.BINDING_TYPE, BindingType.ATOMPUB.value());
 
-    // TODO need session locale?
+    // if need session locale?
     // parameters.put(SessionParameter.LOCALE_ISO3166_COUNTRY, "");
     // parameters.put(SessionParameter.LOCALE_ISO639_LANGUAGE, "de");
 
@@ -848,11 +847,7 @@ public class CMISAPI {
    * @throws RefreshAccessException
    */
   protected String getLink(CmisObject file) throws CMISException, RefreshAccessException {
-    // XXX type Constants.MEDIATYPE_FEED assumed as better fit, need confirm this with the doc
-    // TODO org.apache.chemistry.opencmis.client.bindings.spi.atompub.CmisAtomPubConstants.LINK_HREF,
-
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
-
     String linkContent = link.loadContentLink(repositoryId, file.getId());
     if (linkContent != null) {
       return linkContent;
@@ -871,7 +866,6 @@ public class CMISAPI {
    */
   protected String getLink(Folder file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
-
     String linkSelfEntry = link.loadLink(repositoryId,
                                          file.getId(),
                                          Constants.REL_SELF,
@@ -886,12 +880,33 @@ public class CMISAPI {
                                                                                                     ConstraintException {
     Session session = session();
     try {
-      CmisObject obj;
-      try {
-        obj = readObject(parentId, session, objectContext);
-      } catch (CmisObjectNotFoundException e) {
-        throw new NotFoundException("Parent not found: " + parentId, e);
+      CmisObject obj = null;
+      
+      // XXX workaround of CmisRuntimeException: null - read 3 times with pause
+      int i = 0;
+      CmisRuntimeException unexpected;
+      do {
+        i++;
+        unexpected = null;
+        try {
+          obj = readObject(parentId, session, folderContext);
+        } catch (CmisObjectNotFoundException e) {
+          throw new NotFoundException("Parent not found: " + parentId, e);
+        } catch (CmisRuntimeException e) {
+          if (e.getMessage() == null && e.getErrorContent() == null) {
+            unexpected = e;
+            try {
+              Thread.sleep(500);
+            } catch (InterruptedException e1) {
+              LOG.warn("Error sleeping in createDocument " + e.getMessage());
+            }
+          }
+        }
+      } while (obj == null && i <= 3);
+      if (obj == null) {
+        throw new CMISException("Cannot read parent object " + parentId + " of " + name, unexpected);
       }
+      
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
 
@@ -921,7 +936,8 @@ public class CMISAPI {
       throw new ConflictException("Document update conflict for '" + name + "'", e);
     } catch (CmisObjectNotFoundException e) {
       // this can be a rice condition when parent just deleted or similar happened remotely
-      throw new NotFoundException("Error creating document: " + e.getMessage(), e);
+      throw new NotFoundException("Error creating document: "
+          + (e.getMessage() != null ? e.getMessage() : "object not found"), e);
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
@@ -961,7 +977,7 @@ public class CMISAPI {
     try {
       CmisObject obj;
       try {
-        obj = readObject(parentId, session, objectContext);
+        obj = readObject(parentId, session, folderContext);
       } catch (CmisObjectNotFoundException e) {
         throw new NotFoundException("Parent not found: " + parentId, e);
       }
@@ -1226,7 +1242,7 @@ public class CMISAPI {
                                                                                              ConstraintException {
     Session session = session();
     try {
-      CmisObject result = null;
+      CmisObject result;
       CmisObject obj;
       try {
         obj = readObject(id, session, objectContext);
@@ -1304,6 +1320,8 @@ public class CMISAPI {
           } else {
             throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
           }
+        } else {
+          result = obj;
         }
 
         return result; // resulting object updated to reflect remote changes
@@ -1688,6 +1706,9 @@ public class CMISAPI {
     } catch (CmisObjectNotFoundException e) {
       // Wrong service end-point used or incompatible CMIS version
       throw new WrongCMISProviderException("Error reading repositories list: " + e.getMessage(), e);
+    } catch (CmisPermissionDeniedException e) {
+      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(),
+                                       e);
     } catch (CmisRuntimeException e) {
       throw new CMISException("Runtime error when reading CMIS repositories list", e);
     } catch (CmisBaseException e) {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2013 eXo Platform SAS.
+    Copyright (C) 2015 eXo Platform SAS.
     
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
@@ -28,7 +28,7 @@
   </parent>
   <artifactId>exo-clouddrive-connectors</artifactId>
   <packaging>pom</packaging>
-  <name>eXo Cloud Drive Extension :: Connectors</name>
+  <name>eXo Cloud Drive :: Connectors</name>
   <description>eXo Cloud Drive connectors</description>
 
   <modules>
@@ -36,6 +36,5 @@
     <module>box</module>
     <!-- module>dropbox</module -->
     <module>cmis</module>
-    <module>sharepoint</module>
   </modules>
 </project>

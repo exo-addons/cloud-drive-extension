@@ -54,7 +54,7 @@
 				}
 				// show default labels (validator work)
 				this.defaultShowErrors();
-			}/*
+			}/* TODO more detailed validation message?
 			 * , invalidHandler : function(event, validator) { // show global warning on the form var
 			 * errors = validator.numberOfInvalids(); if (errors) { $message.show(); $("html,
 			 * body").animate({ scrollTop : $message.offset().top }, 200); } else { $message.hide(); } }
@@ -147,9 +147,9 @@
 										$login.show();
 									}
 								} else {
-									var $message = $repository.find(".error-message-text");
+									var $message = $repository.find(".message-text");
 									if ($message.length > 0) {
-										console.log("ERROR: " + $message.text());
+										console.log($message.text());
 										$error.empty();
 										$message.detach().appendTo($error);
 										$error.show();
@@ -163,9 +163,7 @@
 						console.log("WARN: user key not found");
 					}
 				});
-			} else {
-				// TODO form not valid
-			}
+			} // else form not valid
 		});
 	});
 

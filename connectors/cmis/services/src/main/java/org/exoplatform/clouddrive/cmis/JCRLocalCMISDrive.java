@@ -27,10 +27,10 @@ import org.apache.chemistry.opencmis.commons.data.ContentStream;
 import org.apache.chemistry.opencmis.commons.data.RepositoryInfo;
 import org.apache.chemistry.opencmis.commons.enums.CapabilityChanges;
 import org.apache.chemistry.opencmis.commons.enums.ChangeType;
-import org.apache.chemistry.opencmis.commons.impl.MimeTypes;
 import org.exoplatform.clouddrive.CannotConnectDriveException;
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
@@ -56,7 +56,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -75,7 +74,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.activation.MimeType;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
@@ -116,7 +114,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       Folder root = api.getRootFolder();
       // actual drive Id (its root folder's id) and URL, see initDrive() also
       rootNode.setProperty("ecd:id", root.getId());
-      // TODO api.getRepositoryInfo().getThinClientUri() ?
       rootNode.setProperty("ecd:url", api.getLink(root));
 
       fetchChilds(root.getId(), rootNode);
@@ -226,8 +223,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 }
                 // even in case of local removal we check for all parents to merge possible removals done in
                 // parallel locally and remotely
-                // XXX empty remote parents means item fully removed in the CMIS repo
-                // TODO check if DELETED happes in case of multi-filed file unfiling
+                // FYI empty remote parents means item fully removed in the CMIS repo
+                // TODO check if DELETED happens in case of multi-filed file unfiling
                 deleteFile(id, new HashSet<String>());
               } else {
                 // file created/updated
@@ -279,14 +276,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                   }
 
                   // XXX nasty workround for Nuxeo versioning on file/folder creation (it sends all versions
-                  // in events even for cmis:folder)
+                  // in events even for cmis:folder) - move to dedicated extension
                   if (previousItem != null && name.equals(previousItem.getName()) && previousEvent != null
                       && ChangeType.CREATED.equals(previousEvent.getChangeType())
                       && previousParentIds != null && parentIds.containsAll(previousParentIds)) {
                     // same name object on the same parents was created by previous event - we assume this
                     // current as a 'version' of that previous and skip for the moment
                     // TODO apply correct version detection for documents
-                    // TODO folder version detection can be done in dedicated connector via native API
                     previousItem = null;
                     previousEvent = null;
                     previousParentIds = null;
@@ -411,7 +407,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
               // add created/copied Node to list of existing
               existing.add(localNode);
             } else if (!fileAPI.getTitle(localNode).equals(name)) {
-              // file was renamed, rename (move) its Node also
+              // file was renamed (moved) - update its Node also
               JCRLocalCloudFile localFile = updateItem(api, item, fp, moveFile(id, name, localNode, fp));
               if (localFile.isChanged()) {
                 changed.add(localFile);
@@ -688,8 +684,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     protected void syncFiles() throws CloudDriveException, RepositoryException, InterruptedException {
       RepositoryInfo repoInfo = api.getRepositoryInfo();
 
-      // TODO in general it can be possible that Changes Log capability will be disabled in runtime and
-      // then repoInfo.getLatestChangeLogToken() can be null
       ChangeToken changeToken = api.readToken(repoInfo.getLatestChangeLogToken());
       ChangeToken localChangeToken = api.readToken(getChangeToken(rootNode));
       ChangeToken lastChangeToken = api.emptyToken();
@@ -800,11 +794,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
-    public String createFile(Node fileNode,
-                             Calendar created,
-                             Calendar modified,
-                             String mimeType,
-                             InputStream content) throws CloudDriveException, RepositoryException {
+    public CloudFile createFile(Node fileNode,
+                                Calendar created,
+                                Calendar modified,
+                                String mimeType,
+                                InputStream content) throws CloudDriveException, RepositoryException {
 
       String parentId = getParentId(fileNode);
       String title = getTitle(fileNode);
@@ -812,7 +806,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       try {
         file = api.createDocument(parentId, title, mimeType, content);
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here and make local file to reflect the cloud side
+        // FYI we assume name as factor of equality here and make local file to reflect the cloud side
         CmisObject existing = null;
         ChildrenIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -833,30 +827,44 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = findMimetype(file, mimeType);
+      long size = file.getContentStreamLength();
 
       initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(fileNode, file);
 
-      return id;
+      return new JCRLocalCloudFile(fileNode.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   previewLink(fileNode),
+                                   thumbnailLink,
+                                   type,
+                                   mimeTypes.getMimeTypeMode(type, name),
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   size,
+                                   fileNode,
+                                   true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String createFolder(Node folderNode, Calendar created) throws CloudDriveException,
-                                                                 RepositoryException {
-
-      // TODO create folder logic
+    public CloudFile createFolder(Node folderNode, Calendar created) throws CloudDriveException,
+                                                                    RepositoryException {
 
       String parentId = getParentId(folderNode);
       String title = getTitle(folderNode);
@@ -864,7 +872,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       try {
         folder = api.createFolder(getParentId(folderNode), getTitle(folderNode));
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here
+        // we assume name as factor of equality here
         CmisObject existing = null;
         ChildrenIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
@@ -895,14 +903,26 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  created,
                  created); // created as modified here
       initCMISItem(folderNode, folder);
-      return id;
+
+      return new JCRLocalCloudFile(folderNode.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   type,
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   created,
+                                   folderNode,
+                                   true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void updateFile(Node fileNode, Calendar modified) throws CloudDriveException, RepositoryException {
+    public CloudFile updateFile(Node fileNode, Calendar modified) throws CloudDriveException,
+                                                                 RepositoryException {
 
       String id = getId(fileNode);
       CmisObject obj = api.updateObject(getParentId(fileNode), id, getTitle(fileNode), this);
@@ -912,32 +932,51 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           id = file.getId();
           String name = file.getName();
           String link = api.getLink(file);
-          String thumbnailLink = link; // TODO need real thumbnail
+          String thumbnailLink = link;
           String createdBy = file.getCreatedBy();
           String modifiedBy = file.getLastModifiedBy();
           String type = file.getContentStreamMimeType();
           Calendar created = file.getCreationDate();
           modified = file.getLastModificationDate();
+          long size = file.getContentStreamLength();
 
           initFile(fileNode, id, name, type, link, null, // embedLink=null
                    thumbnailLink, // downloadLink
                    createdBy, // author
                    modifiedBy, // lastUser
                    created,
-                   modified);
+                   modified,
+                   size);
           initCMISItem(fileNode, file);
+
+          return new JCRLocalCloudFile(fileNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       previewLink(fileNode),
+                                       thumbnailLink,
+                                       type,
+                                       mimeTypes.getMimeTypeMode(type, name),
+                                       modifiedBy,
+                                       createdBy,
+                                       created,
+                                       modified,
+                                       size,
+                                       fileNode,
+                                       true);
         } else {
           throw new CMISException("Object not a document: " + id + ", " + obj.getName());
         }
       } // else file wasn't changed actually
+      return null;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void updateFolder(Node folderNode, Calendar modified) throws CloudDriveException,
-                                                                RepositoryException {
+    public CloudFile updateFolder(Node folderNode, Calendar modified) throws CloudDriveException,
+                                                                     RepositoryException {
 
       String id = getId(folderNode);
       CmisObject obj = api.updateObject(getParentId(folderNode), id, getTitle(folderNode), this);
@@ -960,74 +999,122 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                      created,
                      modified);
           initCMISItem(folderNode, folder);
+
+          return new JCRLocalCloudFile(folderNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       type,
+                                       modifiedBy,
+                                       createdBy,
+                                       created,
+                                       modified,
+                                       folderNode,
+                                       true);
         } else {
           throw new CMISException("Object not a folder: " + id + ", " + obj.getName());
         }
       } // else folder wasn't changed actually
+      return null;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void updateFileContent(Node fileNode, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
-                                                                                                         RepositoryException {
+    public CloudFile updateFileContent(Node fileNode, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
+                                                                                                              RepositoryException {
       // Update existing file content and its metadata.
       Document file = api.updateContent(getId(fileNode), getTitle(fileNode), content, mimeType, this);
 
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = file.getContentStreamMimeType();
       Calendar created = file.getCreationDate();
       modified = file.getLastModificationDate();
+      long size = file.getContentStreamLength();
 
       initFile(fileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // downloadLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(fileNode, file);
+
+      return new JCRLocalCloudFile(fileNode.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   previewLink(fileNode),
+                                   thumbnailLink,
+                                   type,
+                                   mimeTypes.getMimeTypeMode(type, name),
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   size,
+                                   fileNode,
+                                   true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String copyFile(Node srcFileNode, Node destFileNode) throws CloudDriveException,
-                                                               RepositoryException {
+    public CloudFile copyFile(Node srcFileNode, Node destFileNode) throws CloudDriveException,
+                                                                  RepositoryException {
       Document file = api.copyDocument(getId(srcFileNode), getParentId(destFileNode), getTitle(destFileNode));
 
       String id = file.getId();
       String name = file.getName();
       String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
+      String thumbnailLink = link;
       String createdBy = file.getCreatedBy();
       String modifiedBy = file.getLastModifiedBy();
       String type = file.getContentStreamMimeType();
       Calendar created = file.getCreationDate();
       Calendar modified = file.getLastModificationDate();
+      long size = file.getContentStreamLength();
 
       initFile(destFileNode, id, name, type, link, null, // embedLink=null
                thumbnailLink, // thumbnailLink
                createdBy, // author
                modifiedBy, // lastUser
                created,
-               modified);
+               modified,
+               size);
       initCMISItem(destFileNode, file);
-      return id;
+
+      return new JCRLocalCloudFile(destFileNode.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   previewLink(destFileNode),
+                                   thumbnailLink,
+                                   type,
+                                   mimeTypes.getMimeTypeMode(type, name),
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   size,
+                                   destFileNode,
+                                   true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public String copyFolder(Node srcFolderNode, Node destFolderNode) throws CloudDriveException,
-                                                                     RepositoryException {
+    public CloudFile copyFolder(Node srcFolderNode, Node destFolderNode) throws CloudDriveException,
+                                                                        RepositoryException {
       Folder folder = api.copyFolder(getId(srcFolderNode),
                                      getParentId(destFolderNode),
                                      getTitle(destFolderNode));
@@ -1048,23 +1135,36 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  created,
                  modified);
       initCMISItem(destFolderNode, folder);
-      return id;
+
+      return new JCRLocalCloudFile(destFolderNode.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   type,
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   destFolderNode,
+                                   true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void removeFile(String id) throws CloudDriveException, RepositoryException {
+    public boolean removeFile(String id) throws CloudDriveException, RepositoryException {
       api.deleteDocument(id);
+      return true;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void removeFolder(String id) throws CloudDriveException, RepositoryException {
+    public boolean removeFolder(String id) throws CloudDriveException, RepositoryException {
       api.deleteFolder(id);
+      return true;
     }
 
     /**
@@ -1087,7 +1187,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
-    public boolean untrashFile(Node fileNode) throws CloudDriveException, RepositoryException {
+    public CloudFile untrashFile(Node fileNode) throws CloudDriveException, RepositoryException {
       throw new CMISException("Trash not supported");
     }
 
@@ -1095,7 +1195,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
-    public boolean untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
+    public CloudFile untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
       throw new CMISException("Trash not supported");
     }
 
@@ -1453,7 +1553,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     // changeToken used for synchronization
     setChangeToken(localNode, item.getChangeToken());
 
-    // XXX probably useless - seems it is OpenCMIS internal time since last update of caches with the server
+    // TODO probably useless - seems it is OpenCMIS internal time since last update of caches with the server
     localNode.setProperty("cmiscd:refreshTimestamp", item.getRefreshTimestamp());
 
     // properties below not actually used by the Cloud Drive,
@@ -1475,7 +1575,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                           String author,
                           String lastUser,
                           Calendar created,
-                          Calendar modified) throws RepositoryException {
+                          Calendar modified,
+                          long size) throws RepositoryException {
 
     // clarify type: try guess more relevant MIME type from file name/extension.
     String recommendedType = findMimetype(title, type);
@@ -1493,7 +1594,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                    author,
                    lastUser,
                    created,
-                   modified);
+                   modified,
+                   size);
   }
 
   /**
@@ -1545,12 +1647,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     String name = item.getName();
     String type, typeMode;
     boolean isFolder, isDocument;
-    long contentLength;
+    long size;
     if (api.isDocument(item)) {
       isFolder = false;
       isDocument = true;
       Document document = (Document) item;
-      contentLength = document.getContentStreamLength();
+      size = document.getContentStreamLength();
       type = document.getContentStreamMimeType();
       if (type == null || type.equals(mimeTypes.getDefaultMimeType())) {
         type = mimeTypes.getMimeType(name);
@@ -1559,7 +1661,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     } else {
       isDocument = false;
       isFolder = api.isFolder(item);
-      contentLength = -1;
+      size = -1;
       type = item.getType().getId();
       typeMode = null;
     }
@@ -1580,17 +1682,17 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
     boolean changed = node.isNew();
     if (!changed) {
-      String changeToken = item.getChangeToken();
-      if (changeToken == null) {
-        // XXX if changeToken is null, then we will use last-modified date to decide for local update
-        // TODO try use checksums or hashes, to find status of changes
+      String changeTokenText = item.getChangeToken();
+      if (changeTokenText == null) {
+        // if changeToken is null, then we will use last-modified date to decide for local update
         changed = modified.after(node.getProperty("ecd:modified").getDate());
       } else {
-        changed = !getChangeToken(node).equals(changeToken);
+        changed = !getChangeToken(node).equals(changeTokenText);
       }
     }
 
     String link, thumbnailLink;
+    JCRLocalCloudFile file;
     if (isFolder) {
       link = api.getLink((Folder) item);
       thumbnailLink = null;
@@ -1598,9 +1700,19 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         initFolder(node, id, name, type, link, createdBy, modifiedBy, created, modified);
         initCMISItem(node, item);
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   type,
+                                   modifiedBy,
+                                   createdBy,
+                                   created,
+                                   modified,
+                                   node,
+                                   true);
     } else {
       link = api.getLink(item);
-      // TODO use real thumbnailLink if available or null
       thumbnailLink = link;
       if (changed) {
         initFile(node, id, name, type, // mimetype
@@ -1610,33 +1722,28 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  createdBy,
                  modifiedBy,
                  created,
-                 modified);
+                 modified,
+                 size);
         initCMISItem(node, item);
-
-        if (contentLength >= 0) {
-          // File size
-          // TODO exo's property to show the size: jcr:content's length?
-          node.setProperty("cmiscd:size", contentLength);
-        }
       }
+      file = new JCRLocalCloudFile(node.getPath(),
+                                   id,
+                                   name,
+                                   link,
+                                   previewLink(node),
+                                   thumbnailLink,
+                                   type,
+                                   typeMode,
+                                   createdBy,
+                                   modifiedBy,
+                                   created,
+                                   modified,
+                                   size,
+                                   node,
+                                   changed);
     }
 
-    return new JCRLocalCloudFile(node.getPath(),
-                                 id,
-                                 name,
-                                 link,
-                                 editLink(node),
-                                 previewLink(node),
-                                 thumbnailLink,
-                                 type,
-                                 typeMode,
-                                 createdBy,
-                                 modifiedBy,
-                                 created,
-                                 modified,
-                                 isFolder,
-                                 node,
-                                 changed);
+    return file;
   }
 
   /**
@@ -1671,7 +1778,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       // add query
       link.append('?');
       link.append(uri.getRawQuery());
-  
+
       return link.toString();
     } catch (URISyntaxException e) {
       LOG.warn("Error creating content link for " + path + ": " + e.getMessage());
@@ -1689,15 +1796,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     } catch (DriveRemovedException e) {
       return null;
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected String editLink(Node fileNode) {
-    // TODO Return actual link for embedded editing (in iframe) or null if that not supported
-    return null;
   }
 
   /**
@@ -1721,7 +1819,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * returned if found. Otherwise a default type will be returned (
    * {@link ExtendedMimeTypeResolver#getDefaultMimeType()}).
    * 
-   * @param file {@link String} file name
+   * @param fileName {@link String} file name
    * @param fileType {@link String} MIME type already associated with the given file
    * @return {@link String} relevant MIME type, not <code>null</code>
    */
@@ -1738,7 +1836,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * will be returned. Otherwise a default type will be returned (
    * {@link ExtendedMimeTypeResolver#getDefaultMimeType()}).
    * 
-   * @param file {@link String} file name
+   * @param fileName {@link String} file name
    * @param fileType {@link String} MIME type already associated with the given file name
    * @param alternativeType {@link String} alternative (locally stored) MIME type for given file name or
    *          <code>null</code>
@@ -1804,21 +1902,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       String name = document.getName();
       String mimeType = document.getContentStreamMimeType();
       if (mimeType == null || mimeType.startsWith(mimeTypes.getDefaultMimeType())) {
-        // XXX guessing from locally stored MIME type is less relevant as local data is a result of last sync
-        // with remote service whch we already read and found null or default type.
-        // Reading local JCR also is slow op we already do when reading the file to know its ID for this
-        // method.
-        // Node fileNode = findNode(fileId);
-        // if (fileNode != null) {
-        // try {
-        // mimeType = fileNode.getProperty("ecd:type").getString();
-        // } catch (PathNotFoundException e) {
-        // throw new NotFoundException("Local node not cloud file (" + fileId + ") " + fileNode.getPath());
-        // }
-        // } else {
-        // throw new NotFoundException("Local file not found " + fileId);
-        // }
-
         // try guess the type from name/extension
         String fileType = mimeTypes.getMimeType(name);
         if (fileType != null) {

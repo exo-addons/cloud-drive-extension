@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2014 eXo Platform SAS.
+    Copyright (C) 2015 eXo Platform SAS.
     
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
@@ -26,11 +26,10 @@
     <artifactId>exo-clouddrive-PROVIDER_ID</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  
   <!-- Replace PROVIDER_ID with actual value -->
   <artifactId>exo-clouddrive-PROVIDER_ID-packaging</artifactId>
   <packaging>jar</packaging>
-  <name>eXo Cloud Drive Extension :: Connectors :: PROVIDER_ID :: Packaging</name>
+  <name>eXo Cloud Drive :: Connectors :: PROVIDER_ID :: Packaging</name>
   <description>eXo Cloud Drive PROVIDER_ID connector extension packaging</description>
   
   <dependencies>

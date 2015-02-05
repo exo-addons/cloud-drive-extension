@@ -1,0 +1,4 @@
+#{param name=message/}
+<div class="message-text">
+	<i class="uiIconError"></i><span>${message}</span>
+</div

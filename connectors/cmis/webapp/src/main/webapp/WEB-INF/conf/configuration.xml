@@ -80,16 +80,6 @@
                 <value>
                   <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
                     <field name="name">
-                      <string>eXo SharePoint Demo</string>
-                    </field>
-                    <field name="url">
-                      <string>http://exosharepoint.no-ip.info:8000/_vti_bin/cmis/rest?getRepositories</string>
-                    </field>
-                  </object>
-                </value>
-                <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
-                    <field name="name">
                       <string>Public Alfresco Demo</string>
                     </field>
                     <field name="url">
@@ -147,6 +137,39 @@
           </object>
         </object-param>
         <object-param>
+          <name>ShowCmisFile</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisFile</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.DefaultFileViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>45</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value><string>cmis</string></value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
           <name>ShowCmisText</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
             <field name="type">
@@ -171,7 +194,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -235,7 +257,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -288,7 +309,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -356,7 +376,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -399,7 +418,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -458,7 +476,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>
@@ -502,7 +519,6 @@
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value><string>cmis</string></value>
-                        <value><string>sharepoint</string></value>
                       </collection>
                     </field>
                   </object>

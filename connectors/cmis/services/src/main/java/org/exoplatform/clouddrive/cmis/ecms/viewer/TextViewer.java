@@ -28,17 +28,17 @@ import org.exoplatform.webui.config.annotation.ComponentConfig;
 public class TextViewer extends AbstractFileViewer {
 
   public static final long MAX_FILE_SIZE = 2 * 1024 * 1024; // 2M
-  
+
   public boolean isWebDocument() {
     String mimeType = file.getType();
     return mimeType.startsWith("text/html") || mimeType.startsWith("application/rss+xml")
-        || mimeType.startsWith("application/xhtml"); // TODO more types
+        || mimeType.startsWith("application/xhtml");
   }
 
   public boolean isXmlDocument() {
     String mimeType = file.getType();
     return mimeType.startsWith("text/xml") || mimeType.startsWith("application/xml")
-        || (mimeType.startsWith("application/") && mimeType.indexOf("+xml") > 0); // TODO more types
+        || (mimeType.startsWith("application/") && mimeType.indexOf("+xml") > 0);
   }
 
   public boolean isFormattedText() {

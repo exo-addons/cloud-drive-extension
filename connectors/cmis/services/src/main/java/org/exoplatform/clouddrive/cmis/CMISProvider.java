@@ -18,6 +18,7 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
+import org.exoplatform.clouddrive.CloudDriveConnector.PredefinedServices;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.services.jcr.RepositoryService;
@@ -164,12 +165,35 @@ public class CMISProvider extends CloudProvider {
     return Collections.unmodifiableSet(predefined);
   }
 
-  protected void initPredefined(Set<?> predefined) {
-    for (Object obj : predefined) {
-      if (obj instanceof AtomPub) {
-        this.predefined.add((AtomPub) obj);
-      } else {
-        LOG.warn("Not supported predefined service: " + predefined.getClass().getName());
+  protected void initPredefined(PredefinedServices predefined) {
+    String propKey = "clouddrive." + getId() + ".predefined";
+    String predefinedPropOverride = System.getProperty(propKey + ".override", "true");
+
+    if ("true".equalsIgnoreCase(predefinedPropOverride)) {
+      // get predefined services from connector plugin configuration (in container configuration)
+      for (Object obj : predefined.getServices()) {
+        if (obj instanceof AtomPub) {
+          this.predefined.add((AtomPub) obj);
+        } else {
+          LOG.warn("Not supported predefined service: " + predefined.getClass().getName());
+        }
+      }
+    }
+
+    // add predefined services from system properties (set via exo.properties or directly in JVM)
+    String predefinedProp = System.getProperty(propKey);
+    if (predefinedProp != null) {
+      // parse predefined string
+      for (String ps : predefinedProp.split("\n")) {
+        int i = ps.indexOf(":");
+        if (i + 1 < ps.length()) {
+          AtomPub p = new AtomPub();
+          p.setName(ps.substring(0, i));
+          p.setUrl(ps.substring(i + 1));
+          this.predefined.add(p);
+        } else {
+          LOG.warn("Cannot load predefined service from property: " + ps);
+        }
       }
     }
   }
