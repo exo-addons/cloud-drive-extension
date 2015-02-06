@@ -27,7 +27,6 @@
     <artifactId>exo-clouddrive-PROVIDER_ID</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  
   <!-- Replace PROVIDER_ID with actual value -->
   <artifactId>exo-clouddrive-PROVIDER_ID-webapp</artifactId>
   <packaging>war</packaging>
