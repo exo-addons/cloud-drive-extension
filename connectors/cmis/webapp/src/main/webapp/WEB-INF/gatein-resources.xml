@@ -23,7 +23,7 @@
   xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
   xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
-  <!-- CSS for Cloud Drive support of CMIS (includes third-party styles) -->
+  <!-- CSS for Cloud Drive support of CMIS -->
   <portlet-skin>
     <application-name>cloud-drive-cmis</application-name>
     <portlet-name>CMISLoginPortlet</portlet-name>
@@ -31,13 +31,13 @@
     <css-path>/skin/clouddrive-cmis-login.css</css-path>
     <css-priority>1</css-priority>
   </portlet-skin>
-
+  
   <!-- Javascript for Cloud Drive support of CMIS -->
   <module>
     <name>jqueryUI</name>
     <as>jqueryUI</as>
     <script>
-      <path>/js/jquery-ui.js</path>
+      <path>/js/jquery-ui.min.js</path>
     </script>
     <depends>
       <module>jquery</module>
@@ -66,7 +66,7 @@
     <script>
       <adapter>
         (function(jQuery) {
-        <include>/js/jquery.validate.js</include>
+        <include>/js/jquery.validate.min.js</include>
         })($);
       </adapter>
     </script>

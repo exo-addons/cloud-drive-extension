@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2014 eXo Platform SAS.
+ * Copyright (C) 2003-2015 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -19,7 +19,6 @@
 /**
  * CMIS connector login portlet.
  */
-//@Application(defaultController = CMISLoginController.class)
 @Application
 @Portlet(name="CMISLoginPortlet")
 @Bindings({
@@ -30,19 +29,6 @@
     @Binding(value = CodeAuthentication.class)
 }
 )
-//@Assets(
-//    location = AssetLocation.SERVER,
-//    scripts = {
-//        @Script(src = "js/jquery-ui.js", id="jquery-ui", depends = {"jquery"} ),
-//        @Script(src = "js/bootstrap.js", id="bootstrap", depends = {"jquery"} ),
-//        @Script(src = "js/clouddrive-cmis-login.js", depends = {"juzu-ajax", "jquery", "jquery-ui", "bootstrap"} )
-//    },
-//    stylesheets = {
-//        @Stylesheet(src = "skin/jquery-ui.css"),
-//        @Stylesheet(src = "skin/clouddrive-cmis-login.css")
-//    }
-//)
-
 package org.exoplatform.clouddrive.cmis.portlet;
 
 import juzu.Application;
