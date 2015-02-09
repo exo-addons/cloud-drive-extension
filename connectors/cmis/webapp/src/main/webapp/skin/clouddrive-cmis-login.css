@@ -1,9 +1,7 @@
-@CHARSET "UTF-8";
-/*@import "bootstrap.css";
- @import "bootstrap-theme.css";*/
-@import "jquery-ui.css";
-@import "jquery-ui.structure.css";
-@import "jquery-ui.theme.css";
+/* XXX we do relative the server root because otherwise SkinService will go to in infinitive recursion */
+@import "/cloud-drive-cmis/skin/jquery-ui.min.css";
+@import "/cloud-drive-cmis/skin/jquery-ui.structure.min.css";
+@import "/cloud-drive-cmis/skin/jquery-ui.theme.min.css";
 
 .uiIconError {
 	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat scroll left top transparent;

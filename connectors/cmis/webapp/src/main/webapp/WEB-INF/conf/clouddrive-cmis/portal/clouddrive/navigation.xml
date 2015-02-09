@@ -33,7 +33,6 @@
         <uri>cmis/login</uri>
         <name>login</name>
         <label>CMIS Login</label>
-        <!-- <label>#{portal.clouddrive.cmis.site.login}</label> -->
         <page-reference>portal::clouddrive::cmislogin</page-reference>
       </node>
       <node>
