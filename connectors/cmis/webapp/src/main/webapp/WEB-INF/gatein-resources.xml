@@ -45,22 +45,6 @@
     </depends>
   </module>
 
-  <!-- Cloud Drive uses Bootstrap embedded in PLF -->
-  <!-- module>
-    <name>twitter-bootstrap</name>
-    <as>twitterBootstrap</as>
-    <script>
-      <adapter>
-        (function(jQuery) {
-        <include>/js/bootstrap.js</include>
-        })($);
-      </adapter>
-    </script>
-    <depends>
-      <module>jquery</module>
-    </depends>
-  </module -->
-  
   <module>
     <name>jqueryValidate</name>
     <script>
@@ -97,9 +81,6 @@
     <depends>
       <module>cloudDriveUtils</module>
     </depends>
-    <!-- depends>
-      <module>codeMirror</module>
-    </depends -->
   </module>
 
   <portlet>
