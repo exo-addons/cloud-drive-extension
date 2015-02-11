@@ -162,10 +162,22 @@ public class CMISAPI {
           // empty iterator
           return new ArrayList<CmisObject>().iterator();
         }
+      } catch (CmisConnectionException e) {
+        // communication (REST) error
+        throw new CMISException("Error getting folder items: " + e.getMessage(), e);
       } catch (CmisInvalidArgumentException e) {
+        // wrong input data: use dedicated exception type to let upper code to recognize it
         throw new CMISInvalidArgumentException("Error getting folder items (parent not a folder): "
             + e.getMessage(), e);
+      } catch (CmisPermissionDeniedException e) {
+        throw new RefreshAccessException("Permission denied for getting folder items: " + e.getMessage(), e);
+      } catch (CmisUnauthorizedException e) {
+        // session credentials already checked in session() method, here is something else and we don't know
+        // how to deal with it
+        throw new CloudDriveAccessException("Unauthorized for getting folder items: " + e.getMessage(), e);
       } catch (CmisRuntimeException e) {
+        throw new CMISException("Error getting folder items: " + e.getMessage(), e);
+      } catch (CmisBaseException e) {
         throw new CMISException("Error getting folder items: " + e.getMessage(), e);
       }
     }
@@ -195,7 +207,7 @@ public class CMISAPI {
 
     protected boolean           cleanNext    = true;
 
-    protected ChangesIterator(ChangeToken startChangeToken) throws CMISException, RefreshAccessException {
+    protected ChangesIterator(ChangeToken startChangeToken) throws CMISException, CloudDriveAccessException {
       this.changeToken = startChangeToken;
       this.lastFetchedToken = latestChunkToken = emptyToken();
 
@@ -205,7 +217,7 @@ public class CMISAPI {
       this.firstRun = false;
     }
 
-    protected Iterator<ChangeEvent> nextChunk() throws CMISException, RefreshAccessException {
+    protected Iterator<ChangeEvent> nextChunk() throws CMISException, CloudDriveAccessException {
       if (!changeToken.isEmpty()) {
         try {
           ChangeEvents events = session().getContentChanges(changeToken.getString(), true, FOLDER_PAGE_SIZE);
@@ -248,23 +260,29 @@ public class CMISAPI {
           available(changesLen);
 
           return changes.iterator();
+
+        } catch (CmisConnectionException e) {
+          // communication (REST) error
+          throw new CMISException("Error getting remote changes: " + e.getMessage(), e);
+        } catch (CmisPermissionDeniedException e) {
+          throw new RefreshAccessException("Permission denied for getting folder items: " + e.getMessage(), e);
+        } catch (CmisUnauthorizedException e) {
+          // session credentials already checked in session() method, here is something else and we don't know
+          // how to deal with it
+          throw new CloudDriveAccessException("Unauthorized for getting remote changes: " + e.getMessage(), e);
         } catch (CmisConstraintException e) {
           // CMIS 1.0 - The Repository MUST throw this exception if the event corresponding to the change
           // log token provided as an input parameter is no longer available in the change log. (E.g.
           // because the change log was truncated).
-          throw new CMISInvalidArgumentException("Error requesting Content Changes service (event corresponding "
-                                                     + "to provided change log token is no longer available): "
-                                                     + e.getMessage(),
-                                                 e);
+          throw new CMISInvalidArgumentException("Error getting remote changes (event corresponding "
+              + "to provided change log token is no longer available): " + e.getMessage(), e);
         } catch (CmisInvalidArgumentException e) {
           // CMIS v1.1 - if the event corresponding to the change log token provided as an input parameter
           // is no longer available in the change log. (E.g. because the change log was truncated).
-          throw new CMISInvalidArgumentException("Error requesting Content Changes service (event corresponding "
-                                                     + "to provided change log token is no longer available): "
-                                                     + e.getMessage(),
-                                                 e);
+          throw new CMISInvalidArgumentException("Error getting remote changes (event corresponding "
+              + "to provided change log token is no longer available): " + e.getMessage(), e);
         } catch (CmisRuntimeException e) {
-          throw new CMISException("Error requesting Content Changes service: " + e.getMessage(), e);
+          throw new CMISException("Error getting remote changes: " + e.getMessage(), e);
         }
       } else {
         return new ArrayList<ChangeEvent>().iterator(); // empty
@@ -834,7 +852,8 @@ public class CMISAPI {
     return new ChildrenIterator(folderId);
   }
 
-  protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException, RefreshAccessException {
+  protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException,
+                                                               CloudDriveAccessException {
     return new ChangesIterator(changeToken);
   }
 
@@ -881,7 +900,7 @@ public class CMISAPI {
     Session session = session();
     try {
       CmisObject obj = null;
-      
+
       // XXX workaround of CmisRuntimeException: null - read 3 times with pause
       int i = 0;
       CmisRuntimeException unexpected;
@@ -906,7 +925,7 @@ public class CMISAPI {
       if (obj == null) {
         throw new CMISException("Cannot read parent object " + parentId + " of " + name, unexpected);
       }
-      
+
       if (isFolder(obj)) {
         Folder parent = (Folder) obj;
 
