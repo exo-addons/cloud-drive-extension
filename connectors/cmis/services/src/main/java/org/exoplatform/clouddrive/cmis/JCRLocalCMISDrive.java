@@ -204,7 +204,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                   // delete file locally
                   if (LOG.isDebugEnabled()) {
                     LOG.debug("File " + changeType.value() + " " + id
-                        + " not found remotely - apply DELETED logic.");
+                        + " not found remotely - apply DELETED logic.", e);
                   }
                 }
               }
