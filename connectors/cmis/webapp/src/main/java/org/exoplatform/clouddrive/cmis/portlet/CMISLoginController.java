@@ -165,8 +165,9 @@ public class CMISLoginController {
               LOG.error("Login error: wrong CMIS service URL for " + providerName + ": " + e.getMessage());
               return errorMessage("Wrong service URL for " + providerName);
             } catch (CloudDriveAccessException e) {
-              LOG.error("Login error: access denied for " + providerName + ": " + e.getMessage());
-              return errorMessage("Access denied for " + providerName + ". Check your username and password and try again.");
+              LOG.error("Repository access error for " + userName + ": " + e.getMessage());
+              return errorMessage("Access error for " + userName
+                  + ". Check your username, password and have access permissions and try again.");
             } catch (CMISException e) {
               LOG.error("Login error: error reading repositories list", e);
               return errorMessage("Error reading repositories list from " + providerName + ". "
@@ -188,9 +189,9 @@ public class CMISLoginController {
             LOG.error("Login error: provider not available", e);
             return errorMessage("CMIS provider not available");
           } catch (CloudDriveAccessException e) {
-            LOG.warn("Login failure: " + e.getMessage());
-            return errorMessage("Authentication failure for " + userName
-                + ". Ensure you are using correct username and password and try again.");
+            LOG.warn("Service access error: " + e.getMessage());
+            return errorMessage("Access error for " + userName
+                + ". Ensure you are using correct username, password and have access permissions.");
           } catch (CloudDriveException e) {
             LOG.error("Login error: authentication error", e);
             return errorMessage("Authentication error for " + userName + ". " + e.getMessage());
