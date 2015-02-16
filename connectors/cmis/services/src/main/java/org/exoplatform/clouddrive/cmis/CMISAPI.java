@@ -356,11 +356,21 @@ public class CMISAPI {
   protected class ChangeToken {
     protected final String token;
 
+    protected final Long   order;
+
     protected ChangeToken(String token) {
       if (token == null) {
         this.token = EMPTY_TOKEN;
+        this.order = null;
       } else {
         this.token = token;
+        Long order;
+        try {
+          order = Long.parseLong(token);
+        } catch (NumberFormatException e) {
+          order = null;
+        }
+        this.order = order;
       }
     }
 
@@ -427,7 +437,12 @@ public class CMISAPI {
     }
 
     protected int compareTo(ChangeToken other) {
-      return this.getString().compareTo(other.getString());
+      if (order != null && other.order != null) {
+        return order.compareTo(other.order);
+      } else {
+        // XXX it is enough dangerous comparison, better override in vendor specific API
+        return this.getString().compareTo(other.getString());
+      }
     }
   }
 
@@ -914,11 +929,11 @@ public class CMISAPI {
       return getLatestDocumentVersionOrPWC(id);
     } catch (CMISException e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Error reading document version. " + e.getMessage(), e);
+        LOG.debug("Error reading document version " + id, e);
       }
     } catch (NotFoundException e) {
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Error reading document version. " + e.getMessage(), e);
+        LOG.debug("Error reading document version" + id, e);
       }
     }
     // if service error or document not found we return null
