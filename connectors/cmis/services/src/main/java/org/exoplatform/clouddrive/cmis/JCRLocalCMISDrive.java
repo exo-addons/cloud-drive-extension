@@ -56,8 +56,7 @@ import org.gatein.common.util.Base64;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -78,7 +77,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.jcr.Node;
-import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 
@@ -1344,9 +1342,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
       // go through all local nodes existing with given file id
       // and restore if its parent exists remotely, or remove local node otherwise
-      for (NodeIterator niter = findNodes(Arrays.asList(id)); niter.hasNext();) {
-        Node localFile = niter.nextNode();
-        Node localParent = localFile.getParent();
+      for (Node node : findNodes(Arrays.asList(id))) {
+        Node localParent = node.getParent();
         String parentId = fileAPI.getId(localParent);
 
         JCRLocalCloudFile restored = null;
@@ -1357,7 +1354,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             // restore file or sub-tree: update local file
             restored = restore(remote, localParent);
             rpiter.remove(); // this parent restored - remove it from the scope
-            if (path.equals(localFile.getPath())) {
+            if (path.equals(node.getPath())) {
               result = restored;
             }
             // break; we could force break here, but let's rely on remote parents consistency
@@ -1367,9 +1364,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         if (restored == null) {
           // nothing restored - this local parent should not contain the file
           // only if it is not already ignored
-          if (!fileAPI.isIgnored(localFile)) {
+          if (!fileAPI.isIgnored(node)) {
             try {
-              localFile.remove();
+              node.remove();
             } catch (PathNotFoundException e) {
               // already removed
             }
@@ -1382,10 +1379,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         String rpid = remoteParent.getId();
         // find all nodes of this remote parent, this way we respect "multifiling" of folders, what is not
         // possible according CMIS spec, but who knows vendors :)
-        for (NodeIterator niter = findNodes(Arrays.asList(rpid)); niter.hasNext();) {
-          Node localParent = niter.nextNode();
+        for (Node parent : findNodes(Arrays.asList(rpid))) {
           // restore file or sub-tree: create local file
-          JCRLocalCloudFile restored = restore(remote, localParent);
+          JCRLocalCloudFile restored = restore(remote, parent);
           if (result == null) {
             result = restored;
           }
@@ -1924,8 +1920,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected String createContentLink(String path, String fileId) throws DriveRemovedException,
                                                                 RepositoryException {
     // return link to this server with REST service proxy to access the CMIS repo
-    StringBuilder link = new StringBuilder();
-    link.append('/');
 
     StringBuilder linkPath = new StringBuilder();
     linkPath.append(PortalContainer.getCurrentPortalContainerName());
@@ -1934,21 +1928,26 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     linkPath.append(ContentService.SERVICE_PATH);
     linkPath.append('/');
     linkPath.append(rootWorkspace);
-    linkPath.append(path); // path already starts with slash
-
+    // path already starts with slash
+    // XXX we want escape + in file names as ECMS does
     try {
-      // we need properly escaped path of the URL, for a case of non-ASCI JCR name etc
-      URI uri = new URI(null, null, linkPath.toString(), "contentId=" + fileId, null);
-      link.append(uri.getRawPath());
-      // add query
-      link.append('?');
-      link.append(uri.getRawQuery());
-
-      return link.toString();
-    } catch (URISyntaxException e) {
-      LOG.warn("Error creating content link for " + path + ": " + e.getMessage());
-      return null;
+      String encodedPath = URLEncoder.encode(path, "UTF-8");
+      encodedPath = encodedPath.replaceAll("%2F", "/");
+      linkPath.append(encodedPath);
+    } catch (UnsupportedEncodingException e1) {
+      linkPath.append(path);
     }
+
+    StringBuilder link = new StringBuilder();
+    link.append('/');
+
+    link.append(linkPath);
+    // add query
+    link.append('?');
+    link.append("contentId=");
+    link.append(fileId);
+
+    return link.toString();
   }
 
   /**
