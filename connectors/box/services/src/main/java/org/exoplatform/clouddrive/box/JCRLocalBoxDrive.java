@@ -32,6 +32,7 @@ import org.exoplatform.clouddrive.CloudFileAPI;
 import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
+import org.exoplatform.clouddrive.ConstraintException;
 import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
@@ -205,22 +206,21 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
         if (localItem.isChanged()) {
           changed.add(localItem);
+        }
 
-          // cleanup of this file located in another place (usecase of rename/move)
-          // XXX this also assumes that Box doesn't support linking of files to other folders
-          // remove from map of local to mark the item as existing
-          // TODO why remove from nodes only if changed, need do this for all traversed!
-          List<Node> existing = nodes.remove(item.getId());
-          if (existing != null) {
-            String path = localItem.getPath();
-            for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
-              Node enode = eiter.next();
-              String epath = enode.getPath();
-              if (!epath.equals(path) && notInRange(epath, removed)) {
-                removed.add(epath);
-                enode.remove();
-                eiter.remove();
-              }
+        // cleanup of this file located in another place (usecase of rename/move)
+        // XXX this also assumes that Box doesn't support linking of files to other folders
+        // remove from map of local to mark the item as existing
+        List<Node> existing = nodes.remove(item.getId());
+        if (existing != null) {
+          String path = localItem.getPath();
+          for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
+            Node enode = eiter.next();
+            String epath = enode.getPath();
+            if (!epath.equals(path) && notInRange(epath, removed)) {
+              removed.add(epath);
+              enode.remove();
+              eiter.remove();
             }
           }
         }
@@ -410,49 +410,46 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                                                  RepositoryException {
       // Update existing file metadata and parent (location).
       BoxFile file = api.updateFile(getParentId(fileNode), getId(fileNode), getTitle(fileNode), modified);
-      if (file != null) {
-        try {
-          String id = file.getId();
-          String name = file.getName();
-          String type = findMimetype(name);
-          String link = api.getLink(file);
-          String embedLink = api.getEmbedLink(file);
-          String thumbnailLink = api.getThumbnailLink(file);
-          String createdBy = file.getCreatedBy().getLogin();
-          Calendar created = api.parseDate(file.getCreatedAt());
-          modified = api.parseDate(file.getModifiedAt());
-          String modifiedBy = file.getModifiedBy().getLogin();
-          long size = Math.round(file.getSize());
+      try {
+        String id = file.getId();
+        String name = file.getName();
+        String type = findMimetype(name);
+        String link = api.getLink(file);
+        String embedLink = api.getEmbedLink(file);
+        String thumbnailLink = api.getThumbnailLink(file);
+        String createdBy = file.getCreatedBy().getLogin();
+        Calendar created = api.parseDate(file.getCreatedAt());
+        modified = api.parseDate(file.getModifiedAt());
+        String modifiedBy = file.getModifiedBy().getLogin();
+        long size = Math.round(file.getSize());
 
-          initFile(fileNode, id, name, type, link, embedLink, //
-                   thumbnailLink, // downloadLink
-                   createdBy, // author
-                   modifiedBy, // lastUser
-                   created,
-                   modified,
-                   size);
-          initBoxItem(fileNode, file);
+        initFile(fileNode, id, name, type, link, embedLink, //
+                 thumbnailLink, // downloadLink
+                 createdBy, // author
+                 modifiedBy, // lastUser
+                 created,
+                 modified,
+                 size);
+        boolean changed = initBoxItem(fileNode, file);
 
-          return new JCRLocalCloudFile(fileNode.getPath(),
-                                       id,
-                                       name,
-                                       link,
-                                       previewLink(fileNode),
-                                       thumbnailLink,
-                                       type,
-                                       null,
-                                       modifiedBy,
-                                       createdBy,
-                                       created,
-                                       modified,
-                                       size,
-                                       fileNode,
-                                       true);
-        } catch (ParseException e) {
-          throw new BoxFormatException("Error parsing date of file " + fileNode.getPath(), e);
-        }
-      } // else file wasn't changed actually
-      return null;
+        return new JCRLocalCloudFile(fileNode.getPath(),
+                                     id,
+                                     name,
+                                     link,
+                                     previewLink(fileNode),
+                                     thumbnailLink,
+                                     type,
+                                     null,
+                                     modifiedBy,
+                                     createdBy,
+                                     created,
+                                     modified,
+                                     size,
+                                     fileNode,
+                                     changed);
+      } catch (ParseException e) {
+        throw new BoxFormatException("Error parsing date of file " + fileNode.getPath(), e);
+      }
     }
 
     /**
@@ -467,41 +464,38 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                           getId(folderNode),
                                           getTitle(folderNode),
                                           modified);
-      if (folder != null) {
-        try {
-          String id = folder.getId();
-          String name = folder.getName();
-          String link = api.getLink(folder);
-          String type = folder.getType();
-          String createdBy = folder.getCreatedBy().getLogin();
-          Calendar created = api.parseDate(folder.getCreatedAt());
-          modified = api.parseDate(folder.getModifiedAt());
-          String modifiedBy = folder.getModifiedBy().getLogin();
+      try {
+        String id = folder.getId();
+        String name = folder.getName();
+        String link = api.getLink(folder);
+        String type = folder.getType();
+        String createdBy = folder.getCreatedBy().getLogin();
+        Calendar created = api.parseDate(folder.getCreatedAt());
+        modified = api.parseDate(folder.getModifiedAt());
+        String modifiedBy = folder.getModifiedBy().getLogin();
 
-          initFolder(folderNode, id, name, type, //
-                     link, // link
-                     createdBy, // author
-                     modifiedBy, // lastUser
-                     created,
-                     modified);
-          initBoxItem(folderNode, folder);
+        initFolder(folderNode, id, name, type, //
+                   link, // link
+                   createdBy, // author
+                   modifiedBy, // lastUser
+                   created,
+                   modified);
+        boolean changed = initBoxItem(folderNode, folder);
 
-          return new JCRLocalCloudFile(folderNode.getPath(),
-                                       id,
-                                       name,
-                                       link,
-                                       type,
-                                       modifiedBy,
-                                       createdBy,
-                                       created,
-                                       modified,
-                                       folderNode,
-                                       true);
-        } catch (ParseException e) {
-          throw new BoxFormatException("Error parsing date of folder " + folderNode.getPath(), e);
-        }
-      } // else folder wasn't changed actually
-      return null;
+        return new JCRLocalCloudFile(folderNode.getPath(),
+                                     id,
+                                     name,
+                                     link,
+                                     type,
+                                     modifiedBy,
+                                     createdBy,
+                                     created,
+                                     modified,
+                                     folderNode,
+                                     changed);
+      } catch (ParseException e) {
+        throw new BoxFormatException("Error parsing date of folder " + folderNode.getPath(), e);
+      }
     }
 
     /**
@@ -691,11 +685,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     @Override
     public CloudFile untrashFile(Node fileNode) throws CloudDriveException, RepositoryException {
-      BoxFile file = api.untrashFile(fileAPI.getId(fileNode), fileAPI.getTitle(fileNode));
+      String id = fileAPI.getId(fileNode);
+      String name = fileAPI.getTitle(fileNode);
+      BoxFile file = api.untrashFile(id, name);
       if (!file.getItemStatus().equals(BoxAPI.BOX_ITEM_STATE_TRASHED)) {
         try {
-          String id = file.getId();
-          String name = file.getName();
+          id = file.getId();
+          name = file.getName();
           String type = findMimetype(name);
           String link = api.getLink(file);
           String embedLink = api.getEmbedLink(file);
@@ -733,8 +729,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         } catch (ParseException e) {
           throw new BoxFormatException("Error parsing date of file " + fileNode.getPath(), e);
         }
-      } // otherwise file wasn't trashed
-      return null;
+      } // otherwise file wasn't untrashed
+      throw new ConstraintException("File cannot be restored from Trash " + name + " (" + id + ")");
     }
 
     /**
@@ -742,11 +738,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     @Override
     public CloudFile untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
-      BoxFolder folder = api.untrashFolder(fileAPI.getId(folderNode), fileAPI.getTitle(folderNode));
+      String id = fileAPI.getId(folderNode);
+      String name = fileAPI.getTitle(folderNode);
+      BoxFolder folder = api.untrashFolder(id, name);
       if (!folder.getItemStatus().equals(BoxAPI.BOX_ITEM_STATE_TRASHED)) {
         try {
-          String id = folder.getId();
-          String name = folder.getName();
+          id = folder.getId();
+          name = folder.getName();
           String link = api.getLink(folder);
           String type = folder.getType();
           String createdBy = folder.getCreatedBy().getLogin();
@@ -776,8 +774,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         } catch (ParseException e) {
           throw new BoxFormatException("Error parsing date of folder " + folderNode.getPath(), e);
         }
-      }
-      return null;
+      } // otherwise folder wasn't untrashed
+      throw new ConstraintException("Folder cannot be restored from Trash " + name + " (" + id + ")");
     }
 
     /**
@@ -1262,7 +1260,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             BoxTypedObject source = e.getSource();
             if (source instanceof BoxItem) {
               BoxItem item = (BoxItem) source;
-              LOG.info(e.getEventType() + ": " + item.getId() + " " + item.getName() + " "
+              LOG.debug(e.getEventType() + ": " + item.getId() + " " + item.getName() + " "
                   + item.getSequenceId());
             }
           }
@@ -1598,11 +1596,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * 
    * @param localNode {@link Node}
    * @param item {@link BoxItem}
+   * @return boolean <code>true</code> if Box file was changed comparing to previous state, <code>false</code>
    * @throws RepositoryException
    * @throws BoxException
    */
-  protected void initBoxItem(Node localNode, BoxItem item) throws RepositoryException, BoxException {
-    // Box properties, if null, ones will be removed by JCR core
+  protected boolean initBoxItem(Node localNode, BoxItem item) throws RepositoryException, BoxException {
+    boolean changed = false;
 
     // Etag and sequence_id used for synchronization
     localNode.setProperty("box:etag", item.getEtag());
@@ -1613,7 +1612,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           LOG.debug(">>> initBoxItem: " + localNode.getPath() + " = " + item.getId() + " " + item.getName()
               + " " + item.getSequenceId());
         }
-        localNode.setProperty("box:sequenceId", Long.parseLong(sequenceIdStr));
+        Long prevSequenceId;
+        try {
+          prevSequenceId = localNode.getProperty("box:sequenceId").getLong();
+        } catch (PathNotFoundException e) {
+          prevSequenceId = null;
+        }
+        long sequenceId = Long.parseLong(sequenceIdStr);
+        localNode.setProperty("box:sequenceId", sequenceId);
+        changed = prevSequenceId != null ? sequenceId != prevSequenceId.longValue() : true;
       } // else, it's null (root or trash)
     } catch (NumberFormatException e) {
       throw new BoxException("Error parsing sequence_id of " + localNode.getPath(), e);
@@ -1629,6 +1636,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       localNode.setProperty("box:sharedAccess", shared.getAccess());
       localNode.setProperty("box:sharedCanDownload", shared.getPermissions().isCan_download());
     }
+
+    return changed;
   }
 
   protected String findMimetype(String fileName) {

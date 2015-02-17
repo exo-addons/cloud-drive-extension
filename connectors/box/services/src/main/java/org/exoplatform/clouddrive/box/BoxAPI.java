@@ -1272,8 +1272,7 @@ public class BoxAPI {
         throw new BoxException("Authentication error when updating file: " + e.getMessage(), e);
       }
     }
-    // else we return null, it means existing file wasn't changed
-    return null;
+    return existing;
   }
 
   BoxFile updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws BoxException,
@@ -1369,8 +1368,7 @@ public class BoxAPI {
         throw new BoxException("Authentication error when updating folder: " + e.getMessage(), e);
       }
     }
-    // else we return null, it means existing folder wasn't changed
-    return null;
+    return existing;
   }
 
   /**
@@ -1478,7 +1476,7 @@ public class BoxAPI {
   }
 
   BoxFolder readFolder(String id) throws BoxException, NotFoundException, RefreshAccessException {
-    try {// client.getSharedFoldersManager("", "").createFolder(requestObject)
+    try {
       return client.getFoldersManager().getFolder(id, new BoxDefaultRequestObject());
     } catch (BoxRestException e) {
       throw new BoxException("Error reading folder: " + e.getMessage(), e);
