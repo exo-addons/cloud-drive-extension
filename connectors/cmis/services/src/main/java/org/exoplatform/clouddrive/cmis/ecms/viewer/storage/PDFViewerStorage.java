@@ -276,6 +276,8 @@ public class PDFViewerStorage {
       }
     }
 
+    protected final FileKey                               key;
+
     protected final File                                  file;
 
     protected final String                                name;
@@ -290,7 +292,8 @@ public class PDFViewerStorage {
 
     protected long                                        lastAcccessed;
 
-    protected PDFFile(File file, String name, long lastModified, Document document) {
+    protected PDFFile(FileKey key, File file, String name, long lastModified, Document document) {
+      this.key = key;
       this.name = name;
       this.file = file;
       this.lastModified = lastModified;
@@ -339,6 +342,10 @@ public class PDFViewerStorage {
         res &= pageFile.delete();
       }
       return res ? file.delete() : false;
+    }
+
+    public boolean exists() {
+      return file.exists();
     }
 
     public int getNumberOfPages() {
@@ -480,6 +487,7 @@ public class PDFViewerStorage {
       for (Iterator<PDFFile> fiter = files.values().iterator(); fiter.hasNext();) {
         PDFFile file = fiter.next();
         if (file.remove()) {
+          spool.remove(file.key);
           fiter.remove();
         } else {
           LOG.warn("Cannot remove preview file: " + file.getName());
@@ -491,6 +499,7 @@ public class PDFViewerStorage {
       PDFFile file = files.get(name);
       if (file != null) {
         if (file.remove()) {
+          spool.remove(file.key);
           files.remove(name);
         } else {
           LOG.warn("Cannot remove preview file: " + file.getName());
@@ -527,6 +536,7 @@ public class PDFViewerStorage {
         cleanFile(extractName(rpath));
       }
     }
+
   }
 
   protected final ConcurrentHashMap<FileKey, PDFFile>     spool    = new ConcurrentHashMap<FileKey, PDFFile>();
@@ -585,15 +595,20 @@ public class PDFViewerStorage {
     FileKey key = new FileKey(repository, workspace, userId, drive.getTitle(), file.getId());
     PDFFile pdfFile = spool.get(key);
     if (pdfFile != null) {
-      if (lastModified > pdfFile.getLastModified()) {
-        // file preview outdated in the storage - reset it and create a fresh representation
-        if (pdfFile.remove()) {
-          // null file only if it was successfully removed,
-          pdfFile = null;
-        } else {
-          // otherwise file in use and we stay use the old version
-          LOG.warn("Cannot remove PDF view of cloud file from the storage: " + file.getTitle());
+      if (pdfFile.exists()) {
+        if (lastModified > pdfFile.getLastModified()) {
+          // file preview outdated in the storage - reset it and create a fresh representation
+          if (pdfFile.remove()) {
+            // null file only if it was successfully removed,
+            pdfFile = null;
+          } else {
+            // otherwise file in use and we stay use the old version
+            LOG.warn("Cannot remove PDF view of cloud file from the storage: " + file.getTitle());
+          }
         }
+      } else {
+        spool.remove(key);
+        pdfFile = null;
       }
     }
 
@@ -662,7 +677,7 @@ public class PDFViewerStorage {
           try {
             Document pdf = buildDocumentImage(tempStream, tempFile.getName());
             try {
-              pdfFile = new PDFFile(tempFile, cleanName, lastModified, pdf);
+              pdfFile = new PDFFile(key, tempFile, cleanName, lastModified, pdf);
 
               // listen the drive for file removal/updates to clean the storage
               addDriveListener(drive, pdfFile);
@@ -868,7 +883,7 @@ public class PDFViewerStorage {
     // max file length with a space for lastModified and page/rotation/scale suffix: all < 250
     return cleanName.length() > MAX_FILENAME_LENGTH ? cleanName.substring(0, MAX_FILENAME_LENGTH) : cleanName;
   }
-  
+
   private String previewFileName(String name) {
     return name + PDF_EXT;
   }
