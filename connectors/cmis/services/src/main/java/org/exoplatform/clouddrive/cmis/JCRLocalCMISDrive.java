@@ -1731,7 +1731,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
     // clarify type: try guess more relevant MIME type from file name/extension.
     String recommendedType = findMimetype(title, type);
-    if (recommendedType != null && !type.equals(recommendedType)) {
+    if (recommendedType != null && !recommendedType.equals(type)) {
       type = recommendedType;
     }
 
