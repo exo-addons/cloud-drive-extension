@@ -1527,7 +1527,7 @@ public class CMISAPI {
       CmisObject result;
       CmisObject obj;
       try {
-        obj = readObject(id, session, fileContext);
+        obj = readObject(id, session, fileContext); // FIXME On SP id may be null here (not always, on file removal)
       } catch (CmisObjectNotFoundException e) {
         // try use version series id to get an object
         String vid = local.findVersionSeriesId();
