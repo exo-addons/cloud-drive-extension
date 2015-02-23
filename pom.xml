@@ -27,7 +27,7 @@
     <version>5</version>
   </parent>
   <artifactId>exo-clouddrive-parent</artifactId>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.2.x-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>eXo Cloud Drive :: Parent</name>
   <description>eXo Cloud Drive extension project reactor</description>
