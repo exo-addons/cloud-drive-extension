@@ -1517,26 +1517,37 @@
 					$a.attr("target", "_blank");
 					$a.css("font-weight", "normal");
 
+					var viewIcon = $("<i></i>").attr("class", "uiIconWatch uiIconLightGray");
+					var editIcon = $("<i></i>").attr("class", "uiIconEdit uiIconLightGray");
+
 					var $iframe = $viewer.find("iframe");
 					// file link as edit link
 					if ($vswitch.size() > 0 && file.editLink && file.previewLink && file.editLink != file.previewLink) {
 						// init Edit/View mode
 						$iframe.attr("src", file.previewLink);
-						$vswitch.find("a").click(function() {
+						$vswitch.click(function() {
 							var currentLink = $iframe.attr("src");
 							if (currentLink == file.previewLink) {
 								// switch to editor
 								$iframe.attr("src", file.editLink);
 								var viewerTitle = $vswitch.attr("view-title");
 								$(this).text(viewerTitle);
+								// edit icon
+								$(this).prepend(viewIcon);
 							} else {
 								// switch to viewer
 								$iframe.attr("src", file.previewLink);
 								var editTitle = $vswitch.attr("edit-title");
 								$(this).text(editTitle);
+								// view icon
+								$(this).prepend(editIcon);
 							}
 						});
-						$titleText.append($vswitch);
+
+						// edit icon
+						$vswitch.prepend(editIcon);
+
+						$a.after($vswitch);
 					} else {
 						$viewer.find("iframe").attr("src", file.previewLink ? file.previewLink : file.link);
 						$vswitch.remove();
