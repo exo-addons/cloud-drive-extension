@@ -23,8 +23,8 @@ import juzu.Path;
 import juzu.Resource;
 import juzu.Response;
 import juzu.View;
-import juzu.impl.request.Request;
-import juzu.request.RenderContext;
+import juzu.request.RequestContext;
+import juzu.request.RequestParameter;
 
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -106,16 +106,18 @@ public class CMISLoginController {
   private final ConcurrentHashMap<String, PrivateKey>            keys          = new ConcurrentHashMap<String, PrivateKey>();
 
   @View
-  public Response index(RenderContext render, String providerId) {
-    Request request = Request.getCurrent();
-    Map<String, String[]> parameters = request.getParameters();
+  public Response index(String providerId, RequestContext context) {
     if (providerId == null || providerId.length() == 0) {
       providerId = readProviderId();
     }
+    // TODO do we need parameters in the response?
+    // Request request = Request.getCurrent();
+    // Map<String, String[]> parameters = request.getParameters();
     try {
-      return login.with(parameters)
+      // return login.with(parameters)
+      return login.with()
                   .set("res",
-                       render.getApplicationContext().resolveBundle(render.getUserContext().getLocale()))
+                       context.getApplicationContext().resolveBundle(context.getUserContext().getLocale()))
                   .set("provider", cloudDrives.getProvider(providerId))
                   .ok();
     } catch (ProviderNotAvailableException e) {
@@ -211,18 +213,20 @@ public class CMISLoginController {
   }
 
   @Action
-  public Response loginRepository(String code, String repository) {
-    Request request = Request.getCurrent();
-    Map<String, String[]> parameters = request.getParameters();
-    String[] redirects = parameters.get("redirect_uri");
-    if (redirects != null && redirects.length > 0) {
+  public Response loginRepository(String code, String repository, RequestContext context) {
+    // TODO cleanup
+    // Request request = Request.getCurrent();
+    // Map<String, String[]> parameters = request.getParameters();
+    Map<String, RequestParameter> parameters = context.getParameters();
+    RequestParameter redirect = parameters.get("redirect_uri");
+    if (redirect != null && redirect.size() > 0) {
       try {
         authService.setCodeContext(code, repository);
       } catch (AuthenticationException e) {
         LOG.warn("Authentication error. " + e.getMessage());
         return CMISLoginController_.error("Authentication error. " + e.getMessage());
       }
-      String redirectURL = redirects[0];
+      String redirectURL = redirect.get(0); // TODO redirects[0]
       if (redirectURL.indexOf('?') > 0) {
         redirectURL += "&code=" + code;
       } else {
@@ -262,8 +266,8 @@ public class CMISLoginController {
   }
 
   private String decodePassword(String user, String password) throws InvalidKeyException,
-                                                             IllegalBlockSizeException,
-                                                             BadPaddingException {
+                                                              IllegalBlockSizeException,
+                                                              BadPaddingException {
     PrivateKey userKey = keys.get(user);
     if (userKey != null) {
       try {
