@@ -54,10 +54,10 @@
     <com.google.api.services.oauth2.version>v2-rev92-1.20.0</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
-    <net.box.boxjavalibv2.version>3.0.9</net.box.boxjavalibv2.version>
+    <net.box.boxjavalibv2.version>3.2.1</net.box.boxjavalibv2.version>
     
     <!-- Apache Chemistry (OpencCMIS) API -->
-    <org.apache.chemistry.opencmis.version>0.12.0</org.apache.chemistry.opencmis.version>
+    <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
     <org.exoplatform.jcr-services.version>1.15.13-GA</org.exoplatform.jcr-services.version>
