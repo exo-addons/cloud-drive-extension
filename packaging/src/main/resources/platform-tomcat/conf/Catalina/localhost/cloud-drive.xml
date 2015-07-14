@@ -19,4 +19,4 @@
 
 -->
 
-<Context path="/cloud-drive" docBase="cloud-drive" debug="0" reloadable="true" crossContext="true"/>
+<Context path="/cloud-drive" debug="0" reloadable="true" crossContext="true"/>
