@@ -56,6 +56,9 @@
     <!-- Box API -->
     <net.box.boxjavalibv2.version>3.2.1</net.box.boxjavalibv2.version>
     
+    <!-- Dropbox SDK -->
+    <com.dropbox.core.version>1.7.7</com.dropbox.core.version>
+    
     <!-- Apache Chemistry (OpencCMIS) API -->
     <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>
 
@@ -137,6 +140,18 @@
       </dependency>
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-dropbox-services</artifactId>
+        <version>${project.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
+        <artifactId>exo-clouddrive-dropbox-webapp</artifactId>
+        <version>${project.version}</version>
+        <type>war</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-cmis-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
@@ -173,6 +188,11 @@
         <groupId>net.box</groupId>
         <artifactId>boxjavalibv2</artifactId>
         <version>${net.box.boxjavalibv2.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.dropbox.core</groupId>
+        <artifactId>dropbox-core-sdk</artifactId>
+        <version>${com.dropbox.core.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.chemistry.opencmis</groupId>

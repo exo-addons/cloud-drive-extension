@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle>
+  <!-- Used in Administration-Content-Explorer in Views settings a popup with actions list -->
+  <UITabForm>
+    <label>
+      <connectDropbox>Connect Dropbox</connectDropbox>
+    </label>
+  </UITabForm>
+  <!-- For menu caption in Action Bar -->
+  <UIActionBar>
+    <tooltip>
+      <ConnectDropbox>Connect your Dropbox</ConnectDropbox>
+    </tooltip>
+  </UIActionBar>
+</bundle>

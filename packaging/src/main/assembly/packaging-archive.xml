@@ -47,6 +47,15 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
+         <include>org.exoplatform.addons:exo-clouddrive-dropbox-webapp:war</include>
+       </includes>
+       <outputFileNameMapping>cloud-drive-dropbox.war</outputFileNameMapping>
+       <scope>provided</scope>
+       <fileMode>0644</fileMode>
+     </dependencySet>
+     <dependencySet>
+       <outputDirectory>webapps</outputDirectory>
+       <includes>
          <include>org.exoplatform.addons:exo-clouddrive-cmis-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive-cmis.war</outputFileNameMapping>
@@ -61,6 +70,7 @@
          <include>org.exoplatform.addons:exo-clouddrive-*:jar</include>
          <include>com.google.*:*:jar</include>
          <include>net.box:*:jar</include>
+         <include>com.dropbox.core:*:jar</include>
          <include>org.apache.chemistry.opencmis:*:jar</include>
          <include>com.fasterxml.jackson.core:*:jar</include>
          <include>org.apache.httpcomponents:*:jar</include>

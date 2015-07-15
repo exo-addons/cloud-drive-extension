@@ -82,6 +82,18 @@
     </dependency>
     <dependency>
       <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-clouddrive-dropbox-services</artifactId>
+      <scope>provided</scope>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
+      <artifactId>exo-clouddrive-dropbox-webapp</artifactId>
+      <scope>provided</scope>
+      <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons</groupId>
       <artifactId>exo-clouddrive-cmis-services</artifactId>
       <scope>provided</scope>
       <type>jar</type>
