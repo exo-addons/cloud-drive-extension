@@ -17,6 +17,7 @@ import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -134,16 +135,7 @@ public class BoxConnector extends CloudDriveConnector {
 
   @Override
   protected CloudProvider createProvider() {
-    StringBuilder redirectURL = new StringBuilder();
-    redirectURL.append(getConnectorSchema());
-    redirectURL.append("://");
-    redirectURL.append(getConnectorHost());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentRestContextName());
-    redirectURL.append("/clouddrive/connect/");
-    redirectURL.append(getProviderId());
+    String redirectURL = redirectLink();
 
     StringBuilder oauthURL = new StringBuilder();
     oauthURL.append("https://");
@@ -163,10 +155,10 @@ public class BoxConnector extends CloudDriveConnector {
     }
     oauthURL.append("&state=");
     try {
-      oauthURL.append(URLEncoder.encode(BoxAPI.NO_STATE, "UTF-8"));
+      oauthURL.append(URLEncoder.encode(CloudProvider.AUTH_NOSTATE, "UTF-8"));
     } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode state " + BoxAPI.NO_STATE + ":" + e);
-      oauthURL.append(BoxAPI.NO_STATE);
+      LOG.warn("Cannot encode state " + CloudProvider.AUTH_NOSTATE + ":" + e);
+      oauthURL.append(CloudProvider.AUTH_NOSTATE);
     }
     oauthURL.append("&redirect_uri=");
     // actual uri will be appended below to avoid double encoding in case of SSO
@@ -216,27 +208,23 @@ public class BoxConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudUser authenticate(String code) throws CloudDriveException {
+  protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
+    String code = params.get(OAUTH2_CODE);
     if (code != null && code.length() > 0) {
       BoxAPI driveAPI = new API().auth(code).build();
       com.box.boxjavalibv2.dao.BoxUser buser = driveAPI.getCurrentUser();
       BoxUser user = new BoxUser(buser.getId(), buser.getName(), buser.getLogin(), provider, driveAPI);
       return user;
     } else {
-      throw new CloudDriveException("Access key should not be null or empty");
+      throw new CloudDriveException("Access code should not be null or empty");
     }
   }
 
   @Override
-  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException,
-                                                                  RepositoryException {
+  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof BoxUser) {
       BoxUser boxUser = (BoxUser) user;
-      JCRLocalBoxDrive drive = new JCRLocalBoxDrive(boxUser,
-                                                    driveNode,
-                                                    sessionProviders,
-                                                    jcrFinder,
-                                                    mimeTypes);
+      JCRLocalBoxDrive drive = new JCRLocalBoxDrive(boxUser, driveNode, sessionProviders, jcrFinder, mimeTypes);
       return drive;
     } else {
       throw new CloudDriveException("Not Box user: " + user);
@@ -244,9 +232,7 @@ public class BoxConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
-                                                CloudDriveException,
-                                                RepositoryException {
+  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalBoxDrive drive = new JCRLocalBoxDrive(new API(),

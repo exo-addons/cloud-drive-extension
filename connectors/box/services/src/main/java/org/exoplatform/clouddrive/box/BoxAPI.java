@@ -110,8 +110,6 @@ public class BoxAPI {
    */
   public static final int         BOX_PAGE_SIZE               = 100;
 
-  public static final String      NO_STATE                    = "__no_state_set__";
-
   /**
    * Id of root folder on Box.
    */

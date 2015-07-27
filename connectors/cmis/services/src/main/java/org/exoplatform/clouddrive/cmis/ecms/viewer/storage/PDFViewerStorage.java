@@ -25,9 +25,10 @@ import org.exoplatform.clouddrive.CloudDriveEvent;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.cmis.ContentReader;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
+import org.exoplatform.clouddrive.viewer.ContentReader;
+import org.exoplatform.clouddrive.viewer.DocumentNotFoundException;
 import org.exoplatform.services.cache.CacheService;
 import org.exoplatform.services.cache.ExoCache;
 import org.exoplatform.services.cms.jodconverter.JodConverterService;
@@ -882,10 +883,6 @@ public class PDFViewerStorage {
     String cleanName = JCRLocalCloudDrive.cleanName(name);
     // max file length with a space for lastModified and page/rotation/scale suffix: all < 250
     return cleanName.length() > MAX_FILENAME_LENGTH ? cleanName.substring(0, MAX_FILENAME_LENGTH) : cleanName;
-  }
-
-  private String previewFileName(String name) {
-    return name + PDF_EXT;
   }
 
   private void addDriveListener(CloudDrive drive, PDFFile file) throws DriveRemovedException,

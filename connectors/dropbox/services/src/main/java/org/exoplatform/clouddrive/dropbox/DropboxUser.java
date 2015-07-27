@@ -18,8 +18,12 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
+import org.exoplatform.clouddrive.DriveRemovedException;
+
+import javax.jcr.RepositoryException;
 
 /**
  * Template cloud user.
@@ -53,28 +57,23 @@ public class DropboxUser extends CloudUser {
   }
 
   /**
-   * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
-   * 
-   * @return {@link String} user's enterprise name or <code>null</code>
-   */
-  public String getEnterpriseName() {
-    return "TODO api.getEnterpriseName()";
-  }
-
-  /**
-   * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
-   * 
-   * @return {@link String} user's enterprise ID or <code>null</code>
-   */
-  public String getEnterpriseId() {
-    return "TODO api.getEnterpriseId()";
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
   public DropboxProvider getProvider() {
     return (DropboxProvider) super.getProvider();
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String createDriveTitle() throws RepositoryException, DriveRemovedException, CloudDriveException {
+    StringBuilder title = new StringBuilder();
+    title.append(getServiceName());
+    title.append(" - ");
+    title.append(getUsername());
+    return title.toString();
+  }
+
 }

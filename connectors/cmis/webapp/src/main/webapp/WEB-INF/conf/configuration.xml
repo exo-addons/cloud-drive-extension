@@ -146,7 +146,7 @@
               <string>ShowCmisFile</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.DefaultFileViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.DefaultFileViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -179,7 +179,7 @@
               <string>ShowCmisText</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.TextViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.TextViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -242,7 +242,7 @@
               <string>ShowCmisImage</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.ImageViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.ImageViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -271,8 +271,8 @@
 												<value><string>image/bmp</string></value>
                         <value><string>image/x-windows-bmp</string></value>
                         <value><string>image/x-icon</string></value>
-												<value><string>image/tiff</string></value>
-                        <value><string>image/x-tiff</string></value>
+												<!-- value><string>image/tiff</string></value>
+                        <value><string>image/x-tiff</string></value -->
                         <value><string>image/webp</string></value>
                         <value><string>image/pjpeg</string></value>
                         <value><string>image/svg+xml</string></value>
@@ -294,7 +294,7 @@
               <string>ShowCmisPDF</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.PDFViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.PDFViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -361,7 +361,7 @@
               <string>ShowCmisFlash</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.FlashViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.FlashViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -403,7 +403,7 @@
               <string>ShowCmisH264Video</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.H264VideoViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.H264VideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -461,7 +461,7 @@
               <string>ShowCmisMpegVideo</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.MpegVideoViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.MpegVideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -504,7 +504,7 @@
               <string>ShowCmisVideoAudio</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.VideoAudioViewer</string>
+              <string>org.exoplatform.clouddrive.ecms.viewer.VideoAudioViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>

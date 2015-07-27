@@ -23,6 +23,7 @@ import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
@@ -139,16 +140,7 @@ public class CMISConnector extends CloudDriveConnector {
 
   @Override
   protected CloudProvider createProvider() throws ConfigurationException {
-    StringBuilder redirectURL = new StringBuilder();
-    redirectURL.append(getConnectorSchema());
-    redirectURL.append("://");
-    redirectURL.append(getConnectorHost());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentRestContextName());
-    redirectURL.append("/clouddrive/connect/");
-    redirectURL.append(getProviderId());
+    String redirectURL = redirectLink();
 
     // Auth URL lead to a webpage on eXo side, it should ask for username/password and store somehow on the
     // serverside for late use by the connect flow
@@ -163,10 +155,10 @@ public class CMISConnector extends CloudDriveConnector {
     authURL.append(getAuthProviderId());
     authURL.append("/login?state=");
     try {
-      authURL.append(URLEncoder.encode(CMISAPI.NO_STATE, "UTF-8"));
+      authURL.append(URLEncoder.encode(CloudProvider.AUTH_NOSTATE, "UTF-8"));
     } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode state " + CMISAPI.NO_STATE + ":" + e);
-      authURL.append(CMISAPI.NO_STATE);
+      LOG.warn("Cannot encode state " + CloudProvider.AUTH_NOSTATE + ":" + e);
+      authURL.append(CloudProvider.AUTH_NOSTATE);
     }
     authURL.append("&providerId=");
     authURL.append(getProviderId());
@@ -178,20 +170,17 @@ public class CMISConnector extends CloudDriveConnector {
       authURL.append(redirectURL);
     }
 
-    CMISProvider provider = new CMISProvider(getProviderId(),
-                                             getProviderName(),
-                                             authURL.toString(),
-                                             jcrService);
+    CMISProvider provider = new CMISProvider(getProviderId(), getProviderName(), authURL.toString(), jcrService);
 
     provider.initPredefined(predefinedServices);
     return provider;
   }
 
   /**
-   * Authenticate an user by a code and return {@link CMISUser} instance. CMIS connector requires custom two
-   * step authentication instead of OAuth2 flow. This two-step flow is similar to OAuth2 where user does
-   * authentication to the service and then authorizes via OAuth2 protocol. This is done to support other
-   * parts of Cloud Drive add-on.<br>
+   * Authenticate an user by OAuth2 code (from params) and return {@link CMISUser} instance. CMIS connector
+   * requires custom two step authentication instead of OAuth2 flow. This two-step flow is similar to OAuth2
+   * where user does authentication to the service and then authorizes via OAuth2 protocol. This is done to
+   * support other parts of Cloud Drive add-on.<br>
    * On first call of this method (first step), given code will be exchanged on user identity and
    * {@link CMISUser} instance will be created. This user instance will be stored in the connector mapped by
    * the code. At the same time the user identity should be late initialized with a context (CMIS repository
@@ -206,7 +195,8 @@ public class CMISConnector extends CloudDriveConnector {
    * @return {@link CMISUser}
    */
   @Override
-  protected CMISUser authenticate(String code) throws CloudDriveException {
+  protected CMISUser authenticate(Map<String, String> params) throws CloudDriveException {
+    String code = params.get(OAUTH2_CODE);
     if (code != null && code.length() > 0) {
       AuthFlow userFlow = users.remove(code);
       if (userFlow == null) {
@@ -264,16 +254,10 @@ public class CMISConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException,
-                                                                  RepositoryException {
+  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof CMISUser) {
       CMISUser apiUser = (CMISUser) user;
-      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser,
-                                                      driveNode,
-                                                      sessionProviders,
-                                                      jcrFinder,
-                                                      mimeTypes,
-                                                      exoURL());
+      JCRLocalCMISDrive drive = new JCRLocalCMISDrive(apiUser, driveNode, sessionProviders, jcrFinder, mimeTypes, exoURL());
       return drive;
     } else {
       throw new CloudDriveException("Not cloud user: " + user);
@@ -281,17 +265,10 @@ public class CMISConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
-                                                CloudDriveException,
-                                                RepositoryException {
+  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
-    JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(),
-                                                    driveNode,
-                                                    sessionProviders,
-                                                    jcrFinder,
-                                                    mimeTypes,
-                                                    exoURL());
+    JCRLocalCMISDrive drive = new JCRLocalCMISDrive(new API(), driveNode, sessionProviders, jcrFinder, mimeTypes, exoURL());
     return drive;
   }
 

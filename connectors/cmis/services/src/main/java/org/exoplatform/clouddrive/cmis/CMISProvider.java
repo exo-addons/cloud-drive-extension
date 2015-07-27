@@ -143,7 +143,7 @@ public class CMISProvider extends CloudProvider {
     if (jcrService != null) {
       try {
         String currentRepo = jcrService.getCurrentRepository().getConfiguration().getName();
-        return authURL.replace(CMISAPI.NO_STATE, currentRepo);
+        return authURL.replace(CloudProvider.AUTH_NOSTATE, currentRepo);
       } catch (RepositoryException e) {
         throw new CloudDriveException(e);
       }

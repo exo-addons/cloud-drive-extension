@@ -20,6 +20,7 @@ package org.exoplatform.clouddrive.dropbox;
 
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.services.jcr.RepositoryService;
 
 import javax.jcr.RepositoryException;
@@ -30,7 +31,7 @@ import javax.jcr.RepositoryException;
  */
 public class DropboxProvider extends CloudProvider {
 
-  protected final String            authURL;
+  protected final API            authBilder;
 
   protected final String            redirectURL;
 
@@ -43,9 +44,9 @@ public class DropboxProvider extends CloudProvider {
    * @param redirectURL
    * @param jcrService
    */
-  public DropboxProvider(String id, String name, String authURL, String redirectURL, RepositoryService jcrService) {
+  public DropboxProvider(String id, String name, API authBilder, String redirectURL, RepositoryService jcrService) {
     super(id, name);
-    this.authURL = authURL;
+    this.authBilder = authBilder;
     this.redirectURL = redirectURL;
     this.jcrService = jcrService;
   }
@@ -55,16 +56,18 @@ public class DropboxProvider extends CloudProvider {
    */
   @Override
   public String getAuthURL() throws CloudDriveException {
+    String authState;
     if (jcrService != null) {
       try {
-        String currentRepo = jcrService.getCurrentRepository().getConfiguration().getName();
-        return authURL.replace("NO_STATE", currentRepo); // TODO use real const for NO_STATE
+        authState = jcrService.getCurrentRepository().getConfiguration().getName();
       } catch (RepositoryException e) {
         throw new CloudDriveException(e);
       }
     } else {
-      return authURL;
+      authState = AUTH_NOSTATE;
     }
+    String authURL = authBilder.authLink(authState);
+    return authURL;
   }
 
   /**
@@ -83,4 +86,11 @@ public class DropboxProvider extends CloudProvider {
     return true;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String getErrorMessage(String error, String errorDescription) {
+    return error; // omit description for users
+  }
 }

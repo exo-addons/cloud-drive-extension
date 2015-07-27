@@ -62,7 +62,7 @@ public class TemplateProvider extends CloudProvider {
     if (jcrService != null) {
       try {
         String currentRepo = jcrService.getCurrentRepository().getConfiguration().getName();
-        return authURL.replace("NO_STATE", currentRepo); // TODO use real const for NO_STATE
+        return authURL.replace(CloudProvider.AUTH_NOSTATE, currentRepo);
       } catch (RepositoryException e) {
         throw new CloudDriveException(e);
       }

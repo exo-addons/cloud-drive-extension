@@ -68,6 +68,8 @@
 								} else {
 									process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
 								}
+							} else {
+								process.reject("Long-polling changes request aborted");
 							}
 						});
 						// long-polling can outdate, if request runs longer of the period - need start a new one

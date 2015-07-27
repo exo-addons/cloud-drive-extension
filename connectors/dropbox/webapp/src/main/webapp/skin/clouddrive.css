@@ -4,10 +4,10 @@
  */
 
 /*
- * Icon for dedicated UI action "ConnectTemplate"
+ * Icon for dedicated UI action "ConnectDropbox"
  */
-.uiIconEcmsConnectTemplate {
-	background: url('icons/logo-gray-16x16.png') no-repeat scroll left center transparent !important;
+.uiIconEcmsConnectDropbox {
+	background: url('icons/dropbox-gray-16x16.png') no-repeat scroll left center transparent !important;
 	height: 16px !important;
 	width: 16px !important;
 }
@@ -16,7 +16,7 @@
  * Icon of a provider in connect dialog (where all available connectors visible)
  */
 .uiIconEcmsConnectDialog-dropbox {
-	background: url('icons/dropbox-gray-24x24.png') no-repeat scroll left center transparent !important;
+	background: url('icons/dropbox-gray-32x32.png') no-repeat scroll left center transparent !important;
 	height: 32px !important;
 	width: 32px !important;
 }
@@ -35,11 +35,11 @@
 	left: 2px;
 	top: 4px;
 	-webkit-transform: scale(0.36);
-	-moz-transform: scale(0.36);
-	-o-transform: scale(0.36);
-	-ms-transform: scale(0.36);
-	transform: scale(0.36);
-	background: url("icons/dropbox-gray-16x16.png") no-repeat center center transparent !important;
+  -moz-transform: scale(0.36);
+  -o-transform: scale(0.36);
+  -ms-transform: scale(0.36);
+  transform: scale(0.36);
+	background: url("icons/dropbox-lightgray-16x16.png") no-repeat center center transparent !important;
 }
 
 /*
@@ -53,7 +53,7 @@
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/dropbox-gray-16x16.png") no-repeat center center transparent !important;
+	background: url("icons/dropbox-lightgray-16x16.png") no-repeat center center transparent !important;
 }
 
 /*
@@ -67,5 +67,5 @@
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/dropbox-gray-32x32.png") no-repeat center center transparent !important;
+	background: url("icons/dropbox-lightgray-32x32.png") no-repeat center center transparent !important;
 }

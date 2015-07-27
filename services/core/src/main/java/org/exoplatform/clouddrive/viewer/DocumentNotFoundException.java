@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2003-2014 eXo Platform SAS.
  *
@@ -17,46 +16,33 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis;
-
-import java.io.InputStream;
+package org.exoplatform.clouddrive.viewer;
 
 /**
- * An access to CMIS file content connected with particular drive instance.<br>
+ * Document cannot be found in Viewer storage. It can be not created previously or removed for unknown reason.
+ * It is not expected exception, thus it is instance of {@link RuntimeException}.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: ContentReader.java 00000 Nov 19, 2014 pnedonosko $
+ * @version $Id: DocumentNotFoundException.java 00000 Nov 27, 2014 pnedonosko $
  * 
  */
-public interface ContentReader {
+public class DocumentNotFoundException extends IllegalStateException {
 
   /**
-   * Content stream for reading.
-   * 
-   * @return {@link InputStream}
+   * @param s
    */
-  InputStream getStream();
-  
+  public DocumentNotFoundException(String s) {
+    super(s);
+  }
+
   /**
-   * Content type in MIME format.
-   * 
-   * @return {@link String}
+   * @param message
+   * @param cause
    */
-  String getMimeType();
-  
-  /**
-   * Optional representation (UI) mode for this content type. Can be <code>null</code>.
-   * 
-   * @return {@link String} a type mode or <code>null</code> if not available.
-   */
-  String getTypeMode();
-  
-  /**
-   * Content length in bytes.
-   * 
-   * @return {@link Long}
-   */
-  long getLength();
+  public DocumentNotFoundException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
 }

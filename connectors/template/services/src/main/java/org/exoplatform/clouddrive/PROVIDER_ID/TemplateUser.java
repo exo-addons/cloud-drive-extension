@@ -18,8 +18,12 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
+import org.exoplatform.clouddrive.DriveRemovedException;
+
+import javax.jcr.RepositoryException;
 
 /**
  * Template cloud user.
@@ -77,4 +81,15 @@ public class TemplateUser extends CloudUser {
   public TemplateProvider getProvider() {
     return (TemplateProvider) super.getProvider();
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String createDriveTitle() throws RepositoryException, DriveRemovedException, CloudDriveException {
+    // TODO your own drive naming can be managed from here
+    return super.createDriveTitle();
+  }
+  
+  
 }

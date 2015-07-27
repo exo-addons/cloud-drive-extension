@@ -18,40 +18,57 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import com.dropbox.core.DbxClient.Downloader;
+import com.dropbox.core.DbxDelta;
+import com.dropbox.core.DbxEntry;
+import com.dropbox.core.DbxUrlWithExpiration;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
+import org.exoplatform.clouddrive.CloudProviderException;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.FileRestoreException;
 import org.exoplatform.clouddrive.NotFoundException;
+import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
-import org.exoplatform.clouddrive.dropbox.DropboxAPI.EventsIterator;
-import org.exoplatform.clouddrive.dropbox.DropboxAPI.ItemsIterator;
+import org.exoplatform.clouddrive.dropbox.DropboxAPI.DeltaChanges;
+import org.exoplatform.clouddrive.dropbox.DropboxAPI.FileMetadata;
 import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
+import org.exoplatform.clouddrive.rest.ContentService;
+import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
+import org.exoplatform.clouddrive.viewer.CloudFileContent;
+import org.exoplatform.clouddrive.viewer.ContentReader;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.security.ConversationState;
 
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.jcr.Node;
+import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 
 /**
- * Local drive for Template provider.<br>
- * 
- * TODO Code below is "almost" dummy and just lets an example how it could be. Fill it with
- * the logic of actual implementation reusing the ideas (or dropping them).
+ * Local drive for Dropbox provider.<br>
  * 
  */
 public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserTokenRefreshListener {
@@ -60,7 +77,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * Period to perform {@link FullSync} as a next sync request. See implementation of
    * {@link #getSyncCommand()}.
    */
-  public static final long FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
+  public static final long   FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
+
+  public static final String FOLDER_REV       = "".intern();
+
+  public static final String FOLDER_TYPE      = "folder".intern();
 
   /**
    * Connect algorithm for Drobpox drive.
@@ -78,27 +99,41 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     protected void fetchFiles() throws CloudDriveException, RepositoryException {
-      // Obtain connectChangeId before the actual fetch of cloud files,
-      // this will provide us a proper connectChangeId to start sync from later.
-      long connectChangeId = api.getEvents(-1).getChangeId();
+      long changeId = System.currentTimeMillis(); // time of the begin
 
-      Object root = fetchChilds("ROOT_ID", rootNode); // TODO use actual ID
-      initCloudItem(rootNode, root); // init parent
+      // Obtain initial delta cursor before the actual fetch of cloud files,
+      // this will provide us a proper cursor to start sync from later.
+      String connectCursor = api.getDeltas(null).getCursor();
 
-      // actual drive URL (its root folder's id), see initDrive() also
-      rootNode.setProperty("ecd:url", api.getLink(root));
+      fetchSubtree(api, DropboxAPI.ROOT_PATH, rootNode, false, iterators, changed);
 
       // sync stream
-      setChangeId(connectChangeId);
-      rootNode.setProperty("YOUR_PROVIDE_ID:streamHistory", "");
+      setChangeId(changeId);
+      rootNode.setProperty("dropbox:cursor", connectCursor);
+      updateState(connectCursor);
     }
 
-    protected Object fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
-      ItemsIterator items = api.getFolderItems(fileId);
+    @Deprecated // NOT USED
+    protected DbxEntry fetchChilds(String path, Node parent) throws CloudDriveException, RepositoryException {
+      FileMetadata items = api.getWithChildren(path, null);
       iterators.add(items);
       while (items.hasNext()) {
-        Object item = items.next();
-        JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
+        DbxEntry item = items.next();
+
+        DbxFileInfo file = new DbxFileInfo(item.path);
+        if (file.isRoot()) {
+          // skip root node - this shouldn't happen
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Fetched root folder entry - ignore it: " + item.path);
+          }
+          continue;
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(">> connect: " + item.name + (item.isFolder() ? " folder " : " file ") + item.path);
+          }
+        }
+
+        JCRLocalCloudFile localItem = updateItem(api, file, item, parent, null);
         if (localItem.isChanged()) {
           changed.add(localItem);
           if (localItem.isFolder()) {
@@ -106,17 +141,28 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             fetchChilds(localItem.getId(), localItem.getNode());
           }
         } else {
+          // TODO exception or skip it?
           throw new DropboxException("Fetched item was not added to local drive storage");
         }
       }
-      return items.parent;
+      if (items.target.isFolder()) {
+        DbxEntry.Folder folder = items.target.asFolder();
+        initDropboxFolder(parent, folder.mightHaveThumbnail, folder.iconName, items.hash);
+      } else {
+        DbxEntry.File file = items.target.asFile();
+        initDropboxFile(parent, file.mightHaveThumbnail, file.iconName, file.rev, file.numBytes);
+      }
+      return items.target;
     }
   }
 
   /**
-   * {@link SyncCommand} of cloud drive based on all remote files traversing: we do
-   * compare all remote files with locals by its Etag and fetch an item if the tags differ.
+   * {@link SyncCommand} of cloud drive based on all remote files traversing using folder hashes stoed locally
+   * on connect or previous full sync.
+   * 
+   * TODO it could be used when *reset* flag set in delta entry.
    */
+  @Deprecated // NOT SURE IT IS REQUIRED
   protected class FullSync extends SyncCommand {
 
     /**
@@ -140,14 +186,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     protected void syncFiles() throws RepositoryException, CloudDriveException {
+      long changeId = System.currentTimeMillis(); // time of the begin
+
       // real all local nodes of this drive
       readLocalNodes();
 
       // remember full sync position (same logic as in Connect command)
-      long syncChangeId = api.getEvents(-1).getChangeId();
+      String syncCursor = api.getDeltas(null).getCursor();
 
       // sync with cloud
-      Object root = syncChilds("ROOT_ID", rootNode); // TODO use actual ID
+      Object root = syncChilds(syncCursor, rootNode); // TODO use actual ID
       initCloudItem(rootNode, root); // init parent
 
       // remove local nodes of files not existing remotely, except of root
@@ -166,19 +214,30 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       // update sync position
-      setChangeId(syncChangeId);
+      setChangeId(changeId);
+      rootNode.setProperty("dropbox:cursor", syncCursor);
+      updateState(syncCursor);
     }
 
     protected Object syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
-      ItemsIterator items = api.getFolderItems(folderId);
+      FileMetadata items = api.getWithChildren(folderId, null);// TODO items can be null
       iterators.add(items);
       while (items.hasNext() && !Thread.currentThread().isInterrupted()) {
-        Object item = items.next();
+        DbxEntry item = items.next();
+
+        DbxFileInfo file = new DbxFileInfo(item.path);
+        if (file.isRoot()) {
+          // skip root node - this shouldn't happen
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Fetched root folder entry - ignore it: " + item.path);
+          }
+          continue;
+        }
 
         // remove from map of local to mark the item as existing
         List<Node> existing = nodes.remove("TODO item.getId()");
 
-        JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
+        JCRLocalCloudFile localItem = updateItem(api, file, item, parent, null);
         if (localItem.isChanged()) {
           changed.add(localItem);
 
@@ -203,7 +262,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           syncChilds(localItem.getId(), localItem.getNode());
         }
       }
-      return items.parent;
+      return items.target;
     }
 
     /**
@@ -254,74 +313,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                 Calendar modified,
                                 String mimeType,
                                 InputStream content) throws CloudDriveException, RepositoryException {
-
-      String parentId = getParentId(fileNode);
-      String title = getTitle(fileNode);
-      Object file;
-      try {
-        file = api.createFile(parentId, title, created, content);
-      } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here and make local file to reflect the cloud side
-        Object existing = null;
-        ItemsIterator files = api.getFolderItems(parentId);
-        while (files.hasNext()) {
-          Object item = files.next();
-          if (title.equals("TODO item.getName()")) { // TODO do more complex check if required
-            existing = item;
-            break;
-          }
-        }
-        if (existing == null) {
-          throw e; // we cannot do anything at this level
-        } else {
-          file = existing;
-          // and erase local file data here
-          if (fileNode.hasNode("jcr:content")) {
-            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty data by default
-          }
-        }
-      }
-
-      String id = "TODO"; // file.getId();
-      String name = "TODO"; // file.getName();
-      String link = api.getLink(file);
-      String embedLink = api.getEmbedLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
-      String createdBy = "TODO"; // file.getCreatedBy().getLogin();
-      String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
-      String type = "TODO"; // file.getType();
-      long size = 0; // TODO file.getSize()
-
-      initFile(fileNode,
-               id,
-               name,
-               type,
-               link,
-               embedLink, //
-               thumbnailLink, // downloadLink
-               createdBy, // author
-               modifiedBy, // lastUser
-               created,
-               modified,
-               size);
-      initCloudItem(fileNode, file);
-
-      return new JCRLocalCloudFile(fileNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   null,
-                                   previewLink(fileNode),
-                                   thumbnailLink,
-                                   type,
-                                   mimeTypes.getMimeTypeMode(type, name),
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   size,
-                                   fileNode,
-                                   true);
+      // Create means upload a new file
+      return uploadFile(fileNode, created, modified, mimeType, content, false);
     }
 
     /**
@@ -330,48 +323,32 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     @Override
     public CloudFile createFolder(Node folderNode, Calendar created) throws CloudDriveException, RepositoryException {
 
-      // TODO create folder logic
-
       String parentId = getParentId(folderNode);
       String title = getTitle(folderNode);
-      Object folder;
+      DbxEntry.Folder folder;
       try {
-        folder = api.createFolder(getParentId(folderNode), getTitle(folderNode), created);
+        folder = api.createFolder(parentId, title);
       } catch (ConflictException e) {
         // XXX we assume name as factor of equality here
-        Object existing = null;
-        ItemsIterator files = api.getFolderItems(parentId);
-        while (files.hasNext()) {
-          Object item = files.next();
-          if (title.equals("TODO item.getName()")) { // TODO use more complex check if required
-            existing = item;
-            break;
-          }
-        }
-        if (existing == null) {
-          throw e; // we cannot do anything at this level
+        String idPath = getId(folderNode);
+        DbxEntry item = api.get(idPath);
+        if (item.isFolder()) {
+          folder = item.asFolder();
         } else {
-          folder = existing;
+          throw e; // we cannot do anything at this level
         }
       }
 
-      String id = "TODO"; // folder.getId();
-      String name = "TODO"; // folder.getName();
-      String type = "TODO"; // folder.getType();
-      String link = api.getLink(folder);
-      String createdBy = "TODO"; // folder.getCreatedBy().getLogin();
-      String modifiedBy = "TODO"; // folder.getModifiedBy().getLogin();
+      String id = idPath(folder.path);
+      String name = folder.name;
+      String link = api.getFolderLink(folder.path);
+      String createdBy = currentUser();
+      String modifiedBy = createdBy;
+      String type = FOLDER_TYPE;
 
-      initFolder(folderNode,
-                 id,
-                 name,
-                 type, //
-                 link, // link
-                 createdBy, // author
-                 modifiedBy, // lastUser
-                 created,
-                 created); // created as modified here
-      initCloudItem(folderNode, folder);
+      initFolder(folderNode, id, name, type, link, createdBy, modifiedBy, created, created); // created as
+                                                                                             // modified here
+      initDropboxFolder(folderNode, folder.mightHaveThumbnail, folder.iconName, null);
 
       return new JCRLocalCloudFile(folderNode.getPath(),
                                    id,
@@ -391,54 +368,47 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile updateFile(Node fileNode, Calendar modified) throws CloudDriveException, RepositoryException {
-      // TODO logic of existing file metadata and parent (location) update.
+      DbxEntry item = move(fileNode);
+      if (item != null) {
+        if (item.isFile()) {
+          DbxEntry.File file = item.asFile();
+          DbxFileInfo info = new DbxFileInfo(file.path);
+          String id = info.idPath;
+          String name = file.name;
+          String link = api.getFileLink(info.parentPath, info.name);
+          String embedLink = null; // api.getEmbedLink(file.path);
+          String thumbnailLink = null; // api.getThumbnailLink(file.path);
+          String createdBy = currentUser();
+          String modifiedBy = createdBy;
+          String type = findMimetype(name);
+          long size = file.numBytes;
 
-      Object file = api.updateFile(getParentId(fileNode), getId(fileNode), getTitle(fileNode), modified);
-      if (file != null) {
-        String id = "TODO"; // file.getId();
-        String name = "TODO"; // file.getName();
-        String link = api.getLink(file);
-        String embedLink = api.getEmbedLink(file);
-        String thumbnailLink = link; // TODO need real thumbnail
-        String createdBy = "TODO"; // file.getCreatedBy().getLogin();
-        Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
-        modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
-        String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
-        String type = "TODO"; // item.getType();
-        long size = 0; // TODO file.getSize()
+          initFile(fileNode, id, name, type, link, embedLink, thumbnailLink, createdBy, modifiedBy, null, modified, size);
+          initDropboxFile(fileNode, file.mightHaveThumbnail, file.iconName, file.rev, size);
 
-        initFile(fileNode,
-                 id,
-                 name,
-                 type,
-                 link,
-                 embedLink, //
-                 thumbnailLink, // downloadLink
-                 createdBy, // author
-                 modifiedBy, // lastUser
-                 created,
-                 modified,
-                 size);
-        initCloudItem(fileNode, file);
-
-        return new JCRLocalCloudFile(fileNode.getPath(),
-                                     id,
-                                     name,
-                                     link,
-                                     null,
-                                     previewLink(fileNode),
-                                     thumbnailLink,
-                                     type,
-                                     mimeTypes.getMimeTypeMode(type, name),
-                                     modifiedBy,
-                                     createdBy,
-                                     created,
-                                     modified,
-                                     size,
-                                     fileNode,
-                                     true);
-      } // else file wasn't changed actually
-      return null;
+          return new JCRLocalCloudFile(fileNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       null,
+                                       previewLink(fileNode),
+                                       thumbnailLink,
+                                       type,
+                                       mimeTypes.getMimeTypeMode(type, name),
+                                       createdBy,
+                                       modifiedBy,
+                                       fileAPI.getCreated(fileNode),
+                                       modified,
+                                       size,
+                                       fileNode,
+                                       true);
+        } else {
+          throw new CloudDriveException("Moved file appears as not a file in Dropbox " + item.path);
+        }
+      } else {
+        // else file don't need to be moved - return local
+        return readFile(fileNode);
+      }
     }
 
     /**
@@ -446,44 +416,39 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile updateFolder(Node folderNode, Calendar modified) throws CloudDriveException, RepositoryException {
+      DbxEntry item = move(folderNode);
+      if (item != null) {
+        if (item.isFolder()) {
+          DbxEntry.Folder folder = item.asFolder();
 
-      // TODO Update existing folder metadata and parent (location).
+          String id = idPath(folder.path);
+          String name = folder.name;
+          String link = api.getFolderLink(folder.path);
+          String createdBy = currentUser();
+          String modifiedBy = createdBy;
+          String type = FOLDER_TYPE;
 
-      Object folder = api.updateFolder(getParentId(folderNode), getId(folderNode), getTitle(folderNode), modified);
-      if (folder != null) {
-        String id = "TODO"; // folder.getId();
-        String name = "TODO"; // folder.getName();
-        String link = api.getLink(folder);
-        String type = "TODO"; // folder.getType();
-        String createdBy = "TODO"; // folder.getCreatedBy().getLogin();
-        Calendar created = Calendar.getInstance(); // api.parseDate(folder.getCreatedAt());
-        modified = Calendar.getInstance(); // api.parseDate(folder.getModifiedAt());
-        String modifiedBy = "TODO"; // folder.getModifiedBy().getLogin();
+          initFolder(folderNode, id, name, type, link, createdBy, modifiedBy, null, modified);
+          initDropboxFolder(folderNode, folder.mightHaveThumbnail, folder.iconName, null);
 
-        initFolder(folderNode,
-                   id,
-                   name,
-                   type, //
-                   link, // link
-                   createdBy, // author
-                   modifiedBy, // lastUser
-                   created,
-                   modified);
-        initCloudItem(folderNode, folder);
-
-        return new JCRLocalCloudFile(folderNode.getPath(),
-                                     id,
-                                     name,
-                                     link,
-                                     type,
-                                     modifiedBy,
-                                     createdBy,
-                                     created,
-                                     modified,
-                                     folderNode,
-                                     true);
-      } // else folder wasn't changed actually
-      return null;
+          return new JCRLocalCloudFile(folderNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       type,
+                                       modifiedBy,
+                                       createdBy,
+                                       fileAPI.getCreated(folderNode),
+                                       modified,
+                                       folderNode,
+                                       true);
+        } else {
+          throw new CloudDriveException("Moved folder appears as not a folder in Dropbox " + item.path);
+        }
+      } else {
+        // else folder don't need to be moved - return local
+        return readFile(folderNode);
+      }
     }
 
     /**
@@ -494,50 +459,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                        Calendar modified,
                                        String mimeType,
                                        InputStream content) throws CloudDriveException, RepositoryException {
-      // Update existing file content and its metadata.
-      Object file = api.updateFileContent(getParentId(fileNode), getId(fileNode), getTitle(fileNode), modified, content);
-      String id = "TODO"; // file.getId();
-      String name = "TODO"; // file.getName();
-      String link = api.getLink(file);
-      String embedLink = api.getEmbedLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
-      String createdBy = "TODO"; // file.getCreatedBy().getLogin();
-      Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
-      modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
-      String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
-      String type = "TODO"; // folder.getType();
-      long size = 0; // TODO file.getSize()
-
-      initFile(fileNode,
-               id,
-               name,
-               type,
-               link,
-               embedLink, //
-               thumbnailLink, // downloadLink
-               createdBy, // author
-               modifiedBy, // lastUser
-               created,
-               modified,
-               size);
-      initCloudItem(fileNode, file);
-
-      return new JCRLocalCloudFile(fileNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   null,
-                                   previewLink(fileNode),
-                                   thumbnailLink,
-                                   type,
-                                   mimeTypes.getMimeTypeMode(type, name),
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   size,
-                                   fileNode,
-                                   true);
+      // Update means upload of a new content
+      return uploadFile(fileNode, null, modified, mimeType, content, true);
     }
 
     /**
@@ -545,49 +468,74 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile copyFile(Node srcFileNode, Node destFileNode) throws CloudDriveException, RepositoryException {
-      Object file = api.copyFile(getId(srcFileNode), getParentId(destFileNode), getTitle(destFileNode));
-      String id = "TODO"; // file.getId();
-      String name = "TODO"; // file.getName();
-      String link = api.getLink(file);
-      String thumbnailLink = link; // TODO need real thumbnail
-      String embedLink = api.getEmbedLink(file);
-      String createdBy = "TODO"; // file.getCreatedBy().getLogin();
-      String modifiedBy = "TODO"; // file.getModifiedBy().getLogin();
-      Calendar created = Calendar.getInstance(); // api.parseDate(file.getCreatedAt());
-      Calendar modified = Calendar.getInstance(); // api.parseDate(file.getModifiedAt());
-      String type = "TODO"; // folder.getType();
-      long size = 0; // TODO file.getSize()
+      DbxEntry item = copy(srcFileNode, destFileNode);
+      if (item != null) {
+        if (item.isFile()) {
+          DbxEntry.File file = item.asFile();
+          DbxFileInfo info = new DbxFileInfo(file.path);
+          String id = info.idPath;
+          String name = file.name;
+          String link = api.getFileLink(info.parentPath, info.name);
+          String embedLink = null; // api.getEmbedLink(file.path);
+          String thumbnailLink = null; // api.getThumbnailLink(file.path);
+          String createdBy = currentUser();
+          String modifiedBy = createdBy;
+          String type = findMimetype(name);
+          long size = file.numBytes;
+          Calendar created = Calendar.getInstance();
 
-      initFile(destFileNode,
-               id,
-               name,
-               type,
-               link,
-               embedLink, //
-               thumbnailLink, // thumbnailLink
-               createdBy, // author
-               modifiedBy, // lastUser
-               created,
-               modified,
-               size);
-      initCloudItem(destFileNode, file);
+          initFile(destFileNode,
+                   id,
+                   name,
+                   type,
+                   link,
+                   embedLink,
+                   thumbnailLink,
+                   createdBy,
+                   modifiedBy,
+                   created,
+                   created,
+                   size);
+          initDropboxFile(destFileNode, file.mightHaveThumbnail, file.iconName, file.rev, size);
 
-      return new JCRLocalCloudFile(destFileNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   null,
-                                   previewLink(destFileNode),
-                                   thumbnailLink,
-                                   type,
-                                   mimeTypes.getMimeTypeMode(type, name),
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   size,
-                                   destFileNode,
-                                   true);
+          return new JCRLocalCloudFile(destFileNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       null,
+                                       previewLink(destFileNode),
+                                       thumbnailLink,
+                                       type,
+                                       mimeTypes.getMimeTypeMode(type, name),
+                                       createdBy,
+                                       modifiedBy,
+                                       created,
+                                       created,
+                                       size,
+                                       destFileNode,
+                                       true);
+        } else {
+          throw new CloudDriveException("Copied file appears as not a file in Dropbox " + item.path);
+        }
+      } else {
+        if (LOG.isDebugEnabled()) {
+          StringBuilder idInfo = new StringBuilder();
+          try {
+            String idPath = getId(srcFileNode);
+            idInfo.append('(').append(idPath);
+          } catch (PathNotFoundException e) {
+            idInfo.append("???");
+          }
+          try {
+            idInfo.append(" -> ").append(getId(destFileNode)).append(") ");
+          } catch (PathNotFoundException e) {
+            idInfo.append("???) ");
+          }
+          LOG.debug("File copy failed in Dropbox without a reason " + idInfo.toString() + destFileNode.getPath());
+        }
+        // we throw provider exception to let it be retried
+        throw new DropboxException("File copy failed in Dropbox without a reason " + destFileNode.getPath());
+      }
     }
 
     /**
@@ -595,38 +543,54 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile copyFolder(Node srcFolderNode, Node destFolderNode) throws CloudDriveException, RepositoryException {
-      Object folder = api.copyFolder(getId(srcFolderNode), getParentId(destFolderNode), getTitle(destFolderNode));
-      String id = "TODO"; // folder.getId();
-      String name = "TODO"; // folder.getName();
-      String type = "TODO"; // folder.getType();
-      String link = api.getLink(folder);
-      String createdBy = "TODO"; // folder.getCreatedBy().getLogin();
-      String modifiedBy = "TODO"; // folder.getModifiedBy().getLogin();
-      Calendar created = Calendar.getInstance(); // api.parseDate(folder.getCreatedAt());
-      Calendar modified = Calendar.getInstance(); // api.parseDate(folder.getModifiedAt());
+      DbxEntry item = copy(srcFolderNode, destFolderNode);
+      if (item != null) {
+        if (item.isFolder()) {
+          DbxEntry.Folder folder = item.asFolder();
+          String id = idPath(folder.path);
+          String name = folder.name;
+          String link = api.getFolderLink(folder.path);
+          String createdBy = currentUser();
+          String modifiedBy = createdBy;
+          String type = FOLDER_TYPE;
+          Calendar created = Calendar.getInstance();
 
-      initFolder(destFolderNode,
-                 id,
-                 name,
-                 type, //
-                 link, // link
-                 createdBy, // author
-                 modifiedBy, // lastUser
-                 created,
-                 modified);
-      initCloudItem(destFolderNode, folder);
+          initFolder(destFolderNode, id, name, type, link, createdBy, modifiedBy, created, created);
+          initDropboxFolder(destFolderNode, folder.mightHaveThumbnail, folder.iconName, null);
 
-      return new JCRLocalCloudFile(destFolderNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   destFolderNode,
-                                   true);
+          return new JCRLocalCloudFile(destFolderNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       type,
+                                       modifiedBy,
+                                       createdBy,
+                                       created,
+                                       created,
+                                       destFolderNode,
+                                       true);
+        } else {
+          throw new CloudDriveException("Copied folder appears as not a folder in Dropbox " + item.path);
+        }
+      } else {
+        if (LOG.isDebugEnabled()) {
+          StringBuilder idInfo = new StringBuilder();
+          try {
+            String idPath = getId(srcFolderNode);
+            idInfo.append('(').append(idPath);
+          } catch (PathNotFoundException e) {
+            idInfo.append("???");
+          }
+          try {
+            idInfo.append(" -> ").append(getId(destFolderNode)).append(") ");
+          } catch (PathNotFoundException e) {
+            idInfo.append("???) ");
+          }
+          LOG.debug("Folder copy failed in Dropbox without a reason " + idInfo.toString() + destFolderNode.getPath());
+        }
+        // we throw provider exception to let it be retried
+        throw new DropboxException("Folder copy failed in Dropbox without a reason " + destFolderNode.getPath());
+      }
     }
 
     /**
@@ -634,7 +598,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean removeFile(String id) throws CloudDriveException, RepositoryException {
-      api.deleteFile(id);
+      api.delete(id);
       return true;
     }
 
@@ -643,7 +607,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean removeFolder(String id) throws CloudDriveException, RepositoryException {
-      api.deleteFolder(id);
+      api.delete(id);
       return true;
     }
 
@@ -652,10 +616,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean trashFile(String id) throws CloudDriveException, RepositoryException {
-      Object trashed = api.trashFile(id);
-      // TODO actual logic to check if file was successfully trashed (or may be not if
-      // permissions or anything else prevented that)
-      return true;
+      return removeFile(id); // remove in Dropbox, it will be possible to restore by file rev
+      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -663,10 +625,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean trashFolder(String id) throws CloudDriveException, RepositoryException {
-      Object trashed = api.trashFolder(id);
-      // TODO actual logic to check if folder was successfully trashed (or may be not if
-      // permissions or anything else prevented that)
-      return true;
+      return removeFolder(id); // remove in Dropbox, it will be possible to restore folder file by file
+      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -674,10 +634,46 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile untrashFile(Node fileNode) throws CloudDriveException, RepositoryException {
-      Object untrashed = api.untrashFile(fileAPI.getId(fileNode), fileAPI.getTitle(fileNode));
-      // TODO actual logic to check if file was successfully untrashed (or may be not if
-      // permissions or anything else prevented that)
-      return (CloudFile) untrashed;
+      String idPath = getId(fileNode);
+      String rev = getRev(fileNode);
+      DbxEntry.File file = api.restoreFile(idPath, rev);
+      if (file != null) {
+        DbxFileInfo info = new DbxFileInfo(file.path);
+        String id = info.idPath;
+        String name = file.name;
+        String link = api.getFileLink(info.parentPath, info.name);
+        String embedLink = null; // api.getEmbedLink(file.path);
+        String thumbnailLink = null; // api.getThumbnailLink(file.path);
+        String createdBy = currentUser();
+        String modifiedBy = createdBy;
+        String type = findMimetype(name);
+        Calendar modified = Calendar.getInstance();
+        long size = file.numBytes;
+
+        initFile(fileNode, id, name, type, link, embedLink, thumbnailLink, createdBy, modifiedBy, null, modified, size);
+        initDropboxFile(fileNode, file.mightHaveThumbnail, file.iconName, file.rev, size);
+
+        return new JCRLocalCloudFile(fileNode.getPath(),
+                                     id,
+                                     name,
+                                     link,
+                                     null,
+                                     previewLink(fileNode),
+                                     thumbnailLink,
+                                     type,
+                                     mimeTypes.getMimeTypeMode(type, name),
+                                     createdBy,
+                                     modifiedBy,
+                                     fileAPI.getCreated(fileNode),
+                                     modified,
+                                     size,
+                                     fileNode,
+                                     true);
+      } else {
+        // else file with given idPath/rev not found - we cannot keep this file in the drive
+        throw new FileRestoreException("File revision (" + rev + ") cannot be restored '" + getTitle(fileNode) + "'");
+      }
+      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -685,10 +681,58 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
-      Object untrashed = api.untrashFolder(fileAPI.getId(folderNode), fileAPI.getTitle(folderNode));
-      // TODO actual logic to check if folder was successfully trashed (or may be not if
-      // permissions or anything else prevented that)
-      return (CloudFile) untrashed;
+      // Untrash folder using local file by file. This seems cannot work for empty folders.
+      // traverse over the folder children nodes (files and folders recursively) and restore file by file
+      for (NodeIterator children = folderNode.getNodes(); children.hasNext();) {
+        Node childNode = children.nextNode();
+        if (isFolder(childNode)) {
+          // it's folder
+          untrashFolder(childNode);
+        } else if (isFile(childNode)) {
+          // it's file
+          untrashFile(childNode);
+        } else {
+          // remove not recognized nodes
+          childNode.remove();
+        }
+      }
+
+      // try get the folder from Dropbox, it should appear after child file(s) restoration
+      String idPath = getId(folderNode);
+      DbxEntry item = api.get(idPath);
+      if (item != null) {
+        if (item.isFolder()) {
+          DbxEntry.Folder folder = item.asFolder();
+          String id = idPath(folder.path);
+          String name = folder.name;
+          String link = api.getFolderLink(folder.path);
+          String createdBy = currentUser();
+          String modifiedBy = createdBy;
+          String type = FOLDER_TYPE;
+          Calendar modified = Calendar.getInstance();
+
+          initFolder(folderNode, id, name, type, link, createdBy, modifiedBy, null, modified);
+          initDropboxFolder(folderNode, folder.mightHaveThumbnail, folder.iconName, null);
+
+          return new JCRLocalCloudFile(folderNode.getPath(),
+                                       id,
+                                       name,
+                                       link,
+                                       type,
+                                       modifiedBy,
+                                       createdBy,
+                                       fileAPI.getCreated(folderNode),
+                                       modified,
+                                       folderNode,
+                                       true);
+        } else {
+          throw new FileRestoreException("Untrashed folder appears as not a folder in Dropbox " + item.path);
+        }
+      } else {
+        // else folder not restored - we cannot keep it in the drive
+        throw new FileRestoreException("Folder cannot be restored '" + getTitle(folderNode) + "'");
+      }
+      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -696,6 +740,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean isTrashSupported() {
+      // FYI Dropbox doesn't have a traditional trash, but it has revisions for the files and each file can be
+      // restored to some revision. Their UI allows to see removed folders and files on the site, but the API
+      // allows only files restoration.
+      // This feature considered as not complete, as for traditional trash, and not used for trashing in eXo.
+      // To be reviewed in future.
       return true;
     }
 
@@ -703,14 +752,259 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * {@inheritDoc}
      */
     @Override
-    public CloudFile restore(String id, String path) throws NotFoundException, CloudDriveException, RepositoryException {
-      // TODO implement restoration of file by id at its local path (known as part of remove/update)
-      throw new SyncNotSupportedException("Restore not supported");
+    public CloudFile restore(String idPath, String nodePath) throws NotFoundException,
+                                                             CloudDriveException,
+                                                             RepositoryException {
+
+      // FYI the below logic will not work if remote file will change the name or parent during the sync:
+      // its Dropbox path will be changed and restore will not be able to find it by known here idPath.
+      // Such file should come as part of Delta changes and apply accordingly.
+
+      // 1. find all local files with such idPath
+      // 2. should be only one with such idPath, but if have several
+      // 2.1 find where parent idPath doesn't match the file idPath, remove such file(s)
+      // 2.2 find where the file name doesn't match and remove it
+      // 3. restore (create/update) the file and fetch the sub-tree if folder, from Dropbox
+
+      DbxFileInfo fileInfo = new DbxFileInfo(idPath);
+      if (fileInfo.isRoot()) {
+        // skip root node - this shouldn't happen
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Cannot restore root folder - ignore it: " + idPath + " node: " + nodePath);
+        }
+        return null;
+      } else {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(">> restore(" + idPath + ", " + nodePath + ")");
+        }
+      }
+
+      JCRLocalCloudFile restored = null;
+
+      // go through all local nodes existing with given file Dropbox path
+      // and restore if its parent exists remotely, or remove local node otherwise
+      for (Node node : findNodes(Arrays.asList(idPath))) {
+        String path = node.getPath();
+        if (path.equals(nodePath)) {
+          Node parent = node.getParent();
+          String parentIdPath = fileAPI.getId(parent);
+          if (fileInfo.parentPath.equals(parentIdPath)) {
+            // it is proper parent where this node should exist - restore it (with sub-tree if folder)
+            DbxEntry item = restoreSubtree(api, idPath, parent);
+            if (item != null) {
+              // if sub-tree restored successfully, restore the file itself
+              restored = updateItem(api, fileInfo, item, parent, node);
+            } else {
+              // this file doesn't exist remotely - remove it
+              remove(node);
+            }
+          } else {
+            // this node should not exist on this parent
+            remove(node);
+          }
+        } else {
+          // this node should not exist on this path
+          remove(node);
+        }
+      }
+
+      if (restored == null) {
+        // nothing restored from existing in the local drive (it's removal usecase),
+        // need fetch this file by idPath to its local parent
+        DbxEntry remoteParent = api.get(fileInfo.parentPath); // can be null
+        if (remoteParent != null) {
+          for (Node parent : findNodes(Arrays.asList(remoteParent.path))) {
+            if (nodePath.startsWith(parent.getPath())) {
+              // restore file and a sub-tree if folder, this will not update the parent
+              DbxEntry item = restoreSubtree(api, idPath, parent);
+              if (item != null) {
+                // if sub-tree restored successfully, restore the file itself
+                restored = updateItem(api, fileInfo, item, parent, null);
+              } // else this file doesn't exist remotely
+            } else {
+              // unexpected: parent exists on another path than the restoring file - remove it locally
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Restoration of " + idPath + " found parent on wrong path " + parent.getPath()
+                    + ". Node will be removed.");
+              }
+              remove(parent);
+            }
+          }
+        } else {
+          // parent not found remotely - nothing to restore
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Restore not possible: remote parent not found for " + idPath);
+          }
+        }
+      }
+
+      return restored;
     }
+
+    // ********* internals **********
+
+    protected String getRev(Node fileNode) throws RepositoryException {
+      return fileNode.getProperty("dropbox:rev").getString();
+    }
+
+    protected CloudFile uploadFile(Node fileNode,
+                                   Calendar created,
+                                   Calendar modified,
+                                   String mimeType,
+                                   InputStream content,
+                                   boolean update) throws CloudDriveException, RepositoryException {
+
+      String parentId = getParentId(fileNode);
+      String title = getTitle(fileNode);
+      String rev = update ? getRev(fileNode) : null;
+      DbxEntry.File file;
+      try {
+        file = api.uploadFile(parentId, title, content, rev);
+      } catch (ConflictException e) {
+        String idPath = getId(fileNode);
+        DbxEntry item = api.get(idPath);
+        if (item != null) {
+          if (item.isFile()) {
+            // ignore local file in favor of remote existing at this path
+            file = item.asFile();
+            // and erase local file data here
+            if (fileNode.hasNode("jcr:content")) {
+              fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty data by default
+            }
+          } else {
+            throw e; // we cannot do anything at this level
+          }
+        } else {
+          LOG.warn("File upload conflicted but remote file not found " + api.filePath(parentId, title));
+          throw e; // we cannot do anything at this level
+        }
+      }
+
+      DbxFileInfo info = new DbxFileInfo(file.path);
+      String id = info.idPath;
+      String name = file.name;
+      String link = api.getFileLink(info.parentPath, info.name);
+      String embedLink = null; // api.getEmbedLink(file.path);
+      String thumbnailLink = null; // api.getThumbnailLink(file.path);
+      String createdBy = currentUser();
+      String modifiedBy = createdBy;
+      String type = findMimetype(name);
+      long size = file.numBytes;
+
+      initFile(fileNode, id, name, type, link, embedLink, thumbnailLink, createdBy, modifiedBy, created, modified, size);
+      initDropboxFile(fileNode, file.mightHaveThumbnail, file.iconName, file.rev, size);
+
+      return new JCRLocalCloudFile(fileNode.getPath(),
+                                   id,
+                                   title,
+                                   link,
+                                   null,
+                                   previewLink(fileNode),
+                                   thumbnailLink,
+                                   type,
+                                   mimeTypes.getMimeTypeMode(type, name),
+                                   createdBy,
+                                   modifiedBy,
+                                   created,
+                                   modified,
+                                   size,
+                                   fileNode,
+                                   true);
+    }
+
+    protected void remove(Node node) throws RepositoryException {
+      // remove only if not already ignored
+      if (!fileAPI.isIgnored(node)) {
+        try {
+          node.remove();
+        } catch (PathNotFoundException e) {
+          // already removed
+        }
+      }
+    }
+
+    protected DbxEntry move(Node node) throws RepositoryException,
+                                       TooManyFilesException,
+                                       DropboxException,
+                                       RefreshAccessException,
+                                       ConflictException,
+                                       NotFoundException {
+      // Use move for renaming: given node should be moved (incl renamed) to its new parent
+
+      // It is source path, from where we move the file
+      String localIdPath = getId(node);
+
+      // it is remote destination parent path
+      String localParentIdPath = getParentId(node);
+
+      // file title and lower-case name
+      String title = getTitle(node);
+      String name = idPath(title);
+
+      boolean isMove;
+      if (!localIdPath.startsWith(localParentIdPath)) {
+        // idPath of the file doesn't belong to the file current parent - it's moved file
+        isMove = true;
+      } else if (!localIdPath.endsWith(name)) {
+        // idPath of the file has other than current file name (lower-case!) - it's renamed file
+        isMove = true;
+      } else {
+        // otherwise file wasn't changed in meaning of Dropbox structure
+        isMove = false;
+      }
+
+      if (isMove) {
+        // new Dropbox path for the file (use case preserving title)
+        String idPath = api.filePath(localParentIdPath, title);
+
+        // FYI move conflicts will be solved by the caller (in core)
+        DbxEntry f = api.move(localIdPath, idPath);
+        if (f == null) {
+          String path = node.getPath();
+          StringBuilder msg = new StringBuilder();
+          msg.append("Move failed in Dropbox without a reason ");
+          if (LOG.isDebugEnabled()) {
+            StringBuilder dmsg = new StringBuilder();
+            dmsg.append(msg).append('(').append(localIdPath).append(") ").append(path);
+            LOG.debug(dmsg.toString());
+          }
+          msg.append(path);
+          // we throw provider exception to let it be retried
+          throw new DropboxException(msg.toString());
+        }
+        return f;
+      } else {
+        return null;
+      }
+    }
+
+    protected DbxEntry copy(Node sourceNode, Node destNode) throws RepositoryException,
+                                                            TooManyFilesException,
+                                                            DropboxException,
+                                                            RefreshAccessException,
+                                                            ConflictException,
+                                                            NotFoundException {
+      // It is source path, from where we move the file
+      String sourceIdPath = getId(sourceNode);
+
+      // it is remote destination parent path
+      String destParentIdPath = getParentId(destNode);
+
+      // file name
+      String title = getTitle(destNode);
+
+      // new Dropbox path for the file
+      String destIdPath = api.filePath(destParentIdPath, title);
+
+      // FYI copy conflicts will be solved by the caller (in core)
+      DbxEntry f = api.copy(sourceIdPath, destIdPath);
+      return f;
+    }
+
   }
 
   /**
-   * An implementation of {@link SyncCommand} based on an abstract events queue proposed and maintained by the
+   * An implementation of {@link SyncCommand} based on an abstract deltas queue proposed and maintained by the
    * cloud service.
    * 
    */
@@ -719,14 +1013,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     /**
      * Internal API.
      */
-    protected final DropboxAPI api;
+    protected final DropboxAPI        api;
 
     /**
-     * Events from drive to apply.
+     * Nodes read/created by Dropbox path in this sync.
      */
-    protected EventsIterator   events;
-
-    protected Object           nextEvent;
+    protected final Map<String, Node> pathNodes = new HashMap<String, Node>();
 
     /**
      * Create command for Template synchronization.
@@ -744,91 +1036,98 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     protected void syncFiles() throws CloudDriveException, RepositoryException {
-      // TODO implement real sync algorithm based on events from cloud API
+      // sync algorithm based on deltas from Dropbox API
+      long changeId = System.currentTimeMillis(); // time of the begin
+      // long localChangeId = getChangeId();
+      // readLocalNodes();
+      this.pathNodes.put(DropboxAPI.ROOT_PATH, rootNode);
 
-      long localChangeId = getChangeId();
+      String cursor = rootNode.getProperty("dropbox:cursor").getString();
 
       // buffer all items,
       // apply them in proper order (taking in account parent existence),
       // remove already applied (check by event id in history),
       // apply others to local nodes
-      // save just applied events as history
-      events = api.getEvents(localChangeId);
-      iterators.add(events);
+      // save just applied deltas as history
+      DeltaChanges deltas = api.getDeltas(cursor);
 
-      // loop over events and respect this thread interrupted status to cancel the command correctly
-      while (events.hasNext() && !Thread.currentThread().isInterrupted()) {
-        Object event = events.next();
-        Object item = new Object(); // event.getItem();
-        String eventType = "TODO"; // event.getEventType();
+      iterators.add(deltas);
 
-        String id = "TODO"; // item.getId();
-        String name = "TODO"; // item.getName();
+      // loop over deltas and respect this thread interrupted status to cancel the command correctly
+      while (deltas.hasNext() && !Thread.currentThread().isInterrupted()) {
+        DbxDelta.Entry<DbxEntry> delta = deltas.next();
+        DbxEntry item = delta.metadata;
+        String deltaPath = delta.lcPath;
 
-        // TODO find parent id
-        String parentId = "";
-
-        // TODO find parent node
-        Node parent = null;
-
-        if (eventType.equals("ITEM_CREATE")) {
-          apply(updateItem(api, item, parent, null));
-        } else if (eventType.equals("ITEM_TRASH")) {
-          Node node = readNode(parent, name, id);
-          // TODO if node can be not found or Null - care about it
-          String path = node.getPath();
-          node.remove();
-          remove(id, path);
-        } else if (eventType.equals("ITEM_UNDELETE_VIA_TRASH")) {
-          apply(updateItem(api, item, parent, null));
-        } else if (eventType.equals("other types...")) {
-          // TODO other op logic
+        DbxFileInfo file = new DbxFileInfo(deltaPath);
+        if (file.isRoot()) {
+          // skip root node - this shouldn't happen
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Root folder entry found in delta changes - ignore it: " + deltaPath);
+          }
+          continue;
         } else {
-          LOG.warn("Skipped unexpected change from cloud Event: " + eventType);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(">> delta: "
+                + (item != null ? item.name + (item.isFolder() ? " folder change " : " file change ") : "removed ")
+                + deltaPath);
+          }
+        }
+
+        if (item != null) {
+          // file should exist locally
+          Node parent = getParent(file);
+          if (parent == null) {
+            // parent not found: find nearest existing ancestor and fetch the sub-tree from Dropbox
+            Node existingAncestor = getExistingAncestor(file.getParent());
+            if (existingAncestor != null) {
+              String idPath = fileAPI.getId(existingAncestor);
+              Set<CloudFile> fetched = new LinkedHashSet<CloudFile>();
+              // FYI existing ancestor itself will not be updated
+              JCRLocalDropboxDrive.this.fetchSubtree(api, idPath, existingAncestor, false, iterators, fetched);
+              for (CloudFile localFile : fetched) {
+                apply((JCRLocalCloudFile) localFile);
+              }
+            } else {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Cannot find existing ancestor in local drive storage. Delta path: " + deltaPath + ". File path: "
+                    + item.path);
+              }
+              throw new CloudDriveException("Cannot find existing parent folder locally for " + item.path);
+            }
+          } else {
+            // found local parent: create/update the file in it
+            apply(updateItem(api, file, item, parent, null));
+          }
+        } else {
+          // need remove local
+          removeFile(file);
         }
       }
 
       if (!Thread.currentThread().isInterrupted()) {
-        if (false) { // TODO if sync via events not possible - then we can run Full Sync
-          // EventsSync cannot solve all changes, need run FullSync
-          LOG.warn("Not all events applied for cloud sync. Running full sync.");
-
-          // rollback everything from this sync
-          rollback(rootNode);
-
-          // we need full sync in this case
-          FullSync fullSync = new FullSync();
-          fullSync.execLocal();
-
-          changed.clear();
-          changed.addAll(fullSync.getFiles());
-          removed.clear();
-          removed.addAll(fullSync.getRemoved());
-        } else {
-          // TODO for next syncs needs you may need to save the history
-          // consider for saving the history of several hours or even a day
-
-          // update sync position
-          setChangeId(events.getChangeId());
-        }
+        // if (false) { // TODO if sync via deltas not possible - then we can run Full Sync
+        // // EventsSync cannot solve all changes, need run FullSync
+        // LOG.warn("Not all deltas applied for cloud sync. Running full sync.");
+        //
+        // // rollback everything from this sync
+        // rollback(rootNode);
+        //
+        // // we need full sync in this case
+        // FullSync fullSync = new FullSync();
+        // fullSync.execLocal();
+        //
+        // changed.clear();
+        // changed.addAll(fullSync.getFiles());
+        // removed.clear();
+        // removed.addAll(fullSync.getRemoved());
+        // } else {
+        // update sync position
+        setChangeId(changeId);
+        rootNode.setProperty("dropbox:cursor", deltas.cursor);
+        updateState(deltas.cursor);
+        // }
       }
-    }
-
-    protected Object fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
-      ItemsIterator items = api.getFolderItems(fileId);
-      iterators.add(items);
-      while (items.hasNext()) {
-        Object item = items.next();
-        JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
-        if (localItem.isChanged()) {
-          apply(localItem);
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchChilds(localItem.getId(), localItem.getNode());
-          }
-        }
-      }
-      return items.parent;
     }
 
     protected void apply(JCRLocalCloudFile local) {
@@ -838,12 +1137,291 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
-    protected void remove(String itemId, String itemPath) {
-      if (itemPath != null) {
-        removed.add(itemPath);
+    @Deprecated // TODO not used
+    protected void readLocalNodes() throws RepositoryException {
+      // we need natural and lower-case id (paths actually)
+      Map<String, List<Node>> lcNodes = new HashMap<String, List<Node>>();
+      for (Map.Entry<String, List<Node>> neiter : nodes.entrySet()) {
+        String id = neiter.getKey();
+        lcNodes.put(id.toUpperCase().toLowerCase(), neiter.getValue());
+      }
+      nodes.putAll(lcNodes);
+    }
+
+    /**
+     * Find file node by its Dropbox path (lower-case or natural form).
+     * 
+     * @param idPath {@link String}
+     * @return {@link Node}
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     */
+    protected Node getFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
+      // FYI Drive root nodes already in the map
+      Node node = pathNodes.get(file.idPath);
+      if (node == null) {
+        // read from local storage
+        node = readNode(file);
+      }
+      return node;
+    }
+
+    /**
+     * Create or read existing file node by its Dropbox path (lower-case or natural form).
+     * 
+     * @param idPath {@link String}
+     * @return {@link Node}
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     */
+    @Deprecated
+    protected Node openFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
+      // FYI Drive root nodes already in the map
+      Node node = getFile(file);
+      if (node == null) {
+        // read or create a parent
+        Node parent = openFile(file);
+        // read or create a node
+        node = JCRLocalDropboxDrive.this.openFile(file.idPath, file.name, parent); // path as fileId in
+                                                                                   // Dropbox
+        // TODO may be we don't need this?
+        // pathNodes.put(path, node);
+        pathNodes.put(file.idPath, node);
+      } // else, it exists and cached already - return the node
+      return node;
+    }
+
+    /**
+     * Remove file or folder node by its Dropbox path (lower-case or natural form).
+     * 
+     * @param file {@link DbxFileInfo}
+     * @return <code>true</code> if file found and successfully removed, <code>false</code> otherwise
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     */
+    protected boolean removeFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
+      Node node = pathNodes.remove(file.idPath);
+      if (node == null) {
+        // read from local storage
+        node = readNode(file);
+      }
+      if (node != null) {
+        String nodePath = node.getPath();
+        node.remove();
+        removed.add(nodePath);
+        return true;
+      }
+      return false;
+    }
+
+    /**
+     * Find nearest existing ancestor of the file using its Dropbox path (lower-case or natural form).
+     * 
+     * @param file {@link DbxFileInfo}
+     * @return {@link Node}
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     * @throws IllegalArgumentException when file argument is a root drive of Dropbox
+     */
+    protected Node getExistingAncestor(DbxFileInfo file) throws RepositoryException,
+                                                         CloudDriveException,
+                                                         IllegalArgumentException {
+      if (file.isRoot()) {
+        Node node;
+        DbxFileInfo parent = file.getParent();
+        if (parent.isRoot()) {
+          // it's root node as parent - we already have it
+          node = rootNode;
+        } else {
+          node = getFile(parent);
+          if (node == null) {
+            node = getExistingAncestor(parent);
+          }
+        }
+        return node;
+      } else {
+        // root node as a parent
+        return rootNode;
       }
     }
+
+    protected Node readNode(DbxFileInfo file) throws RepositoryException, CloudDriveException {
+      Node parent = getParent(file);
+      if (parent != null) {
+        Node node = JCRLocalDropboxDrive.this.readNode(parent, file.name, file.idPath);
+        if (node != null) {
+          pathNodes.put(file.idPath, node);
+        }
+        return node;
+      } else {
+        return null;
+      }
+      // TODO could get the node faster w/o traversing the sub-tree, but then need copy the logic of
+      // readNode() here
+      // String nodePath = new StringBuilder(rootPath).append(path).toString();
+      // return rootNode.getNode(nodePath);
+    }
+
+    /**
+     * Return parent node of the given file path.
+     * 
+     * @param file {@link DbxFileInfo}
+     * @return {@link Node}
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     */
+    protected Node getParent(DbxFileInfo file) throws RepositoryException, CloudDriveException {
+      Node parent;
+      if (file.isRoot()) {
+        parent = rootNode;
+      } else {
+        parent = getFile(file.getParent());
+      }
+      return parent;
+    }
   }
+
+  public class DropboxState extends DriveState {
+
+    final String cursor;
+
+    final String url;
+
+    final int    timeout;
+
+    protected DropboxState(String cursor) {
+      this.cursor = cursor;
+      this.timeout = DropboxAPI.DELTA_LONGPOLL_TIMEOUT;
+      this.url = new StringBuilder(DropboxAPI.DELTA_LONGPOLL_URL).append("?cursor=")
+                                                                 .append(cursor)
+                                                                 .append("&timeout=")
+                                                                 .append(timeout)
+                                                                 .toString();
+    }
+
+    /**
+     * @return the cursor
+     */
+    public String getCursor() {
+      return cursor;
+    }
+
+    /**
+     * @return the url
+     */
+    public String getUrl() {
+      return url;
+    }
+
+    /**
+     * @return the timeout
+     */
+    public int getTimeout() {
+      return timeout;
+    }
+  }
+
+  /**
+   * Dropbox file info (path as ID, name and parent path) extracted from its original path in Dropbox.
+   */
+  protected class DbxFileInfo {
+    /**
+     * File name in natural form as in Dropbox.
+     */
+    protected final String name;
+
+    /**
+     * File path in natural form as in Dropbox.
+     */
+    protected final String path;
+
+    /**
+     * Parent path in lower-case, can be used as ID.
+     */
+    protected final String parentPath;
+
+    /**
+     * Path in lower-case, can be used as ID.
+     */
+    protected final String idPath;
+
+    /**
+     * Lazy obtained parent info instance.
+     */
+    protected DbxFileInfo  parent;
+
+    protected DbxFileInfo(String dbxPath) {
+      if (dbxPath == null) {
+        throw new NullPointerException("Null path not allowed");
+      }
+      if (dbxPath.length() == 0) {
+        throw new IllegalArgumentException("Empty path not allowed");
+      }
+
+      this.path = dbxPath;
+      this.idPath = idPath(dbxPath);
+
+      String name;
+      String parentPath;
+      if (DropboxAPI.ROOT_PATH.equals(this.idPath)) {
+        // it's root of the drive
+        name = null;
+        parentPath = null;
+      } else {
+        int parentEndIndex = this.idPath.lastIndexOf('/');
+        int endIndex;
+        if (parentEndIndex == this.idPath.length() - 1) {
+          // for cases with ending slash (e.g. /my/path/ and we need /my parent)
+          endIndex = parentEndIndex;
+          parentEndIndex = this.idPath.lastIndexOf('/', endIndex - 1);
+        } else {
+          endIndex = this.idPath.length();
+        }
+        if (parentEndIndex > 0) {
+          // we need parent path normalized to lower-case, it may be used as idPath
+          parentPath = this.idPath.substring(0, parentEndIndex);
+          int nameIndex = parentEndIndex + 1;
+          if (nameIndex < endIndex) {
+            // we use Dropbox path, not lower-case idPath, for natural file name
+            name = dbxPath.substring(nameIndex, endIndex);
+          } else {
+            name = null;
+          }
+        } else if (parentEndIndex == 0) {
+          // it's root node as parent
+          parentPath = DropboxAPI.ROOT_PATH;
+          name = dbxPath.substring(parentEndIndex + 1, endIndex);
+        } else {
+          // we guess it's root node as parent and given path a name of file
+          parentPath = DropboxAPI.ROOT_PATH;
+          name = dbxPath;
+        }
+      }
+
+      this.name = name;
+      this.parentPath = parentPath;
+    }
+
+    protected DbxFileInfo getParent() {
+      if (isRoot()) {
+        return null;
+      } else {
+        if (parent == null) {
+          parent = new DbxFileInfo(parentPath);
+        }
+        return parent;
+      }
+    }
+
+    protected boolean isRoot() {
+      return parentPath == null;
+    }
+  }
+
+  /**
+   * Dropbox drive state. See {@link #getState()}.
+   */
+  protected DropboxState state;
 
   /**
    * @param user
@@ -869,6 +1447,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                  ExtendedMimeTypeResolver mimeTypes) throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
+
+    try {
+      String cursor = driveNode.getProperty("dropbox:cursor").getString();
+      updateState(cursor);
+    } catch (PathNotFoundException e) {
+      LOG.warn("Drive node exists but delta cursor not found for " + title() + ": " + e.getMessage());
+    }
   }
 
   /**
@@ -877,8 +1462,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   @Override
   protected void initDrive(Node driveNode) throws CloudDriveException, RepositoryException {
     super.initDrive(driveNode);
+    driveNode.setProperty("ecd:id", DropboxAPI.ROOT_PATH);
+    driveNode.setProperty("ecd:url", DropboxAPI.ROOT_URL);
+  }
 
-    // TODO other custom things
+  protected void updateState(String cursor) {
+    this.state = new DropboxState(cursor);
   }
 
   /**
@@ -892,23 +1481,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * @throws DropboxException
    * @throws CloudDriveException
    */
-  protected static DropboxUser loadUser(API apiBuilder,
-                                        DropboxProvider provider,
-                                        Node driveNode) throws RepositoryException, DropboxException, CloudDriveException {
+  protected static DropboxUser loadUser(API apiBuilder, DropboxProvider provider, Node driveNode) throws RepositoryException,
+                                                                                                  DropboxException,
+                                                                                                  CloudDriveException {
     String username = driveNode.getProperty("ecd:cloudUserName").getString();
     String email = driveNode.getProperty("ecd:userEmail").getString();
     String userId = driveNode.getProperty("ecd:cloudUserId").getString();
 
     String accessToken = driveNode.getProperty("dropbox:oauth2AccessToken").getString();
-    String refreshToken;
-    try {
-      refreshToken = driveNode.getProperty("dropbox:oauth2RefreshToken").getString();
-    } catch (PathNotFoundException e) {
-      refreshToken = null;
-    }
-    long expirationTime = driveNode.getProperty("dropbox:oauth2TokenExpirationTime").getLong();
-
-    DropboxAPI driveAPI = apiBuilder.load(refreshToken, accessToken, expirationTime).build();
+    DropboxAPI driveAPI = apiBuilder.load(accessToken).build();
 
     return new DropboxUser(userId, username, email, provider, driveAPI);
   }
@@ -925,9 +1506,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       Node driveNode = rootNode();
       try {
         driveNode.setProperty("dropbox:oauth2AccessToken", token.getAccessToken());
-        driveNode.setProperty("dropbox:oauth2RefreshToken", token.getRefreshToken());
-        driveNode.setProperty("dropbox:oauth2TokenExpirationTime", token.getExpirationTime());
-
         driveNode.save();
       } catch (RepositoryException e) {
         rollback(driveNode);
@@ -946,6 +1524,34 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * {@inheritDoc}
    */
   @Override
+  public ContentReader getFileContent(String idPath) throws RepositoryException, CloudDriveException {
+    DropboxAPI api = getUser().api();
+    Downloader downloader = api.getContent(idPath);
+    if (downloader != null && downloader.metadata.isFile()) {
+      DbxEntry.File file = downloader.metadata.asFile();
+
+      String type = findMimetype(file.name);
+      String typeMode = mimeTypes.getMimeTypeMode(type, file.name);
+      return new CloudFileContent(file.name, downloader.body, type, typeMode, file.numBytes);
+    }
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public FilesState getState() throws DriveRemovedException,
+                               RefreshAccessException,
+                               CloudProviderException,
+                               RepositoryException {
+    return state;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   protected ConnectCommand getConnectCommand() throws DriveRemovedException, RepositoryException {
     return new Connect();
   }
@@ -955,18 +1561,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   protected SyncCommand getSyncCommand() throws DriveRemovedException, SyncNotSupportedException, RepositoryException {
-
-    Calendar now = Calendar.getInstance();
-    Calendar last = rootNode().getProperty("dropbox:changeDate").getDate();
-
+    // Calendar now = Calendar.getInstance();
+    // Calendar last = rootNode().getProperty("dropbox:changeDate").getDate();
     // XXX we force a full sync (a whole drive traversing) each defined period.
     // We do this for a case when provider will not provide a full history for files connected long time ago
     // and weren't synced day by day (drive was rarely used).
-    if (now.getTimeInMillis() - last.getTimeInMillis() < FULL_SYNC_PERIOD) {
-      return new EventsSync();
-    } else {
-      return new FullSync();
-    }
+    // if (now.getTimeInMillis() - last.getTimeInMillis() < FULL_SYNC_PERIOD) {
+    return new EventsSync();
+    // } else {
+    // return new FullSync();
+    // }
   }
 
   /**
@@ -1008,6 +1612,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return (DropboxUser) user;
   }
 
+  // public
+
   /**
    * {@inheritDoc}
    */
@@ -1035,6 +1641,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * @throws RepositoryException
    * @throws DropboxException
    */
+  @Deprecated // Nothing common to init for Dropbox
   protected void initCloudItem(Node localNode, Object item) throws RepositoryException, DropboxException {
     // TODO init localNode with a data of cloud item
 
@@ -1060,84 +1667,178 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
+   * Initialize Dropbox file.
+   * 
+   * @param localNode {@link Node}
+   * @param file {@link DbxEntry.File}
+   * @throws RepositoryException
+   * @throws DropboxException
+   */
+  protected void initDropboxFile(Node localNode,
+                                 Boolean mightHaveThumbnail,
+                                 String iconName,
+                                 String rev,
+                                 Long size) throws RepositoryException, DropboxException {
+    // File revision for synchronization
+    localNode.setProperty("dropbox:rev", rev);
+
+    // File size
+    // TODO exo's property to show the size: jcr:content's length?
+    localNode.setProperty("ecd:size", size);
+
+    initDropboxCommon(localNode, mightHaveThumbnail, iconName);
+  }
+
+  /**
+   * Initialize Dropbox folder.
+   * 
+   * @param localNode {@link Node}
+   * @param mightHaveThumbnail {@link Boolean}
+   * @param iconName {@link String}
+   * @param deltaHash String a hash of last Delta synchronization, if <code>null</code> it will be ignored
+   * @throws RepositoryException
+   * @throws DropboxException
+   */
+  protected void initDropboxFolder(Node localNode,
+                                   Boolean mightHaveThumbnail,
+                                   String iconName,
+                                   String deltaHash) throws RepositoryException, DropboxException {
+    if (deltaHash != null) {
+      localNode.setProperty("dropbox:hash", deltaHash);
+    }
+    initDropboxCommon(localNode, mightHaveThumbnail, iconName);
+  }
+
+  /**
+   * Initialize Dropbox entry (commons for file and folder).
+   * 
+   * @param localNode {@link Node}
+   * @param mightHaveThumbnail {@link Boolean}
+   * @param iconName {@link String}
+   * @throws RepositoryException
+   * @throws DropboxException
+   */
+  protected void initDropboxCommon(Node localNode, Boolean mightHaveThumbnail, String iconName) throws RepositoryException,
+                                                                                                DropboxException {
+    // tells if thumbnail available in Dropbox /thumbnails service
+    localNode.setProperty("dropbox:mightHaveThumbnail", mightHaveThumbnail);
+    // icon name in Dropbox's icon set
+    localNode.setProperty("dropbox:iconName", iconName);
+  }
+
+  /**
    * Update or create a local node of Cloud File. If the node is <code>null</code> then it will be open on the
    * given parent and created if not already exists.
    * 
    * @param api {@link DropboxAPI}
-   * @param item {@link Object}
+   * @param file {@link DbxFileInfo}
+   * @param metadata {@link DbxEntry}
    * @param parent {@link Node}
    * @param node {@link Node}, can be <code>null</code>
    * @return {@link JCRLocalCloudFile}
    * @throws RepositoryException for storage errors
    * @throws CloudDriveException for drive or format errors
    */
-  protected JCRLocalCloudFile updateItem(DropboxAPI api, Object item, Node parent, Node node) throws RepositoryException,
-                                                                                              CloudDriveException {
-    // TODO fill with actual logic of item update
+  protected JCRLocalCloudFile updateItem(DropboxAPI api,
+                                         DbxFileInfo file,
+                                         DbxEntry metadata,
+                                         Node parent,
+                                         Node node) throws RepositoryException, CloudDriveException {
+    String id = file.idPath; // path as ID
+    String title = metadata.name; // title as natural item name in Dropbox (case preserved)
+    boolean isFolder = metadata.isFolder();
 
-    String id = ""; // item.getId();
-    String name = ""; // item.getName();
-    boolean isFolder = false; // item instanceof APIFolder;
-    String type = ""; // isFolder ? item.getType() : findMimetype(name);
-    // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
-    String typeMode = mimeTypes.getMimeTypeMode(type, name);
-    String itemHash = ""; // item.getEtag()
+    String createdBy;
+    String modifiedBy;
 
-    // read/create local node if not given
-    if (node == null) {
-      if (isFolder) {
-        node = openFolder(id, name, parent);
-      } else {
-        node = openFile(id, name, parent);
-      }
-    }
+    // TODO it's possible to get name of modifier on Dropbox, it will be in metadata response, but Java SDK
+    // doesn't read it - need extend its Entry and add such fields (and exception handling)
+    createdBy = modifiedBy = currentUser();
 
-    boolean changed = node.isNew() || !node.getProperty("dropbox:etag").getString().equals(itemHash);
-
-    Calendar created = Calendar.getInstance(); // api.parseDate(item.getCreatedAt());
-    Calendar modified = Calendar.getInstance(); // api.parseDate(item.getModifiedAt());
-    String createdBy = ""; // item.getCreatedBy().getLogin();
-    String modifiedBy = ""; // item.getModifiedBy().getLogin();
-    long size = 0; // TODO file.getSize()
-
+    Calendar created;
+    Calendar modified;
+    boolean changed;
+    String type;
     String link, embedLink, thumbnailLink;
-    JCRLocalCloudFile file;
+    JCRLocalCloudFile localFile;
     if (isFolder) {
-      link = embedLink = api.getLink(item);
-      thumbnailLink = null;
-      if (changed) {
-        initFolder(node,
-                   id,
-                   name,
-                   type, // type=folder
-                   link, // gf.getAlternateLink(),
-                   createdBy, // gf.getOwnerNames().get(0),
-                   modifiedBy, // gf.getLastModifyingUserName(),
-                   created,
-                   modified);
-        initCloudItem(node, item);
+      DbxEntry.Folder dbxFolder = metadata.asFolder();
+
+      // read/create local node if not given
+      // Dropbox docs say:
+      // If the new entry is a folder, check what your local state has at <path>. If it's a file, replace
+      // it with the new entry. If it's a folder, apply the new <metadata> to the folder, but don't modify
+      // the folder's children. If your local state doesn't yet include this path, create it as a folder.
+      if (node == null) {
+        node = openFolder(id, file.name, parent);
       }
-      file = new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   node,
-                                   true);
+      if (!fileAPI.isFolder(node)) {
+        node.remove();
+        node = openFolder(id, file.name, parent);
+      }
+
+      if (node.isNew()) {
+        changed = true;
+        created = modified = Calendar.getInstance();
+        type = FOLDER_TYPE;
+        link = api.getFolderLink(dbxFolder.path);
+        // embedLink = api.getEmbedLink(dbxFolder.path);
+        // thumbnailLink = api.getThumbnailLink(dbxFolder.path);
+        initFolder(node, id, title, type, link, createdBy, modifiedBy, created, modified);
+        initDropboxFolder(node, dbxFolder.mightHaveThumbnail, dbxFolder.iconName, null);
+      } else {
+        // only "changed" value actual
+        changed = false;
+        created = modified = null; // will not change stored locally
+        type = null;
+        link = embedLink = thumbnailLink = null;
+      }
+
+      localFile = new JCRLocalCloudFile(node.getPath(),
+                                        id,
+                                        title,
+                                        link,
+                                        type,
+                                        modifiedBy,
+                                        createdBy,
+                                        created,
+                                        modified,
+                                        node,
+                                        changed);
     } else {
-      link = api.getLink(item);
-      embedLink = api.getEmbedLink(item);
-      // TODO use real thumbnailLink if available or null
-      thumbnailLink = null;
-      if (changed) {
+      DbxEntry.File dbxFile = metadata.asFile();
+
+      // read/create local node if not given
+      // Dropbox docs say:
+      // If the new entry is a file, replace whatever your local state has at path with the new entry.
+      if (node == null) {
+        node = openFile(id, file.name, parent);
+      }
+      if (fileAPI.isFolder(node)) {
+        node.remove();
+        node = openFile(id, file.name, parent);
+      }
+
+      String typeMode;
+      if (node.isNew() || !node.getProperty("dropbox:rev").getString().equals(dbxFile.rev)) {
+        changed = true;
+        created = Calendar.getInstance();
+        created.setTime(dbxFile.clientMtime);
+        modified = Calendar.getInstance();
+        modified.setTime(dbxFile.lastModified);
+
+        type = findMimetype(title);
+        // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
+        typeMode = mimeTypes.getMimeTypeMode(type, title);
+
+        link = api.getFileLink(file.parentPath, dbxFile.name);
+        embedLink = null;
+        thumbnailLink = null; // TODO use eXo Thumbnails services in conjunction with Dropbox thumbs
+
         initFile(node,
                  id,
-                 name,
-                 type, // mimetype
+                 title,
+                 type,
                  link,
                  embedLink,
                  thumbnailLink,
@@ -1145,28 +1846,37 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                  modifiedBy,
                  created,
                  modified,
-                 size);
-        initCloudItem(node, item);
+                 dbxFile.numBytes);
+        initDropboxFile(node, dbxFile.mightHaveThumbnail, dbxFile.iconName, dbxFile.rev, dbxFile.numBytes);
+        // DbxUrlWithExpiration dbxLink = api.getDirectLink(dbxFile.path);
+        // Temporary link expiration for a file content preview
+        // localNode.setProperty("dropbox:linkExpires", dbxLink.expires.getTime());
+      } else {
+        // only "changed" value actual
+        changed = false;
+        created = modified = null;
+        type = typeMode = null;
+        link = embedLink = thumbnailLink = null;
       }
-      file = new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   null,
-                                   embedLink,
-                                   thumbnailLink,
-                                   type,
-                                   typeMode,
-                                   createdBy,
-                                   modifiedBy,
-                                   created,
-                                   modified,
-                                   size,
-                                   node,
-                                   changed);
-    }
 
-    return file;
+      localFile = new JCRLocalCloudFile(node.getPath(),
+                                        id,
+                                        title,
+                                        link,
+                                        null,
+                                        previewLink(node),
+                                        thumbnailLink,
+                                        type,
+                                        typeMode,
+                                        createdBy,
+                                        modifiedBy,
+                                        created,
+                                        modified,
+                                        dbxFile.numBytes,
+                                        node,
+                                        changed);
+    }
+    return localFile;
   }
 
   /**
@@ -1174,8 +1884,43 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   protected String previewLink(Node fileNode) throws RepositoryException {
-    // TODO return specially formatted preview link or using a special URL if that required by the cloud API
-    return super.previewLink(fileNode);
+    String idPath = fileAPI.getId(fileNode);
+
+    // Direct link expires on Dropbox, respect this fact
+    String directLink;
+    try {
+      directLink = fileNode.getProperty("dropbox:directLink").getString();
+      long expires = fileNode.getProperty("dropbox:directLinkExpires").getLong();
+      if (expires > System.currentTimeMillis()) {
+        return directLink;
+      }
+    } catch (PathNotFoundException e) {
+      // well, will try get it from Dropbox
+    }
+    try {
+      DbxUrlWithExpiration dbxLink = getUser().api().getDirectLink(idPath);
+      jcrListener.disable();
+      Property dlProp = fileNode.setProperty("dropbox:directLink", directLink = dbxLink.url);
+      Property dleProp = fileNode.setProperty("dropbox:directLinkExpires", dbxLink.expires.getTime());
+      if (dlProp.isNew()) {
+        if (!fileNode.isNew()) {
+          fileNode.save();
+        } // otherwise, it should be saved where the node added
+      } else {
+        // save only direct link properties for !
+        dlProp.save();
+        dleProp.save();
+      }
+      return directLink;
+    } catch (DropboxException e) {
+      LOG.error("Error getting direct link of Dropbox file " + idPath, e);
+    } catch (RefreshAccessException e) {
+      LOG.warn("Cannot getting direct link of Dropbox file " + idPath + ": authorization required.", e);
+    } finally {
+      jcrListener.enable();
+    }
+    // by default, we'll stream the file content via eXo REST service link
+    return ContentService.contentLink(rootWorkspace, fileNode.getPath(), idPath);
   }
 
   protected boolean notInRange(String path, Collection<String> range) {
@@ -1185,6 +1930,110 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
     return true;
+  }
+
+  /**
+   * Return Dropbox path in guaranteed lower case.
+   * 
+   * @param dbxPath {@link String} Dropbox file path
+   * @return {@link String} path in lower-case
+   */
+  protected String idPath(String dbxPath) {
+    String loPath = dbxPath.toUpperCase().toLowerCase();
+    return loPath;
+  }
+
+  protected String findMimetype(String fileName) {
+    final String defaultType = mimeTypes.getDefaultMimeType();
+    String fileType;
+    String resolvedType = mimeTypes.getMimeType(fileName);
+    if (resolvedType != null && !resolvedType.startsWith(defaultType)) {
+      fileType = resolvedType;
+    } else {
+      fileType = defaultType;
+    }
+    return fileType;
+  }
+
+  protected DbxEntry restoreSubtree(DropboxAPI api, String idPath, Node node) throws CloudDriveException,
+                                                                              RepositoryException {
+    return fetchSubtree(api, idPath, node, false, null, null);
+  }
+
+  protected DbxEntry fetchSubtree(DropboxAPI api,
+                                  String idPath,
+                                  Node node,
+                                  boolean useHash,
+                                  Collection<ChunkIterator<?>> iterators,
+                                  Collection<CloudFile> fetched) throws CloudDriveException, RepositoryException {
+    String hash = useHash ? folderHash(node) : null;
+    FileMetadata items = api.getWithChildren(idPath, hash);
+    if (items != null) {
+      if (iterators != null) {
+        iterators.add(items);
+      }
+      if (items.changed) {
+        while (items.hasNext()) {
+          DbxEntry item = items.next();
+
+          DbxFileInfo file = new DbxFileInfo(item.path);
+          if (file.isRoot()) {
+            // skip root node - this shouldn't happen
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Fetched root folder entry - ignore it: " + item.path);
+            }
+            continue;
+          }
+
+          JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
+          if (localItem.isChanged()) {
+            if (fetched != null) {
+              fetched.add(localItem);
+            }
+          }
+          if (localItem.isFolder()) {
+            // go recursive to the folder
+            fetchSubtree(api, localItem.getId(), localItem.getNode(), useHash, iterators, fetched);
+          }
+        }
+        if (items.target.isFolder()) {
+          DbxEntry.Folder folder = items.target.asFolder();
+          initDropboxFolder(node, folder.mightHaveThumbnail, folder.iconName, items.hash);
+        } else {
+          DbxEntry.File file = items.target.asFile();
+          initDropboxFile(node, file.mightHaveThumbnail, file.iconName, file.rev, file.numBytes);
+        }
+        return items.target;
+      }
+    }
+    // null can mean two things: item not found remotely or has not changed (if hash provided)
+    return null;
+  }
+
+  protected String currentUser() throws RepositoryException {
+    ConversationState convo = ConversationState.getCurrent();
+    if (convo != null) {
+      return convo.getIdentity().getUserId();
+    } else {
+      return session().getUserID(); // shouldn't happen
+    }
+  }
+
+  protected String folderHash(Node node) throws RepositoryException {
+    String hash;
+    if (fileAPI.isFolder(node)) {
+      try {
+        hash = node.getProperty("dropbox:hash").getString();
+      } catch (PathNotFoundException e) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Folder hash not found in the node: " + node.getPath());
+        }
+        hash = null;
+      }
+    } else {
+      hash = null;
+    }
+    return hash;
   }
 
 }

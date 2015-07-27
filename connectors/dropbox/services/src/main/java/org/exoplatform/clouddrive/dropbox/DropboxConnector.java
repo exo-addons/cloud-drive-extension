@@ -1,22 +1,39 @@
 package org.exoplatform.clouddrive.dropbox;
 
+import com.dropbox.core.DbxAccountInfo;
+import com.dropbox.core.DbxAppInfo;
+import com.dropbox.core.DbxAuthFinish;
+import com.dropbox.core.DbxException;
+import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.DbxSessionStore;
+import com.dropbox.core.DbxWebAuth;
+import com.dropbox.core.DbxWebAuth.BadRequestException;
+import com.dropbox.core.DbxWebAuth.BadStateException;
+import com.dropbox.core.DbxWebAuth.CsrfException;
+import com.dropbox.core.DbxWebAuth.NotApprovedException;
+import com.dropbox.core.DbxWebAuth.ProviderException;
+
 import org.exoplatform.clouddrive.CloudDrive;
+import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveConnector;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConfigurationException;
 import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.organization.OrganizationService;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -32,37 +49,117 @@ import javax.jcr.RepositoryException;
  */
 public class DropboxConnector extends CloudDriveConnector {
 
+  class AuthSessionStore implements DbxSessionStore {
+
+    final AtomicReference<String> state = new AtomicReference<String>();
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String get() {
+      return state.get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void set(String value) {
+      state.set(value);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clear() {
+      state.set(null);
+    }
+  }
+
   /**
    * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
    */
   class API {
-    String code, refreshToken, accessToken;
+    final DbxAppInfo        appInfo    = new DbxAppInfo(getClientId(), getClientSecret());
 
-    long   expirationTime;
+    final DbxRequestConfig  authConfig = new DbxRequestConfig("eXo Cloud Drive Client", Locale.getDefault().toString());
+
+    String                  redirectUri, accessToken;
+
+    Map<String, DbxWebAuth> auths      = new HashMap<String, DbxWebAuth>();
+
+    Map<String, String>     authLinks  = new HashMap<String, String>();
+
+    Map<String, String[]>   params;
+
+    private synchronized DbxWebAuth init(String user) {
+      DbxWebAuth auth = auths.get(user);
+      if (auth == null) {
+        auth = new DbxWebAuth(authConfig, appInfo, redirectUri, new AuthSessionStore());
+        auths.put(user, auth);
+      }
+      return auth;
+    }
+
+    private synchronized DbxWebAuth finish(String user) {
+      return auths.remove(user);
+    }
 
     /**
-     * Authenticate to the API with OAuth2 code returned on callback url.
+     * Set redirect URI should be used for OAuth2 flow.
      * 
-     * @param code String
+     * @param redirectUri String
      * @return this API
      */
-    API auth(String code) {
-      this.code = code;
+    API redirectUri(String redirectUri) {
+      this.redirectUri = redirectUri;
+      return this;
+    }
+
+    /**
+     * Return Dropbox authorization URL based on given redirect URI.
+     * 
+     * @param state String
+     * @return String
+     */
+    String authLink(String state) {
+      String user = currentUser();
+      String link = authLinks.get(user);
+      if (link == null) {
+        DbxWebAuth auth = init(user);
+        link = auth.start(state);
+        authLinks.put(user, link);
+      }
+      return link;
+    }
+
+    /**
+     * Authenticate to the API with OAuth2 parameters returned from redirect request.
+     * 
+     * @param params
+     * @return this API
+     */
+    API auth(Map<String, String> params) {
+      Map<String, String[]> dbxParams = new HashMap<String, String[]>();
+      for (Map.Entry<String, String> pe : params.entrySet()) {
+        dbxParams.put(pe.getKey(), new String[] { pe.getValue() });
+      }
+      this.params = dbxParams;
+      authLinks.remove(currentUser());
       return this;
     }
 
     /**
      * Authenticate to the API with locally stored tokens.
      * 
-     * @param refreshToken
      * @param accessToken
-     * @param expirationTime
      * @return this API
      */
-    API load(String refreshToken, String accessToken, long expirationTime) {
-      this.refreshToken = refreshToken;
+    API load(String accessToken) {
+      init(currentUser());
       this.accessToken = accessToken;
-      this.expirationTime = expirationTime;
       return this;
     }
 
@@ -74,22 +171,71 @@ public class DropboxConnector extends CloudDriveConnector {
      * @throws CloudDriveException if cannot load local tokens
      */
     DropboxAPI build() throws DropboxException, CloudDriveException {
-      if (code != null && code.length() > 0) {
-        // build API based on OAuth2 code
-        return new DropboxAPI(getClientId(), getClientSecret(), code, getProvider().getRedirectURL());
-      } else {
+      String user = currentUser();
+      if (params != null && params.size() > 0) {
+        // build API based on OAuth2 params
+        try {
+          DbxWebAuth auth = finish(user);
+          if (auth != null) {
+            DbxAuthFinish authFinish = auth.finish(params);
+            return new DropboxAPI(authConfig, authFinish.accessToken);
+          } else {
+            throw new CloudDriveException("API not properly initialized for user " + user);
+          }
+        } catch (BadRequestException e) {
+          String msg = "Wrong authorization parameter(s)";
+          LOG.error(msg + ": " + e.getMessage(), e);
+          throw new DropboxException(msg);
+        } catch (BadStateException e) {
+          String msg = "Authorization session expired";
+          LOG.warn(msg + ": " + e.getMessage(), e);
+          throw new CloudDriveAccessException(msg + ". Please try again later.");
+        } catch (CsrfException e) {
+          String msg = "Authorization state not found";
+          LOG.warn(msg + ". CSRF error during authorization: " + e.getMessage(), e);
+          throw new DropboxException(msg + ". Please retry your request.");
+        } catch (NotApprovedException e) {
+          String msg = "Access not approved";
+          LOG.warn(msg + ": " + e.getMessage(), e);
+          throw new org.exoplatform.clouddrive.NotApprovedException(msg);
+        } catch (ProviderException e) {
+          String msg = "Authorization process error";
+          LOG.error(msg + ": " + e.getMessage(), e);
+          throw new DropboxException(msg + ". Please retry your request.");
+        } catch (DbxException.InvalidAccessToken e) {
+          String msg = "Invalid access credentials";
+          LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+          throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+        } catch (DbxException.RetryLater e) {
+          String msg = "Dropbox overloaded or hit rate exceeded";
+          LOG.warn(msg + ": " + e.getMessage(), e);
+          throw new DropboxException(msg + ". Please try again later.");
+        } catch (DbxException e) {
+          String msg = "Dropbox error";
+          LOG.error(msg + ": " + e.getMessage(), e);
+          throw new DropboxException(msg + ". Please try again later.");
+        }
+      } else if (accessToken != null) {
         // build API based on locally stored tokens
-        return new DropboxAPI(getClientId(), getClientSecret(), accessToken, refreshToken, expirationTime);
+        return new DropboxAPI(authConfig, accessToken);
+      } else {
+        throw new CloudDriveException("API not properly authorized nor loaded with ready access token for user " + user);
       }
     }
   }
 
+  protected final OrganizationService organization;
+
+  protected API                       apiBuilder;
+
   public DropboxConnector(RepositoryService jcrService,
                           SessionProviderService sessionProviders,
+                          OrganizationService organization,
                           NodeFinder finder,
                           ExtendedMimeTypeResolver mimeTypes,
                           InitParams params) throws ConfigurationException {
     super(jcrService, sessionProviders, finder, mimeTypes, params);
+    this.organization = organization;
   }
 
   /**
@@ -102,57 +248,28 @@ public class DropboxConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudProvider createProvider() {
-    StringBuilder redirectURL = new StringBuilder();
-    redirectURL.append(getConnectorSchema());
-    redirectURL.append("://");
-    redirectURL.append(getConnectorHost());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentRestContextName());
-    redirectURL.append("/clouddrive/connect/");
-    redirectURL.append(getProviderId());
-
-    StringBuilder oauthURL = new StringBuilder();
-    oauthURL.append("https://");
-    oauthURL.append("www.YOURCLOUDHOST.com/api/oauth2/authorize?");
-    oauthURL.append("response_type=code&client_id=");
-    String clientId = getClientId();
-    try {
-      oauthURL.append(URLEncoder.encode(clientId, "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode client id " + clientId + ":" + e);
-      oauthURL.append(clientId);
+  protected CloudProvider createProvider() throws ConfigurationException {
+    // this method will be called from the constructor: need init API builder
+    if (apiBuilder == null) {
+      apiBuilder = new API();
     }
-    oauthURL.append("&state=");
-    try {
-      oauthURL.append(URLEncoder.encode("_no_state", "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode _no_state:" + e);
-      oauthURL.append("_no_state");
-    }
-    oauthURL.append("&redirect_uri=");
-    // actual uri will be appended below to avoid double encoding in case of SSO
 
-    StringBuilder authURL = new StringBuilder();
-    try {
-      oauthURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      LOG.warn("Cannot encode redirect URL " + redirectURL.toString() + ":" + e);
-      oauthURL.append(redirectURL);
-    }
-    authURL.append(oauthURL);
+    String redirectURL = redirectLink();
 
-    return new DropboxProvider(getProviderId(), getProviderName(), authURL.toString(), redirectURL.toString(), jcrService);
+    apiBuilder.redirectUri(redirectURL.toString());
+
+    return new DropboxProvider(getProviderId(), getProviderName(), apiBuilder, redirectURL, jcrService);
   }
 
   @Override
-  protected CloudUser authenticate(String code) throws CloudDriveException {
+  protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
+    String code = params.get(OAUTH2_CODE);
     if (code != null && code.length() > 0) {
-      DropboxAPI driveAPI = new API().auth(code).build();
-      Object apiUser = driveAPI.getCurrentUser();
-      DropboxUser user = new DropboxUser("apiUser.getId()", "apiUser.getName()", "apiUser.getLogin()", provider, driveAPI);
+      DropboxAPI driveAPI = apiBuilder.auth(params).build();
+      DbxAccountInfo apiUser = driveAPI.getCurrentUser();
+      String userId = String.valueOf(apiUser.userId);
+      String asEmail = "<" + apiUser.displayName + ">" + userId + "@dropbox";
+      DropboxUser user = new DropboxUser(userId, apiUser.displayName, asEmail, provider, driveAPI);
       return user;
     } else {
       throw new CloudDriveException("Access key should not be null or empty");
@@ -174,7 +291,7 @@ public class DropboxConnector extends CloudDriveConnector {
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
-    JCRLocalDropboxDrive drive = new JCRLocalDropboxDrive(new API(),
+    JCRLocalDropboxDrive drive = new JCRLocalDropboxDrive(apiBuilder,
                                                           getProvider(),
                                                           driveNode,
                                                           sessionProviders,

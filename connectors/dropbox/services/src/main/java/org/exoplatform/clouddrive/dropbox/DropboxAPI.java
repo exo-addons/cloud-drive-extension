@@ -18,22 +18,42 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import com.dropbox.core.DbxAccountInfo;
+import com.dropbox.core.DbxAuthFinish;
+import com.dropbox.core.DbxClient;
+import com.dropbox.core.DbxClient.Downloader;
+import com.dropbox.core.DbxDelta;
+import com.dropbox.core.DbxDelta.Entry;
+import com.dropbox.core.http.HttpRequestor;
+import com.dropbox.core.DbxEntry;
+import com.dropbox.core.DbxException;
+import com.dropbox.core.DbxHost;
+import com.dropbox.core.DbxPath;
+import com.dropbox.core.DbxRequestConfig;
+import com.dropbox.core.DbxRequestUtil;
+import com.dropbox.core.DbxThumbnailFormat;
+import com.dropbox.core.DbxThumbnailSize;
+import com.dropbox.core.DbxUrlWithExpiration;
+import com.dropbox.core.DbxWriteMode;
+import com.dropbox.core.util.Maybe;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.FileTrashRemovedException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.dropbox.JCRLocalDropboxDrive.DbxFileInfo;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.utils.ChunkIterator;
+import org.exoplatform.clouddrive.utils.Web;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 /**
  * All calls to Dropbox Cloud API here.
@@ -41,7 +61,21 @@ import java.util.Map;
  */
 public class DropboxAPI {
 
-  protected static final Log LOG = ExoLogger.getLogger(DropboxAPI.class);
+  public static final String ROOT_URL               = "https://www.dropbox.com/home";
+
+  public static final String ROOT_PATH              = "/";
+
+  public static final int    DELTA_LONGPOLL_TIMEOUT = 60;
+
+  public static final String DELTA_LONGPOLL_URL     = "https://api-notify.dropbox.com/1/longpoll_delta";
+
+  public static final String CONTENT_BASE_URL       = "https://api-content.dropbox.com/1/";
+
+  public static final String CONTENT_PREVIEW_URL    = CONTENT_BASE_URL + "previews/auto";
+
+  public static final String CONTENT_THUMBNAIL_URL  = CONTENT_BASE_URL + "thumbnails/auto";
+
+  protected static final Log LOG                    = ExoLogger.getLogger(DropboxAPI.class);
 
   /**
    * OAuth2 tokens storage base...
@@ -49,123 +83,158 @@ public class DropboxAPI {
   class StoredToken extends UserToken {
 
     /**
-     * Sample method to call when have OAuth2 token from Cloud API.
+     * Save OAuth2 token from Dropbox API.
      * 
-     * @param apiToken
+     * @param accessToken
      * @throws CloudDriveException
      */
-    void store(Object apiToken) throws CloudDriveException {
-      // this.store(apiToken.getAccessToken(), apiToken.getRefreshToken(), apiToken.getExpiresIn());
-    }
-
-    /**
-     * Sample method to return authentication data.
-     * 
-     * @return
-     */
-    Map<String, Object> getAuthData() {
-      Map<String, Object> data = new HashMap<String, Object>();
-      data.put("ACCESS_TOKEN", getAccessToken());
-      data.put("REFRESH_TOKEN", getRefreshToken());
-      data.put("EXPIRES_IN", getExpirationTime());
-      data.put("TOKEN_TYPE", "bearer");
-      return data;
+    void store(String accessToken) throws CloudDriveException {
+      this.store(accessToken, null /* refreshToken */, -1/* expirationTime */);
     }
   }
 
   /**
-   * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
-   * request to the service. <br>
+   * Dropbox file metadata with iterator over whole set of file children in Dropbox. This iterator hides
+   * next-chunk logic on request to the service. <br>
    * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
-   * 
-   * TODO replace type Object to an actual type used by Cloud API for drive items.<br>
    */
-  class ItemsIterator extends ChunkIterator<Object> {
-    final String folderId;
+  class FileMetadata extends ChunkIterator<DbxEntry> {
+    final String idPath;
+
+    boolean      changed;
+
+    String       hash;
 
     /**
-     * Parent folder.
-     * TODO Use read parent class.
+     * Target file or folder.
      */
-    Object       parent;
+    DbxEntry     target;
 
-    ItemsIterator(String folderId) throws CloudDriveException {
-      this.folderId = folderId;
+    FileMetadata(String idPath, String hash)
+        throws TooManyFilesException, NotFoundException, DropboxException, RefreshAccessException {
+      this.idPath = idPath;
 
-      // fetch first
+      this.hash = hash;
+
+      // fetch first, this also will fetch the path item metadata
       this.iter = nextChunk();
     }
 
-    protected Iterator<Object> nextChunk() throws CloudDriveException {
+    protected Iterator<DbxEntry> nextChunk() throws TooManyFilesException,
+                                             NotFoundException,
+                                             DropboxException,
+                                             RefreshAccessException {
       try {
-        // TODO find parent if it is required for file calls...
-        // parent = client.getFoldersManager().getFolder(folderId, obj);
+        DbxEntry.WithChildren metadata;
+        if (hash == null) {
+          metadata = client.getMetadataWithChildren(idPath);
+        } else {
+          Maybe<DbxEntry.WithChildren> maybe = client.getMetadataWithChildrenIfChanged(idPath, hash);
+          if (maybe.isNothing()) {
+            changed = false;
+            available(0);
+            return Collections.<DbxEntry> emptyList().iterator();
+          } else {
+            metadata = maybe.getJust();
+          }
+        }
 
-        // TODO Get items and let progress indicator to know the available amount
-        // Collection items = parent.getItemCollection();
-        // available(totalSize);
+        if (metadata == null) {
+          throw new NotFoundException("No file or folder at this path: " + idPath);
+        }
 
-        // TODO use real type of the list
-        ArrayList<Object> oitems = new ArrayList<Object>();
-        // TODO put folders first, then files
-        // oitems.addAll(folders);
-        // oitems.addAll(files);
-        return oitems.iterator();
-      } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+        changed = true;
+        hash = metadata.hash;
 
-        // TODO if OAuth2 related exception then check if need refresh tokens
-        // usually Cloud API has a dedicated exception to catch for OAuth2
-        // checkTokenState();
+        // Get items and let progress indicator to know the available amount
+        target = metadata.entry;
+        List<DbxEntry> children = metadata.children;
+        available(children.size());
 
-        // if it is service or connectivity exception throw it as a provider specific
-        throw new DropboxException("Error getting folder items: " + e.getMessage(), e);
+        return children.iterator();
+      } catch (DbxException.InvalidAccessToken e) {
+        String msg = "Invalid access credentials";
+        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+      } catch (DbxException.RetryLater e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        LOG.warn(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg + ". Please try again later.");
+      } catch (DbxException.BadResponseCode e) {
+        if (e.statusCode == 406) {
+          String msg = "Folder " + idPath + " listings containing more than the specified amount of files";
+          LOG.error(msg + ": " + e.getMessage(), e);
+          throw new TooManyFilesException(msg);
+        } else {
+          String msg = "Error requesting Metadata service";
+          LOG.error(msg + ": " + e.getMessage(), e);
+          throw new DropboxException(msg);
+        }
+      } catch (DbxException e) {
+        String msg = "Error requesting Metadata service";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
       }
     }
 
     protected boolean hasNextChunk() {
-      // TODO implement actual logic for large folders fetching
+      // FYI Dropbox has no paging for metadata, but has a limit (will be catch in nextChunk() as 406 status)
       return false;
     }
   }
 
   /**
-   * Iterator over set of drive change events from cloud service. This iterator hides next-chunk logic on
+   * Delta changes iterator of user Dropbox. This iterator hides next-chunk logic on
    * request to the service. <br>
    * Iterator methods can throw {@link DropboxException} in case of remote or communication errors.
    */
-  class EventsIterator extends ChunkIterator<Object> {
+  class DeltaChanges extends ChunkIterator<Entry<DbxEntry>> {
 
     /**
-     * TODO optional position to fetch events
+     * Cursor to fetch deltas.
      */
-    long position;
+    String  cursor;
 
-    EventsIterator(long position) throws DropboxException, RefreshAccessException {
-      this.position = position;
+    /**
+     * Latest delta has_more value.
+     */
+    boolean hasMore = false;
+
+    /**
+     * Reset flag from the last delta response.
+     */
+    boolean reset   = false;
+
+    DeltaChanges(String cursor) throws DropboxException, RefreshAccessException {
+      this.cursor = cursor;
 
       // fetch first
       this.iter = nextChunk();
     }
 
-    protected Iterator<Object> nextChunk() throws DropboxException, RefreshAccessException {
+    protected Iterator<Entry<DbxEntry>> nextChunk() throws DropboxException, RefreshAccessException {
       try {
-        // TODO implement actual logic here
+        // implement actual logic here
+        DbxDelta<DbxEntry> delta = client.getDelta(cursor);
 
-        // TODO remember position for next chunk and next iterators
-        // position = ec.getNextStreamPosition();
+        // remember position for next chunk and next iterators
+        cursor = delta.cursor;
+        hasMore = delta.hasMore;
+        reset = delta.reset;
 
-        ArrayList<Object> events = new ArrayList<Object>();
-        // fill events collection or return iterator with them
-        return events.iterator();
-      } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-        // TODO if OAuth2 related exception then check if need refresh tokens
-        // usually Cloud API has a dedicated exception to catch for OAuth2
-        // checkTokenState();
-
-        throw new DropboxException("Error requesting Events service: " + e.getMessage(), e);
+        return delta.entries.iterator();
+      } catch (DbxException.InvalidAccessToken e) {
+        String msg = "Invalid access credentials";
+        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+      } catch (DbxException.RetryLater e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        LOG.warn(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg + ". Please try again later.");
+      } catch (DbxException e) {
+        String msg = "Error requesting Delta service";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
       }
     }
 
@@ -173,92 +242,41 @@ public class DropboxAPI {
      * {@inheritDoc}
      */
     protected boolean hasNextChunk() {
-      // TODO implement actual logic for large folders fetching
-      return false;
+      return hasMore;
     }
 
-    long getChangeId() {
-      // TODO find real next event position to read from the cloud provider,
-      // if not available then apply local incremental ID which will let guess the position for sycn
-      return position + 1;
-    }
-  }
-
-  /**
-   * Sample drive state POJO.
-   */
-  public static class DriveState {
-    final String type;
-
-    final String url;
-
-    final long   retryTimeout, created;
-
-    DriveState(String type, String url, long retryTimeout) {
-      this.type = type;
-      this.url = url;
-      this.retryTimeout = retryTimeout;
-      this.created = System.currentTimeMillis();
+    String getCursor() {
+      return cursor;
     }
 
-    /**
-     * @return the type
-     */
-    public String getType() {
-      return type;
-    }
-
-    /**
-     * @return the url
-     */
-    public String getUrl() {
-      return url;
-    }
-
-    /**
-     * @return the retryTimeout
-     */
-    public long getRetryTimeout() {
-      return retryTimeout;
-    }
-
-    /**
-     * @return the created
-     */
-    public long getCreated() {
-      return created;
-    }
-
-    public boolean isOutdated() {
-      return (System.currentTimeMillis() - created) > retryTimeout;
+    boolean hasReset() {
+      return reset;
     }
   }
+
+  private DbxClient   client;
 
   private StoredToken token;
 
-  private DriveState  state;
+  private long        userId;
 
-  private String      enterpriseId, enterpriseName, customDomain;
+  private String      userDisplayName;
 
   /**
    * Create Dropbox API from OAuth2 authentication code.
    * 
-   * @param key {@link String} API key the same also as OAuth2 client_id
-   * @param clientSecret {@link String}
-   * @param authCode {@link String}
-   * @throws DropboxException if authentication failed for any reason.
+   * @param config {@link DbxRequestConfig}
+   * @param authData {@link DbxAuthFinish} authorization results
+   * @throws DropboxException if authorization failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
-  DropboxAPI(String key, String clientSecret, String authCode, String redirectUri)
-      throws DropboxException, CloudDriveException {
+  DropboxAPI(DbxRequestConfig config, DbxAuthFinish authData) throws DropboxException, CloudDriveException {
 
-    // TODO create Cloud API client and authenticate to it using given code.
+    // create Cloud API client using authorization data.
+    this.client = new DbxClient(config, authData.accessToken);
+
     this.token = new StoredToken();
-
-    // TODO if client support add a listener to save OAuth2 tokens in stored token object.
-
-    // TODO init drive state (optional)
-    updateState();
+    this.token.store(authData.accessToken);
 
     // init user (enterprise etc.)
     initUser();
@@ -267,22 +285,17 @@ public class DropboxAPI {
   /**
    * Create Dropbox API from existing user credentials.
    * 
-   * @param key {@link String} API key the same also as OAuth2 client_id
-   * @param clientSecret {@link String}
+   * @param config {@link DbxRequestConfig}
    * @param accessToken {@link String}
-   * @param refreshToken {@link String}
-   * @param expirationTime long, token expiration time on milliseconds
    * @throws CloudDriveException if credentials store exception happen
    */
-  DropboxAPI(String key, String clientSecret, String accessToken, String refreshToken, long expirationTime)
-      throws CloudDriveException {
+  DropboxAPI(DbxRequestConfig config, String accessToken) throws CloudDriveException {
 
-    // TODO create Cloud API client and authenticate it using stored token.
+    // create Cloud API client and authenticate it using stored token.
+    this.client = new DbxClient(config, accessToken);
 
     this.token = new StoredToken();
-    this.token.load(accessToken, refreshToken, expirationTime);
-
-    // TODO authenticate client using stored token.
+    this.token.load(accessToken, null /* refreshToken */, -1 /* expirationTime */);
 
     // init user (enterprise etc.)
     initUser();
@@ -313,503 +326,498 @@ public class DropboxAPI {
   /**
    * Currently connected cloud user.
    * 
-   * @return
+   * @return DbxAccountInfo
    * @throws DropboxException
    * @throws RefreshAccessException
    */
-  Object getCurrentUser() throws DropboxException, RefreshAccessException {
+  DbxAccountInfo getCurrentUser() throws DropboxException, RefreshAccessException {
     try {
-      // TODO get an user from cloud client
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error requesting current user: " + e.getMessage(), e);
+      return client.getAccountInfo();
+    } catch (DbxException e) {
+      throw new DropboxException("Error requesting account info: " + e.getMessage(), e);
     }
   }
 
-  /**
-   * The drive root folder.
-   * 
-   * @return {@link Object}
-   * @throws DropboxException
-   */
-  Object getRootFolder() throws DropboxException {
+  FileMetadata getWithChildren(String idPath, String hash) throws TooManyFilesException,
+                                                           DropboxException,
+                                                           RefreshAccessException {
     try {
-      // return drive root folder
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error getting root folder: " + e.getMessage(), e);
+      // FYI use of hash could have a sense for full-traversing sync use
+      return new FileMetadata(idPath, hash);
+    } catch (NotFoundException e) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(">> getWithChildren(" + idPath + ", " + hash + "): " + e.getMessage());
+      }
+      return null;
     }
   }
 
-  ItemsIterator getFolderItems(String folderId) throws CloudDriveException {
-    return new ItemsIterator(folderId);
+  DbxEntry get(String idPath) throws DropboxException, NotFoundException, RefreshAccessException {
+    try {
+      // TODO use DbxClient.getMetadataIfChanged() using stored locally hash for folder
+      DbxEntry md = client.getMetadata(idPath);
+      return md;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      String msg = "Error requesting file Metadata service";
+      LOG.error(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg);
+    } catch (DbxException e) {
+      String msg = "Error requesting file Metadata service";
+      LOG.error(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg);
+    }
+  }
+
+  Downloader getContent(String idPath) throws DropboxException, NotFoundException, RefreshAccessException {
+    try {
+      // DbxEntry md = client.getFile(idPath, null, output);
+      Downloader downloader = client.startGetFile(idPath, null);
+      return downloader;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      String msg = "Error requesting file content";
+      LOG.error(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg);
+    } catch (DbxException e) {
+      String msg = "Error requesting file content";
+      LOG.error(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg);
+    }
   }
 
   /**
    * Link (URl) to a file for opening on provider site (UI).
    * 
-   * @param item {@link Object}
+   * @param file {@link DbxFileInfo}
    * @return String with the file URL.
    */
-  String getLink(Object item) {
-    return "http://..."; // TODO return actual link for an item
+  String getFileLink(String parentPath, String name) {
+    // XXX it is undocumented URL structure observed on Dropbox
+    // for files https://www.dropbox.com/home?preview=Comminications+in+Hanoi.jpg
+    // file in subfolder https://www.dropbox.com/home/test/sub-folder%20N1?preview=20150713_182628.jpg
+    StringBuilder link = new StringBuilder(ROOT_URL);
+    if (!ROOT_PATH.equals(parentPath)) {
+      link.append(Web.pathEncode(parentPath));
+    }
+    link.append("?preview=").append(Web.formEncode(name));
+    return link.toString();
   }
 
   /**
-   * Link (URL) to embed a file onto external app (in PLF).
+   * Link (URl) to a folder for opening on provider site (UI).
    * 
-   * @param item {@link Object}
-   * @return String with the file embed URL.
+   * @param folder {@link String}
+   * @return String with the file URL.
    */
-  String getEmbedLink(Object item) {
-    return "http://..."; // TODO return actual link for an item
-  }
-
-  DriveState getState() throws DropboxException, RefreshAccessException {
-    if (state == null || state.isOutdated()) {
-      updateState();
-    }
-
-    return state;
-  }
-
-  /**
-   * Update the drive state.
-   * 
-   */
-  void updateState() throws DropboxException, RefreshAccessException {
-    try {
-      // TODO get the state from cloud or any other way and construct a new state object...
-      this.state = new DriveState("type...", "http://....", 10);
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error getting drive state: " + e.getMessage(), e);
-    }
-  }
-
-  EventsIterator getEvents(long streamPosition) throws DropboxException, RefreshAccessException {
-    return new EventsIterator(streamPosition);
-  }
-
-  Object createFile(String parentId, String name, Calendar created, InputStream data) throws DropboxException,
-                                                                                      NotFoundException,
-                                                                                      RefreshAccessException,
-                                                                                      ConflictException {
-    try {
-      // TODO request the cloud API and create the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error creating cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  Object createFolder(String parentId, String name, Calendar created) throws DropboxException,
-                                                                      NotFoundException,
-                                                                      RefreshAccessException,
-                                                                      ConflictException {
-    try {
-      // TODO request the cloud API and create the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error creating cloud folder: " + e.getMessage(), e);
+  String getFolderLink(String path) {
+    // for folders https://www.dropbox.com/home/test/sub-folder%20N1
+    if (ROOT_PATH.equals(path)) {
+      // XXX can smth better be possible?
+      return ROOT_URL;
+    } else {
+      return new StringBuilder(ROOT_URL).append(Web.pathEncode(path)).toString();
     }
   }
 
   /**
-   * Delete a cloud file by given fileId.
+   * Temporary link (URL with expiration in few hours) to a file content for streaming/downloading.
    * 
-   * @param id {@link String}
+   * @param dbxPath {@link String}
+   * @return DbxUrlWithExpiration with the file embed URL.
+   * @throws RefreshAccessException
    * @throws DropboxException
-   * @throws NotFoundException
+   */
+  DbxUrlWithExpiration getDirectLink(String dbxPath) throws RefreshAccessException, DropboxException {
+    if (ROOT_PATH.equals(dbxPath)) {
+      // no embed link for root
+      return null;
+    } else {
+      try {
+        DbxUrlWithExpiration dbxUrl = client.createTemporaryDirectUrl(dbxPath);
+        return dbxUrl;
+      } catch (DbxException.InvalidAccessToken e) {
+        String msg = "Invalid access credentials";
+        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+      } catch (DbxException.RetryLater e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        LOG.warn(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg + ". Please try again later.");
+      } catch (DbxException.BadResponseCode e) {
+        String msg = "Error requesting file link";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
+      } catch (DbxException e) {
+        String msg = "Error requesting file link";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
+      }
+    }
+  }
+
+  /**
+   * Link (URL) to thumbnail of a file.
+   * 
+   * @param dbxPath {@link String}
+   * @return Downloader with the file thumbnail.
+   * @throws DropboxException
    * @throws RefreshAccessException
    */
-  void deleteFile(String id) throws DropboxException, NotFoundException, RefreshAccessException {
+  Downloader getThumbnail(String dbxPath, DbxThumbnailSize size) throws DropboxException, RefreshAccessException {
+    if (ROOT_PATH.equals(dbxPath)) {
+      // no embed link for root
+      return null;
+    } else {
+      try {
+        DbxThumbnailFormat format = DbxThumbnailFormat.bestForFileName(dbxPath, DbxThumbnailFormat.JPEG);
+        Downloader downloader = client.startGetThumbnail(size, format, dbxPath, null);
+        return downloader;
+      } catch (DbxException.InvalidAccessToken e) {
+        String msg = "Invalid access credentials";
+        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+      } catch (DbxException.RetryLater e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        LOG.warn(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg + ". Please try again later.");
+      } catch (DbxException.BadResponseCode e) {
+        String msg = "Error requesting file thumbnail";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
+      } catch (DbxException e) {
+        String msg = "Error requesting file thumbnail";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new DropboxException(msg);
+      }
+    }
+  }
+
+  DeltaChanges getDeltas(String cursor) throws DropboxException, RefreshAccessException {
+    return new DeltaChanges(cursor);
+  }
+
+  DbxEntry.File uploadFile(String parentId, String name, InputStream data, String updateRev) throws DropboxException,
+                                                                                             NotFoundException,
+                                                                                             RefreshAccessException,
+                                                                                             ConflictException {
+    String path = filePath(parentId, name);
     try {
-      // TODO request the cloud API and remove the file...
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      DbxWriteMode mode = updateRev != null ? DbxWriteMode.update(updateRev) : DbxWriteMode.add();
+      // Uploading file with unknown length (-1)
+      DbxEntry.File file = client.uploadFile(path, mode, -1, data);
+      return file;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 409) {
+        String msg = "File " + path + " already exists";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new ConflictException(msg);
+      } else {
+        String msg = "Error creating file ";
+        LOG.error(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + name);
+      }
+    } catch (DbxException e) {
+      String msg = "Error creating file ";
+      LOG.error(msg + path + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + name);
+    } catch (IOException e) {
+      String msg = "Error creating file ";
+      LOG.error(msg + path + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + name + ". " + e.getMessage());
+    }
+  }
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error deleteing cloud file: " + e.getMessage(), e);
+  DbxEntry.Folder createFolder(String parentId, String name) throws DropboxException,
+                                                             NotFoundException,
+                                                             RefreshAccessException,
+                                                             ConflictException {
+    String path = filePath(parentId, name);
+    try {
+      DbxEntry.Folder folder = client.createFolder(path);
+      return folder;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 409) {
+        String msg = "Folder " + path + " already exists";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new ConflictException(msg);
+      } else {
+        String msg = "Error creating folder ";
+        LOG.error(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + name);
+      }
+    } catch (DbxException e) {
+      String msg = "Error creating folder ";
+      LOG.error(msg + path + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + name);
     }
   }
 
   /**
-   * Delete a cloud folder by given folderId.
+   * Delete a Dropbox file or folder at given path (ID path lower-case).
    * 
-   * @param id {@link String}
+   * @param idPath
    * @throws DropboxException
    * @throws NotFoundException
+   * @throws TooManyFilesException
    * @throws RefreshAccessException
    */
-  void deleteFolder(String id) throws DropboxException, NotFoundException, RefreshAccessException {
+  void delete(String idPath) throws DropboxException, NotFoundException, TooManyFilesException, RefreshAccessException {
     try {
-      // TODO request the cloud API and remove the folder...
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error deleteing cloud folder: " + e.getMessage(), e);
+      client.delete(idPath);
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 404) {
+        String msg = "File not found " + idPath;
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new NotFoundException(msg);
+      } else if (e.statusCode == 406) {
+        String msg = "Too many files would be removed at " + idPath + ". Reduce the amount of files and try again";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new TooManyFilesException(msg);
+      } else {
+        String msg = "Error deleting file ";
+        LOG.error(msg + idPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + idPath);
+      }
+    } catch (DbxException e) {
+      String msg = "Error deleting file " + idPath;
+      LOG.error(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg);
     }
   }
 
-  /**
-   * Trash a cloud file by given fileId.
-   * 
-   * @param id {@link String}
-   * @return {@link Object} of the file successfully moved to Trash in cloud side
-   * @throws DropboxException
-   * @throws FileTrashRemovedException if file was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   */
-  Object trashFile(String id) throws DropboxException,
-                              FileTrashRemovedException,
-                              NotFoundException,
-                              RefreshAccessException {
+  DbxEntry.File restoreFile(String idPath, String rev) throws DropboxException, NotFoundException, RefreshAccessException {
     try {
-      // TODO request the cloud API and trash the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error trashing cloud file: " + e.getMessage(), e);
+      DbxEntry.File file = client.restoreFile(idPath, rev);
+      return file;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 404) {
+        String msg = "File not found for restoration " + idPath;
+        LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+        throw new NotFoundException(msg);
+      } else {
+        String msg = "Error restoring file ";
+        LOG.error(msg + idPath + " (rev: " + rev + "): (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + idPath);
+      }
+    } catch (DbxException e) {
+      String msg = "Error restoring file " + idPath;
+      LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+      throw new DropboxException(msg);
     }
   }
 
-  /**
-   * Trash a cloud folder by given folderId.
-   * 
-   * @param id {@link String}
-   * @return {@link Object} of the folder successfully moved to Trash in cloud side
-   * @throws DropboxException
-   * @throws FileTrashRemovedException if folder was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   */
-  Object trashFolder(String id) throws DropboxException,
-                                FileTrashRemovedException,
-                                NotFoundException,
-                                RefreshAccessException {
+  @Deprecated // NOT USED AND WILL NOT WORK THIS WAY
+  DbxEntry.Folder restoreFolder(String idPath, String rev) throws DropboxException, NotFoundException, RefreshAccessException {
     try {
-      // TODO request the cloud API and untrash the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // XXX Custom API call here:
+      // DbxRequestUtil.doGet(requestConfig, accessToken, host, path, params, headers, handler);
+      DbxPath.checkArgNonRoot("path", idPath);
+      if (rev == null)
+        throw new IllegalArgumentException("'rev' can't be null");
+      if (rev.length() == 0)
+        throw new IllegalArgumentException("'rev' can't be empty");
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      String apiPath = "1/restore/auto" + idPath;
+      String[] params = { "rev", rev, };
 
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error untrashing cloud folder: " + e.getMessage(), e);
+      // Doesn't work for folders, Dropbox return:
+      // error: "Unable to restore directory '/eXo TEST/empty folder'"
+      return DbxRequestUtil.doGet(client.getRequestConfig(),
+                                  client.getAccessToken(),
+                                  DbxHost.Default.api,
+                                  apiPath,
+                                  params,
+                                  null,
+                                  new DbxRequestUtil.ResponseHandler<DbxEntry.Folder>() {
+                                    public DbxEntry.Folder handle(HttpRequestor.Response response) throws DbxException {
+                                      if (response.statusCode == 404)
+                                        return null;
+                                      if (response.statusCode != 200)
+                                        throw DbxRequestUtil.unexpectedStatus(response);
+                                      return DbxRequestUtil.readJsonFromResponse(DbxEntry.Folder.Reader, response.body);
+                                    }
+                                  });
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 404) {
+        String msg = "Folder not found for restoration " + idPath;
+        LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+        throw new NotFoundException(msg);
+      } else {
+        String msg = "Error restoring folder ";
+        LOG.error(msg + idPath + " (rev: " + rev + "): (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + idPath);
+      }
+    } catch (DbxException e) {
+      String msg = "Error restoring folder " + idPath;
+      LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+      throw new DropboxException(msg);
     }
   }
 
-  Object untrashFile(String id, String name) throws DropboxException,
-                                             NotFoundException,
-                                             RefreshAccessException,
-                                             ConflictException {
+  DbxEntry move(String fromPath, String toPath) throws DropboxException,
+                                                TooManyFilesException,
+                                                ConflictException,
+                                                NotFoundException,
+                                                RefreshAccessException {
     try {
-      // TODO request the cloud API and untrash the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error untrashing cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  Object untrashFolder(String id, String name) throws DropboxException,
-                                               NotFoundException,
-                                               RefreshAccessException,
-                                               ConflictException {
-    try {
-      // TODO request the cloud API and untrash the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error untrashing cloud folder: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Update file name or/and parent and set given modified date.
-   * 
-   * @param parentId {@link String}
-   * @param id {@link String}
-   * @param name {@link String}
-   * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed file or <code>null</code> if file already exists with
-   *         such name and parent.
-   * @throws DropboxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
-   */
-  Object updateFile(String parentId, String id, String name, Calendar modified) throws DropboxException,
-                                                                                NotFoundException,
-                                                                                RefreshAccessException,
-                                                                                ConflictException {
-
-    try {
-      // TODO request the cloud API and update the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error updating cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  Object updateFileContent(String parentId,
-                           String id,
-                           String name,
-                           Calendar modified,
-                           InputStream data) throws DropboxException, NotFoundException, RefreshAccessException {
-    try {
-      // TODO request the cloud API and update the file content...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error updating cloud file content: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Update folder name or/and parent and set given modified date. If folder was actually updated (name or/and
-   * parent changed) this method return updated folder object or <code>null</code> if folder already exists
-   * with such name and parent.
-   * 
-   * @param parentId {@link String}
-   * @param id {@link String}
-   * @param name {@link String}
-   * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed folder or <code>null</code> if folder already exists with
-   *         such name and parent.
-   * @throws DropboxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
-   */
-  Object updateFolder(String parentId, String id, String name, Calendar modified) throws DropboxException,
-                                                                                  NotFoundException,
-                                                                                  RefreshAccessException,
-                                                                                  ConflictException {
-    try {
-      // TODO request the cloud API and update the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error updating cloud folder: " + e.getMessage(), e);
+      DbxEntry item = client.move(fromPath, toPath);
+      return item;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 403) {
+        String msg = "Invalid move operation";
+        LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        throw new ConflictException(msg + ", check if destination don't have such file or folder already");
+      } else if (e.statusCode == 404) {
+        String msg = "File or folder not found for move " + fromPath;
+        LOG.error(msg + " to " + toPath + ": " + e.getMessage(), e);
+        throw new NotFoundException(msg);
+      } else if (e.statusCode == 406) {
+        String msg = "Moving of " + fromPath + " involve more than the allowed amount of files";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new TooManyFilesException(msg);
+      } else {
+        String msg = "Error moving file";
+        LOG.error(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + " " + fromPath);
+      }
+    } catch (DbxException e) {
+      String msg = "Error moving file";
+      LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + " " + fromPath);
     }
   }
 
   /**
    * Copy file to a new one. If file was successfully copied this method return new file object.
    * 
-   * 
-   * @param id {@link String}
-   * @param parentId {@link String}
-   * @param name {@link String}
-   * @param modified {@link Calendar}
-   * @return {@link Object} of actually copied file.
+   * @param fromPath
+   * @param toPath
+   * @return {@link DbxEntry} of actually copied file.
    * @throws DropboxException
    * @throws NotFoundException
    * @throws RefreshAccessException
    * @throws ConflictException
+   * @throws TooManyFilesException
    */
-  Object copyFile(String id, String parentId, String name) throws DropboxException,
-                                                           NotFoundException,
-                                                           RefreshAccessException,
-                                                           ConflictException {
+  DbxEntry copy(String fromPath, String toPath) throws DropboxException,
+                                                NotFoundException,
+                                                ConflictException,
+                                                RefreshAccessException,
+                                                TooManyFilesException {
+
     try {
-      // TODO request the cloud API and copy the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error copying cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  /**
-   * Copy folder to a new one. If folder was successfully copied this method return new folder object.
-   * 
-   * @param id {@link String}
-   * @param parentId {@link String}
-   * @param name {@link String}
-   * @return {@link Object} of actually copied folder.
-   * @throws DropboxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
-   */
-  Object copyFolder(String id, String parentId, String name) throws DropboxException,
-                                                             NotFoundException,
-                                                             RefreshAccessException,
-                                                             ConflictException {
-    try {
-      // TODO request the cloud API and copy the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error copying cloud folder: " + e.getMessage(), e);
-    }
-  }
-
-  Object readFile(String id) throws DropboxException, NotFoundException, RefreshAccessException {
-    try {
-      // TODO request the cloud API and read the file...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error reading cloud file: " + e.getMessage(), e);
-    }
-  }
-
-  Object readFolder(String id) throws DropboxException, NotFoundException, RefreshAccessException {
-    try {
-      // TODO request the cloud API and read the folder...
-      return new Object();
-    } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
-
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
-
-      // TODO if OAuth2 related exception then check if need refresh tokens
-      // usually Cloud API has a dedicated exception to catch for OAuth2
-      // checkTokenState();
-
-      throw new DropboxException("Error reading cloud folder: " + e.getMessage(), e);
+      DbxEntry item = client.copy(fromPath, toPath);
+      return item;
+    } catch (DbxException.InvalidAccessToken e) {
+      String msg = "Invalid access credentials";
+      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+    } catch (DbxException.RetryLater e) {
+      String msg = "Dropbox overloaded or hit rate exceeded";
+      LOG.warn(msg + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + ". Please try again later.");
+    } catch (DbxException.BadResponseCode e) {
+      if (e.statusCode == 403) {
+        String msg = "Invalid copy operation";
+        LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        throw new ConflictException(msg + ", check if destination don't have such file or folder already");
+      } else if (e.statusCode == 404) {
+        String msg = "File or folder not found for copying " + fromPath;
+        LOG.error(msg + " to " + toPath + ": " + e.getMessage(), e);
+        throw new NotFoundException(msg);
+      } else if (e.statusCode == 406) {
+        String msg = "Copying of " + fromPath + " involve more than the allowed amount of files";
+        LOG.error(msg + ": " + e.getMessage(), e);
+        throw new TooManyFilesException(msg);
+      } else {
+        String msg = "Error copying file";
+        LOG.error(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        throw new DropboxException(msg + " " + fromPath);
+      }
+    } catch (DbxException e) {
+      String msg = "Error copying file";
+      LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      throw new DropboxException(msg + " " + fromPath);
     }
   }
 
   // ********* internal *********
 
-  /**
-   * Check if need new access token from user (refresh token already expired).
-   * 
-   * @throws RefreshAccessException if client failed to refresh the access token and need new new token
-   */
-  private void checkTokenState() throws RefreshAccessException {
-    // TODO do actual check in cloud API or other way to ensure OAuth2 refresh token is up to date
-    if (true) {
-      // we need new access token (refresh token already expired here)
-      throw new RefreshAccessException("Authentication failure. Reauthenticate.");
-    }
+  private void initUser() throws DropboxException, RefreshAccessException, NotFoundException {
+    DbxAccountInfo user = getCurrentUser();
+    this.userId = user.userId;
+    this.userDisplayName = user.displayName;
   }
 
-  private void initUser() throws DropboxException, RefreshAccessException, NotFoundException {
-    // TODO additional and optional ops to init current user and its enterprise or group from cloud services
+  String filePath(String parentId, String title) {
+    StringBuilder path = new StringBuilder(parentId);
+    if (!ROOT_PATH.equals(parentId)) {
+      path.append('/');
+    }
+    return path.append(title).toString();
   }
+
 }

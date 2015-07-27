@@ -50,7 +50,7 @@ import javax.ws.rs.core.UriInfo;
  * Sample RESTful service to provide some specific features of Dropbox connector.<br>
  * 
  */
-@Path("/clouddrive/drive/dropbox")
+@Path("/clouddrive/dropbox")
 @Produces(MediaType.APPLICATION_JSON)
 public class DropboxService implements ResourceContainer {
 
@@ -84,9 +84,7 @@ public class DropboxService implements ResourceContainer {
   }
 
   /**
-   * Return comments on a file existing on cloud side.<br>
-   * 
-   * TODO Comments it is a sample feature for a sample only. Create methods for actual features of the drive.
+   * Return content of a file existing on cloud side.<br>
    * 
    * @param uriInfo
    * @param workspace
@@ -95,11 +93,12 @@ public class DropboxService implements ResourceContainer {
    * @return
    */
   @GET
-  @Path("/comments/")
+  @Path("/content")
   @RolesAllowed("users")
-  public Response getFileComments(@Context UriInfo uriInfo,
+  public Response getFileLink(@Context UriInfo uriInfo,
                                   @QueryParam("workspace") String workspace,
-                                  @QueryParam("path") String path) {
+                                  @QueryParam("path") String path, 
+                                  @QueryParam("contentId") String contentId) {
     if (workspace != null) {
       if (path != null) {
         // TODO Get a cloud file and return collection of comments on the file.

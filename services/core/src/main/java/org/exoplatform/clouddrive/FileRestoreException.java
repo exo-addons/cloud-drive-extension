@@ -1,5 +1,6 @@
+
 /*
- * Copyright (C) 2003-2014 eXo Platform SAS.
+ * Copyright (C) 2003-2015 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -16,33 +17,32 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.exoplatform.clouddrive.cmis.ecms.viewer.storage;
+package org.exoplatform.clouddrive;
 
 /**
- * Document cannot be found in Viewer storage. It can be not created previously or removed for unknown reason.
- * It is not expected exception, thus it is instance of {@link RuntimeException}.<br>
+ * File cannot be successfully restored (e.g. from trash) on Cloud provider side and should be restored locally
+ * to the remote state.<br>
  * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DocumentNotFoundException.java 00000 Nov 27, 2014 pnedonosko $
+ * @version $Id: FileRestoreException.java 00000 Jul 21, 2015 pnedonosko $
  * 
  */
-public class DocumentNotFoundException extends IllegalStateException {
+public class FileRestoreException extends ConstraintException {
 
   /**
-   * @param s
+   * @param message
    */
-  public DocumentNotFoundException(String s) {
-    super(s);
+  public FileRestoreException(String message) {
+    super(message);
   }
 
   /**
    * @param message
    * @param cause
    */
-  public DocumentNotFoundException(String message, Throwable cause) {
+  public FileRestoreException(String message, Throwable cause) {
     super(message, cause);
   }
-
 }

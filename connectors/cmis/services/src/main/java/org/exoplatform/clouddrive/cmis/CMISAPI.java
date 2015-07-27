@@ -105,8 +105,6 @@ public class CMISAPI {
 
   protected static final Log LOG                   = ExoLogger.getLogger(CMISAPI.class);
 
-  public static final String NO_STATE              = "__no_state_set__";
-
   /**
    * Page size used by object context.
    */

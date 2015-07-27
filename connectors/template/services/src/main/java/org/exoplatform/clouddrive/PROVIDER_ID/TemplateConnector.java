@@ -10,13 +10,13 @@ import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Map;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -103,16 +103,7 @@ public class TemplateConnector extends CloudDriveConnector {
 
   @Override
   protected CloudProvider createProvider() {
-    StringBuilder redirectURL = new StringBuilder();
-    redirectURL.append(getConnectorSchema());
-    redirectURL.append("://");
-    redirectURL.append(getConnectorHost());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentPortalContainerName());
-    redirectURL.append('/');
-    redirectURL.append(PortalContainer.getCurrentRestContextName());
-    redirectURL.append("/clouddrive/connect/");
-    redirectURL.append(getProviderId());
+    String redirectURL = redirectLink();
 
     StringBuilder oauthURL = new StringBuilder();
     oauthURL.append("https://");
@@ -144,39 +135,30 @@ public class TemplateConnector extends CloudDriveConnector {
     }
     authURL.append(oauthURL);
 
-    return new TemplateProvider(getProviderId(),
-                                getProviderName(),
-                                authURL.toString(),
-                                redirectURL.toString(),
-                                jcrService);
+    return new TemplateProvider(getProviderId(), getProviderName(), authURL.toString(), redirectURL.toString(), jcrService);
   }
 
   @Override
-  protected CloudUser authenticate(String code) throws CloudDriveException {
+  protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
+    String code = params.get(OAUTH2_CODE);
+    String state = params.get(OAUTH2_STATE);
+    String error = params.get(OAUTH2_ERROR);
+    String errorDescription = params.get(OAUTH2_ERROR_DESCRIPTION);
     if (code != null && code.length() > 0) {
       TemplateAPI driveAPI = new API().auth(code).build();
       Object apiUser = driveAPI.getCurrentUser();
-      TemplateUser user = new TemplateUser("apiUser.getId()",
-                                           "apiUser.getName()",
-                                           "apiUser.getLogin()",
-                                           provider,
-                                           driveAPI);
+      TemplateUser user = new TemplateUser("apiUser.getId()", "apiUser.getName()", "apiUser.getLogin()", provider, driveAPI);
       return user;
     } else {
-      throw new CloudDriveException("Access key should not be null or empty");
+      throw new CloudDriveException("Access code should not be null or empty");
     }
   }
 
   @Override
-  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException,
-                                                                  RepositoryException {
+  protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof TemplateUser) {
       TemplateUser apiUser = (TemplateUser) user;
-      JCRLocalTemplateDrive drive = new JCRLocalTemplateDrive(apiUser,
-                                                              driveNode,
-                                                              sessionProviders,
-                                                              jcrFinder,
-                                                              mimeTypes);
+      JCRLocalTemplateDrive drive = new JCRLocalTemplateDrive(apiUser, driveNode, sessionProviders, jcrFinder, mimeTypes);
       return drive;
     } else {
       throw new CloudDriveException("Not cloud user: " + user);
@@ -184,9 +166,7 @@ public class TemplateConnector extends CloudDriveConnector {
   }
 
   @Override
-  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException,
-                                                CloudDriveException,
-                                                RepositoryException {
+  protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
     JCRLocalTemplateDrive drive = new JCRLocalTemplateDrive(new API(),
