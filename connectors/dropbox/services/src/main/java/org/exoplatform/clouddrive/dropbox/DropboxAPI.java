@@ -24,7 +24,6 @@ import com.dropbox.core.DbxClient;
 import com.dropbox.core.DbxClient.Downloader;
 import com.dropbox.core.DbxDelta;
 import com.dropbox.core.DbxDelta.Entry;
-import com.dropbox.core.http.HttpRequestor;
 import com.dropbox.core.DbxEntry;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxHost;
@@ -35,6 +34,7 @@ import com.dropbox.core.DbxThumbnailFormat;
 import com.dropbox.core.DbxThumbnailSize;
 import com.dropbox.core.DbxUrlWithExpiration;
 import com.dropbox.core.DbxWriteMode;
+import com.dropbox.core.http.HttpRequestor;
 import com.dropbox.core.util.Maybe;
 
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -50,7 +50,6 @@ import org.exoplatform.services.log.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -154,25 +153,35 @@ public class DropboxAPI {
         return children.iterator();
       } catch (DbxException.InvalidAccessToken e) {
         String msg = "Invalid access credentials";
-        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
         throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
       } catch (DbxException.RetryLater e) {
         String msg = "Dropbox overloaded or hit rate exceeded";
-        LOG.warn(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + ". Please try again later.");
       } catch (DbxException.BadResponseCode e) {
         if (e.statusCode == 406) {
           String msg = "Folder " + idPath + " listings containing more than the specified amount of files";
-          LOG.error(msg + ": " + e.getMessage(), e);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(msg + ": " + e.getMessage(), e);
+          }
           throw new TooManyFilesException(msg);
         } else {
           String msg = "Error requesting Metadata service";
-          LOG.error(msg + ": " + e.getMessage(), e);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(msg + ": " + e.getMessage(), e);
+          }
           throw new DropboxException(msg);
         }
       } catch (DbxException e) {
         String msg = "Error requesting Metadata service";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       }
     }
@@ -225,15 +234,21 @@ public class DropboxAPI {
         return delta.entries.iterator();
       } catch (DbxException.InvalidAccessToken e) {
         String msg = "Invalid access credentials";
-        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
         throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
       } catch (DbxException.RetryLater e) {
         String msg = "Dropbox overloaded or hit rate exceeded";
-        LOG.warn(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + ". Please try again later.");
       } catch (DbxException e) {
         String msg = "Error requesting Delta service";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       }
     }
@@ -257,10 +272,6 @@ public class DropboxAPI {
   private DbxClient   client;
 
   private StoredToken token;
-
-  private long        userId;
-
-  private String      userDisplayName;
 
   /**
    * Create Dropbox API from OAuth2 authentication code.
@@ -320,9 +331,6 @@ public class DropboxAPI {
     return token;
   }
 
-  // Bellow a dummy list of possible methods the API can has. It's blank field here, implement everything you
-  // need for your connector following the proposed try-catch sample.
-
   /**
    * Currently connected cloud user.
    * 
@@ -359,19 +367,27 @@ public class DropboxAPI {
       return md;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       String msg = "Error requesting file Metadata service";
-      LOG.error(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     } catch (DbxException e) {
       String msg = "Error requesting file Metadata service";
-      LOG.error(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     }
   }
@@ -383,19 +399,27 @@ public class DropboxAPI {
       return downloader;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       String msg = "Error requesting file content";
-      LOG.error(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     } catch (DbxException e) {
       String msg = "Error requesting file content";
-      LOG.error(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     }
   }
@@ -452,19 +476,27 @@ public class DropboxAPI {
         return dbxUrl;
       } catch (DbxException.InvalidAccessToken e) {
         String msg = "Invalid access credentials";
-        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
         throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
       } catch (DbxException.RetryLater e) {
         String msg = "Dropbox overloaded or hit rate exceeded";
-        LOG.warn(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + ". Please try again later.");
       } catch (DbxException.BadResponseCode e) {
         String msg = "Error requesting file link";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       } catch (DbxException e) {
         String msg = "Error requesting file link";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       }
     }
@@ -489,19 +521,27 @@ public class DropboxAPI {
         return downloader;
       } catch (DbxException.InvalidAccessToken e) {
         String msg = "Invalid access credentials";
-        LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
         throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
       } catch (DbxException.RetryLater e) {
         String msg = "Dropbox overloaded or hit rate exceeded";
-        LOG.warn(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + ". Please try again later.");
       } catch (DbxException.BadResponseCode e) {
         String msg = "Error requesting file thumbnail";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       } catch (DbxException e) {
         String msg = "Error requesting file thumbnail";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new DropboxException(msg);
       }
     }
@@ -523,29 +563,41 @@ public class DropboxAPI {
       return file;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 409) {
         String msg = "File " + path + " already exists";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new ConflictException(msg);
       } else {
         String msg = "Error creating file ";
-        LOG.error(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + name);
       }
     } catch (DbxException e) {
       String msg = "Error creating file ";
-      LOG.error(msg + path + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + path + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + name);
     } catch (IOException e) {
       String msg = "Error creating file ";
-      LOG.error(msg + path + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + path + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + name + ". " + e.getMessage());
     }
   }
@@ -560,25 +612,35 @@ public class DropboxAPI {
       return folder;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 409) {
         String msg = "Folder " + path + " already exists";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new ConflictException(msg);
       } else {
         String msg = "Error creating folder ";
-        LOG.error(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + path + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + name);
       }
     } catch (DbxException e) {
       String msg = "Error creating folder ";
-      LOG.error(msg + path + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + path + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + name);
     }
   }
@@ -597,29 +659,41 @@ public class DropboxAPI {
       client.delete(idPath);
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 404) {
         String msg = "File not found " + idPath;
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new NotFoundException(msg);
       } else if (e.statusCode == 406) {
         String msg = "Too many files would be removed at " + idPath + ". Reduce the amount of files and try again";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new TooManyFilesException(msg);
       } else {
         String msg = "Error deleting file ";
-        LOG.error(msg + idPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + idPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + idPath);
       }
     } catch (DbxException e) {
       String msg = "Error deleting file " + idPath;
-      LOG.error(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     }
   }
@@ -630,31 +704,43 @@ public class DropboxAPI {
       return file;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 404) {
         String msg = "File not found for restoration " + idPath;
-        LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+        }
         throw new NotFoundException(msg);
       } else {
         String msg = "Error restoring file ";
-        LOG.error(msg + idPath + " (rev: " + rev + "): (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + idPath + " (rev: " + rev + "): (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + idPath);
       }
     } catch (DbxException e) {
       String msg = "Error restoring file " + idPath;
-      LOG.error(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (rev: " + rev + "): " + e.getMessage(), e);
+      }
       throw new DropboxException(msg);
     }
   }
 
   @Deprecated // NOT USED AND WILL NOT WORK THIS WAY
-  DbxEntry.Folder restoreFolder(String idPath, String rev) throws DropboxException, NotFoundException, RefreshAccessException {
+  DbxEntry.Folder restoreFolder(String idPath, String rev) throws DropboxException,
+                                                           NotFoundException,
+                                                           RefreshAccessException {
     try {
       // XXX Custom API call here:
       // DbxRequestUtil.doGet(requestConfig, accessToken, host, path, params, headers, handler);
@@ -719,33 +805,47 @@ public class DropboxAPI {
       return item;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 403) {
         String msg = "Invalid move operation";
-        LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        }
         throw new ConflictException(msg + ", check if destination don't have such file or folder already");
       } else if (e.statusCode == 404) {
         String msg = "File or folder not found for move " + fromPath;
-        LOG.error(msg + " to " + toPath + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " to " + toPath + ": " + e.getMessage(), e);
+        }
         throw new NotFoundException(msg);
       } else if (e.statusCode == 406) {
         String msg = "Moving of " + fromPath + " involve more than the allowed amount of files";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new TooManyFilesException(msg);
       } else {
         String msg = "Error moving file";
-        LOG.error(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + " " + fromPath);
       }
     } catch (DbxException e) {
       String msg = "Error moving file";
-      LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + " " + fromPath);
     }
   }
@@ -773,33 +873,47 @@ public class DropboxAPI {
       return item;
     } catch (DbxException.InvalidAccessToken e) {
       String msg = "Invalid access credentials";
-      LOG.warn(msg + " (access token) : " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+      }
       throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
     } catch (DbxException.RetryLater e) {
       String msg = "Dropbox overloaded or hit rate exceeded";
-      LOG.warn(msg + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + ". Please try again later.");
     } catch (DbxException.BadResponseCode e) {
       if (e.statusCode == 403) {
         String msg = "Invalid copy operation";
-        LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+        }
         throw new ConflictException(msg + ", check if destination don't have such file or folder already");
       } else if (e.statusCode == 404) {
         String msg = "File or folder not found for copying " + fromPath;
-        LOG.error(msg + " to " + toPath + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " to " + toPath + ": " + e.getMessage(), e);
+        }
         throw new NotFoundException(msg);
       } else if (e.statusCode == 406) {
         String msg = "Copying of " + fromPath + " involve more than the allowed amount of files";
-        LOG.error(msg + ": " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
         throw new TooManyFilesException(msg);
       } else {
         String msg = "Error copying file";
-        LOG.error(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ", " + fromPath + " to " + toPath + ": (" + e.statusCode + ") " + e.getMessage(), e);
+        }
         throw new DropboxException(msg + " " + fromPath);
       }
     } catch (DbxException e) {
       String msg = "Error copying file";
-      LOG.error(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(msg + ", " + fromPath + " to " + toPath + ": " + e.getMessage(), e);
+      }
       throw new DropboxException(msg + " " + fromPath);
     }
   }
@@ -807,9 +921,10 @@ public class DropboxAPI {
   // ********* internal *********
 
   private void initUser() throws DropboxException, RefreshAccessException, NotFoundException {
-    DbxAccountInfo user = getCurrentUser();
-    this.userId = user.userId;
-    this.userDisplayName = user.displayName;
+    // TODO do we have really something to init for the user?
+    //DbxAccountInfo user = getCurrentUser();
+    //this.userId = user.userId;
+    //this.userDisplayName = user.displayName;
   }
 
   String filePath(String parentId, String title) {

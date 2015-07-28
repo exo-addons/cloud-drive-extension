@@ -60,6 +60,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
@@ -287,6 +288,39 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       } finally {
         jcrListener.enable();
       }
+    }
+  }
+
+  protected class MovedFile {
+
+    /**
+     * Dropbox path (idPath) of moved file on its destination (after move completed).
+     */
+    protected final String idPath;
+
+    /**
+     * Destination node path in JCR.
+     */
+    protected final String nodePath;
+
+    /**
+     * Expiration time.
+     */
+    protected final long   expirationTime;
+
+    protected MovedFile(String idPath, String nodePath) {
+      super();
+      this.idPath = idPath;
+      this.nodePath = nodePath;
+      this.expirationTime = System.currentTimeMillis() + 5000; // 5sec to outdate
+    }
+
+    protected boolean isNotOutdated() {
+      return this.expirationTime >= System.currentTimeMillis();
+    }
+
+    protected boolean isOutdated() {
+      return this.expirationTime < System.currentTimeMillis();
     }
   }
 
@@ -934,47 +968,57 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // It is source path, from where we move the file
       String localIdPath = getId(node);
 
-      // it is remote destination parent path
-      String localParentIdPath = getParentId(node);
-
-      // file title and lower-case name
-      String title = getTitle(node);
-      String name = idPath(title);
-
-      boolean isMove;
-      if (!localIdPath.startsWith(localParentIdPath)) {
-        // idPath of the file doesn't belong to the file current parent - it's moved file
-        isMove = true;
-      } else if (!localIdPath.endsWith(name)) {
-        // idPath of the file has other than current file name (lower-case!) - it's renamed file
-        isMove = true;
+      String nodePath = node.getPath();
+      MovedFile file = moved.get(localIdPath);
+      if (file != null && file.nodePath.equals(nodePath) && file.isNotOutdated()) {
+        // file was moved here few seconds ago: read it from remote side
+        return api.get(file.idPath);
       } else {
-        // otherwise file wasn't changed in meaning of Dropbox structure
-        isMove = false;
-      }
+        // it is remote destination parent path
+        String localParentIdPath = getParentId(node);
 
-      if (isMove) {
-        // new Dropbox path for the file (use case preserving title)
-        String idPath = api.filePath(localParentIdPath, title);
+        // file title and lower-case name
+        String title = getTitle(node);
+        String name = idPath(title);
 
-        // FYI move conflicts will be solved by the caller (in core)
-        DbxEntry f = api.move(localIdPath, idPath);
-        if (f == null) {
-          String path = node.getPath();
-          StringBuilder msg = new StringBuilder();
-          msg.append("Move failed in Dropbox without a reason ");
-          if (LOG.isDebugEnabled()) {
-            StringBuilder dmsg = new StringBuilder();
-            dmsg.append(msg).append('(').append(localIdPath).append(") ").append(path);
-            LOG.debug(dmsg.toString());
-          }
-          msg.append(path);
-          // we throw provider exception to let it be retried
-          throw new DropboxException(msg.toString());
+        boolean isMove;
+        if (!localIdPath.startsWith(localParentIdPath)) {
+          // idPath of the file doesn't belong to the file current parent - it's moved file
+          isMove = true;
+        } else if (!localIdPath.endsWith(name)) {
+          // idPath of the file has other than current file name (lower-case!) - it's renamed file
+          isMove = true;
+        } else {
+          // otherwise file wasn't changed in meaning of Dropbox structure
+          isMove = false;
         }
-        return f;
-      } else {
-        return null;
+
+        if (isMove) {
+          // new Dropbox path for the file (use case preserving title)
+          String idPath = api.filePath(localParentIdPath, title);
+
+          // FYI move conflicts will be solved by the caller (in core)
+          DbxEntry f = api.move(localIdPath, idPath);
+          if (f == null) {
+            StringBuilder msg = new StringBuilder();
+            msg.append("Move failed in Dropbox without a reason ");
+            if (LOG.isDebugEnabled()) {
+              StringBuilder dmsg = new StringBuilder();
+              dmsg.append(msg).append('(').append(localIdPath).append(") ").append(nodePath);
+              LOG.debug(dmsg.toString());
+            }
+            msg.append(nodePath);
+            // we throw provider exception to let it be retried
+            throw new DropboxException(msg.toString());
+          } else {
+            // remember the file to do not move it again in next few seconds (move op in ECMS can do several
+            // session saves)
+            moved.put(localIdPath, new MovedFile(idPath, nodePath));
+          }
+          return f;
+        } else {
+          return null;
+        }
       }
     }
 
@@ -1038,8 +1082,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     protected void syncFiles() throws CloudDriveException, RepositoryException {
       // sync algorithm based on deltas from Dropbox API
       long changeId = System.currentTimeMillis(); // time of the begin
-      // long localChangeId = getChangeId();
-      // readLocalNodes();
+
+      // clean map of moved from expired records
+      cleanExpiredMoved();
+
       this.pathNodes.put(DropboxAPI.ROOT_PATH, rootNode);
 
       String cursor = rootNode.getProperty("dropbox:cursor").getString();
@@ -1124,7 +1170,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // } else {
         // update sync position
         setChangeId(changeId);
-        rootNode.setProperty("dropbox:cursor", deltas.cursor);
+        // save cursor explicitly to let use it in next sync even if nothing changed in this one
+        Property cursorProp = rootNode.setProperty("dropbox:cursor", deltas.cursor);
+        cursorProp.save();
         updateState(deltas.cursor);
         // }
       }
@@ -1421,7 +1469,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   /**
    * Dropbox drive state. See {@link #getState()}.
    */
-  protected DropboxState state;
+  protected DropboxState           state;
+
+  /**
+   * Moved files with expiration on each sync run.
+   */
+  protected Map<String, MovedFile> moved = new ConcurrentHashMap<String, MovedFile>();
 
   /**
    * @param user
@@ -2034,6 +2087,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       hash = null;
     }
     return hash;
+  }
+
+  protected void cleanExpiredMoved() {
+    for (Iterator<MovedFile> fiter = moved.values().iterator(); fiter.hasNext();) {
+      MovedFile file = fiter.next();
+      if (file.isOutdated()) {
+        fiter.remove();
+      }
+    }
   }
 
 }
