@@ -113,48 +113,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       rootNode.setProperty("dropbox:cursor", connectCursor);
       updateState(connectCursor);
     }
-
-    @Deprecated // NOT USED
-    protected DbxEntry fetchChilds(String path, Node parent) throws CloudDriveException, RepositoryException {
-      FileMetadata items = api.getWithChildren(path, null);
-      iterators.add(items);
-      while (items.hasNext()) {
-        DbxEntry item = items.next();
-
-        DbxFileInfo file = new DbxFileInfo(item.path);
-        if (file.isRoot()) {
-          // skip root node - this shouldn't happen
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Fetched root folder entry - ignore it: " + item.path);
-          }
-          continue;
-        } else {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(">> connect: " + item.name + (item.isFolder() ? " folder " : " file ") + item.path);
-          }
-        }
-
-        JCRLocalCloudFile localItem = updateItem(api, file, item, parent, null);
-        if (localItem.isChanged()) {
-          changed.add(localItem);
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchChilds(localItem.getId(), localItem.getNode());
-          }
-        } else {
-          // TODO exception or skip it?
-          throw new DropboxException("Fetched item was not added to local drive storage");
-        }
-      }
-      if (items.target.isFolder()) {
-        DbxEntry.Folder folder = items.target.asFolder();
-        initDropboxFolder(parent, folder.mightHaveThumbnail, folder.iconName, items.hash);
-      } else {
-        DbxEntry.File file = items.target.asFile();
-        initDropboxFile(parent, file.mightHaveThumbnail, file.iconName, file.rev, file.numBytes);
-      }
-      return items.target;
-    }
   }
 
   /**
@@ -347,6 +305,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                 Calendar modified,
                                 String mimeType,
                                 InputStream content) throws CloudDriveException, RepositoryException {
+      normalizeName(fileNode);
       // Create means upload a new file
       return uploadFile(fileNode, created, modified, mimeType, content, false);
     }
@@ -356,6 +315,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile createFolder(Node folderNode, Calendar created) throws CloudDriveException, RepositoryException {
+      normalizeName(folderNode);
 
       String parentId = getParentId(folderNode);
       String title = getTitle(folderNode);
@@ -1211,31 +1171,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // read from local storage
         node = readNode(file);
       }
-      return node;
-    }
-
-    /**
-     * Create or read existing file node by its Dropbox path (lower-case or natural form).
-     * 
-     * @param idPath {@link String}
-     * @return {@link Node}
-     * @throws RepositoryException
-     * @throws CloudDriveException
-     */
-    @Deprecated
-    protected Node openFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
-      // FYI Drive root nodes already in the map
-      Node node = getFile(file);
-      if (node == null) {
-        // read or create a parent
-        Node parent = openFile(file);
-        // read or create a node
-        node = JCRLocalDropboxDrive.this.openFile(file.idPath, file.name, parent); // path as fileId in
-                                                                                   // Dropbox
-        // TODO may be we don't need this?
-        // pathNodes.put(path, node);
-        pathNodes.put(file.idPath, node);
-      } // else, it exists and cached already - return the node
       return node;
     }
 
@@ -2096,6 +2031,38 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         fiter.remove();
       }
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected String nodeName(String title) {
+    // all node names lower-case for Dropbox files
+    return super.nodeName(idPath(title));
+  }
+
+  /**
+   * Ensure the cloud file node has name in lower-case. If name requires change it will be renamed immediately
+   * and don't need saving it.<br>
+   * NOTE: this method doesn't check if it is a cloud file and doesn't respect JCR namespaces and will check
+   * against the whole name of the file.
+   * 
+   * @param fileNode {@link Node}
+   * @return {@link Node} the same as given or renamed to lower-case name.
+   * @throws RepositoryException
+   */
+  protected Node normalizeName(Node fileNode) throws RepositoryException {
+    String jcrName = fileNode.getName();
+    String lcName = idPath(fileAPI.getTitle(fileNode));
+    if (!lcName.equals(jcrName)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Normalizing node name: " + jcrName + " -> " + lcName);
+      }
+      fileNode.getSession().getWorkspace().move(fileNode.getPath(), fileNode.getParent().getPath() + "/" + lcName);
+      fileNode.refresh(true);
+    }
+    return fileNode;
   }
 
 }
