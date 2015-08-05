@@ -1112,29 +1112,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       if (!Thread.currentThread().isInterrupted()) {
-        // if (false) { // TODO if sync via deltas not possible - then we can run Full Sync
-        // // EventsSync cannot solve all changes, need run FullSync
-        // LOG.warn("Not all deltas applied for cloud sync. Running full sync.");
-        //
-        // // rollback everything from this sync
-        // rollback(rootNode);
-        //
-        // // we need full sync in this case
-        // FullSync fullSync = new FullSync();
-        // fullSync.execLocal();
-        //
-        // changed.clear();
-        // changed.addAll(fullSync.getFiles());
-        // removed.clear();
-        // removed.addAll(fullSync.getRemoved());
-        // } else {
-        // update sync position
         setChangeId(changeId);
         // save cursor explicitly to let use it in next sync even if nothing changed in this one
         Property cursorProp = rootNode.setProperty("dropbox:cursor", deltas.cursor);
         cursorProp.save();
         updateState(deltas.cursor);
-        // }
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("<< syncFiles: " + rootNode.getPath() + "\n\r" + cursor + " --> " + deltas.cursor);
+        }
       }
     }
 

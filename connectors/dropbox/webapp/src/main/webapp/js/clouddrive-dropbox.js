@@ -12,46 +12,62 @@
 
 		var prefixUrl = utils.pageBaseUrl(location);
 
+		var changes;
+		
 		var changesTimeout;
 
-		var pollChanges = function(process, drive) {
-			var changes = cloudDrive.ajaxGet(drive.state.url);
-			changes.done(function(info, status) {
-				clearTimeout(changesTimeout);
-				var backoff = 0;
-				if (info.changes) {
-					process.resolve();
-					backoff = 10; // next sync in 10 sec since the last change
-				} else if (info.backoff && typeof info.backoff === "number") {
-					backoff = info.backoff; // timeout w/ backoff
-				} else {
-					backoff = 30; // next sync in 30 sec when timeout w/o backoff
-				}
-				changesTimeout = setTimeout(function() {
-					// wait the timeout and run delta check again
-					var newState = cloudDrive.getState(drive);
-					newState.done(function(res) {
-						drive.state = res;
-						pollChanges(process, drive); // continue
-					});
-					newState.fail(function(response, status, err) {
-						process.reject("Error getting drive state. " + err + " (" + status + ")");
-					});
-				}, backoff);
-			});
-			changes.fail(function(response, status, err) {
-				clearTimeout(changesTimeout);
-				// if not aborted by backoffTimeout timer or browser
-				if (err != "abort") {
-					if (response && response.error) {
-						process.reject("Long-polling changes request error. " + response.error + ". " + err + " (" + status + ")");
-					} else {
-						process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+		var pollChanges = function(process, drive, timeout) {
+			timeout = timeout && typeof timeout === "number" ? timeout : 2000;
+			//utils.log(">>> poll next changes in " + timeout + "ms for Cloud Drive " + drive.path);
+			clearTimeout(changesTimeout);
+			// wait the timeout, get actual drive state and run delta check (w/ fresh longpoll url)
+			changesTimeout = setTimeout(function() {
+				var newState = cloudDrive.getState(drive);
+				newState.done(function(res) {
+					drive.state = res;
+					var changesUrl = drive.state.url;
+					if (changes) {
+						if (changes.url == changesUrl) {
+							// do nothing, polling already in progress
+							return;
+						} else {
+							// cancel previous longpoll request
+							changes.request.abort();	
+						}
 					}
-				} else {
-					process.reject("Long-polling changes request aborted");
-				}
-			});
+					// get-and-wait longpoll delta from Dropbox
+					changes = cloudDrive.ajaxGet(changesUrl);
+					changes.done(function(info, status) {
+						changes = null;
+						var timeout = 1;
+						if (info.changes) {
+							process.resolve();
+							timeout = 30000; // next sync in 30 sec since the last change
+						} else if (info.backoff && typeof info.backoff === "number") {
+							timeout = info.backoff * 1000; // changes w/ backoff (convert sec to ms)
+						} else {
+							timeout = 10000; // next sync in 10 sec when changes w/o backoff
+						}
+						pollChanges(process, drive, timeout); // continue with a timeout
+					});
+					changes.fail(function(response, status, err) {
+						changes = null;
+						// if not aborted by backoffTimeout timer or browser
+						if (err != "abort") {
+							if (response && response.error) {
+								process.reject("Long-polling changes request error. " + response.error + ". " + err + " (" + status + ")");
+							} else {
+								process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+							}
+						} else {
+							process.reject("Long-polling changes request aborted");
+						}
+					});
+				});
+				newState.fail(function(response, status, err) {
+					process.reject("Error getting drive state. " + err + " (" + status + ")");
+				});
+			}, timeout);
 		};
 
 		/**
