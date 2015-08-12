@@ -48,7 +48,6 @@ import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.clouddrive.viewer.CloudFileContent;
 import org.exoplatform.clouddrive.viewer.ContentReader;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
-import org.exoplatform.services.security.ConversationState;
 
 import java.io.InputStream;
 import java.util.Arrays;
@@ -75,14 +74,13 @@ import javax.jcr.RepositoryException;
 public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserTokenRefreshListener {
 
   /**
-   * Period to perform {@link FullSync} as a next sync request. See implementation of
-   * {@link #getSyncCommand()}.
+   * Time to expire for file links obtained from Dropbox without explicitly set expiration time.
    */
-  public static final long   FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
+  public static final long   DEFAULT_LINK_EXPIRATION_PERIOD = 3 * 60 * 60 * 1000; // 3hrs
 
-  public static final String FOLDER_REV       = "".intern();
+  public static final String FOLDER_REV                     = "".intern();
 
-  public static final String FOLDER_TYPE      = "folder".intern();
+  public static final String FOLDER_TYPE                    = "folder".intern();
 
   /**
    * Connect algorithm for Drobpox drive.
@@ -336,7 +334,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       String id = idPath(folder.path);
       String name = folder.name;
       String link = api.getFolderLink(folder.path);
-      String createdBy = currentUser();
+      String createdBy = currentUserName();
       String modifiedBy = createdBy;
       String type = FOLDER_TYPE;
 
@@ -347,7 +345,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       return new JCRLocalCloudFile(folderNode.getPath(),
                                    id,
                                    name,
-                                   link,
+                                   link(folderNode),
                                    type,
                                    modifiedBy,
                                    createdBy,
@@ -369,10 +367,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           DbxFileInfo info = new DbxFileInfo(file.path);
           String id = info.idPath;
           String name = file.name;
-          String link = api.getFileLink(info.parentPath, info.name);
+          String link = api.getUserFileLink(info.parentPath, info.name);
           String embedLink = null; // api.getEmbedLink(file.path);
           String thumbnailLink = null; // api.getThumbnailLink(file.path);
-          String createdBy = currentUser();
+          String createdBy = currentUserName();
           String modifiedBy = createdBy;
           String type = findMimetype(name);
           long size = file.numBytes;
@@ -383,7 +381,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           return new JCRLocalCloudFile(fileNode.getPath(),
                                        id,
                                        name,
-                                       link,
+                                       link(fileNode),
                                        null,
                                        previewLink(fileNode),
                                        thumbnailLink,
@@ -418,7 +416,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           String id = idPath(folder.path);
           String name = folder.name;
           String link = api.getFolderLink(folder.path);
-          String createdBy = currentUser();
+          String createdBy = currentUserName();
           String modifiedBy = createdBy;
           String type = FOLDER_TYPE;
 
@@ -428,7 +426,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           return new JCRLocalCloudFile(folderNode.getPath(),
                                        id,
                                        name,
-                                       link,
+                                       link(folderNode),
                                        type,
                                        modifiedBy,
                                        createdBy,
@@ -469,10 +467,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           DbxFileInfo info = new DbxFileInfo(file.path);
           String id = info.idPath;
           String name = file.name;
-          String link = api.getFileLink(info.parentPath, info.name);
+          String link = api.getUserFileLink(info.parentPath, info.name);
           String embedLink = null; // api.getEmbedLink(file.path);
           String thumbnailLink = null; // api.getThumbnailLink(file.path);
-          String createdBy = currentUser();
+          String createdBy = currentUserName();
           String modifiedBy = createdBy;
           String type = findMimetype(name);
           long size = file.numBytes;
@@ -495,7 +493,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           return new JCRLocalCloudFile(destFileNode.getPath(),
                                        id,
                                        name,
-                                       link,
+                                       link(destFileNode),
                                        null,
                                        previewLink(destFileNode),
                                        thumbnailLink,
@@ -544,7 +542,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           String id = idPath(folder.path);
           String name = folder.name;
           String link = api.getFolderLink(folder.path);
-          String createdBy = currentUser();
+          String createdBy = currentUserName();
           String modifiedBy = createdBy;
           String type = FOLDER_TYPE;
           Calendar created = Calendar.getInstance();
@@ -555,7 +553,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           return new JCRLocalCloudFile(destFolderNode.getPath(),
                                        id,
                                        name,
-                                       link,
+                                       link(destFolderNode),
                                        type,
                                        modifiedBy,
                                        createdBy,
@@ -611,7 +609,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     @Override
     public boolean trashFile(String id) throws CloudDriveException, RepositoryException {
       return removeFile(id); // remove in Dropbox, it will be possible to restore by file rev
-      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -620,7 +617,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     @Override
     public boolean trashFolder(String id) throws CloudDriveException, RepositoryException {
       return removeFolder(id); // remove in Dropbox, it will be possible to restore folder file by file
-      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -635,10 +631,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         DbxFileInfo info = new DbxFileInfo(file.path);
         String id = info.idPath;
         String name = file.name;
-        String link = api.getFileLink(info.parentPath, info.name);
+        String link = api.getUserFileLink(info.parentPath, info.name);
         String embedLink = null; // api.getEmbedLink(file.path);
         String thumbnailLink = null; // api.getThumbnailLink(file.path);
-        String createdBy = currentUser();
+        String createdBy = currentUserName();
         String modifiedBy = createdBy;
         String type = findMimetype(name);
         Calendar modified = Calendar.getInstance();
@@ -650,7 +646,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         return new JCRLocalCloudFile(fileNode.getPath(),
                                      id,
                                      name,
-                                     link,
+                                     link(fileNode),
                                      null,
                                      previewLink(fileNode),
                                      thumbnailLink,
@@ -667,7 +663,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // else file with given idPath/rev not found - we cannot keep this file in the drive
         throw new FileRestoreException("File revision (" + rev + ") cannot be restored '" + getTitle(fileNode) + "'");
       }
-      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -700,7 +695,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           String id = idPath(folder.path);
           String name = folder.name;
           String link = api.getFolderLink(folder.path);
-          String createdBy = currentUser();
+          String createdBy = currentUserName();
           String modifiedBy = createdBy;
           String type = FOLDER_TYPE;
           Calendar modified = Calendar.getInstance();
@@ -711,7 +706,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           return new JCRLocalCloudFile(folderNode.getPath(),
                                        id,
                                        name,
-                                       link,
+                                       link(folderNode),
                                        type,
                                        modifiedBy,
                                        createdBy,
@@ -726,7 +721,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // else folder not restored - we cannot keep it in the drive
         throw new FileRestoreException("Folder cannot be restored '" + getTitle(folderNode) + "'");
       }
-      // TODO throw new SyncNotSupportedException("Trash not supported");
     }
 
     /**
@@ -877,10 +871,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       DbxFileInfo info = new DbxFileInfo(file.path);
       String id = info.idPath;
       String name = file.name;
-      String link = api.getFileLink(info.parentPath, info.name);
+      String link = api.getUserFileLink(info.parentPath, info.name);
       String embedLink = null; // api.getEmbedLink(file.path);
       String thumbnailLink = null; // api.getThumbnailLink(file.path);
-      String createdBy = currentUser();
+      String createdBy = currentUserName();
       String modifiedBy = createdBy;
       String type = findMimetype(name);
       long size = file.numBytes;
@@ -891,7 +885,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       return new JCRLocalCloudFile(fileNode.getPath(),
                                    id,
                                    title,
-                                   link,
+                                   link(fileNode),
                                    null,
                                    previewLink(fileNode),
                                    thumbnailLink,
@@ -1525,6 +1519,32 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * {@inheritDoc}
    */
   @Override
+  public boolean isSharingSupported() {
+    return true;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void shareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
+    // Standard Dropbox account can share file publicly only. We cannot set per-user permissions here.
+
+    // TODO Implement Team sharing according Dropbox API https://www.dropbox.com/developers/core/docs#shares
+    // Dropbox for Business users can set restrictions on shared links; the visibility field indicates
+    // what (if any) restrictions are set on this particular link. Possible values include: "PUBLIC" (anyone
+    // can view), "TEAM_ONLY" (only the owner's team can view), "PASSWORD" (a password is required),
+    // "TEAM_AND_PASSWORD" (a combination of "TEAM_ONLY" and "PASSWORD" restrictions), or "SHARED_FOLDER_ONLY"
+    // (only members of the enclosing shared folder can view). Note that other values may be added at any
+    // time.
+
+    createSharedLink(fileNode);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   protected ConnectCommand getConnectCommand() throws DriveRemovedException, RepositoryException {
     return new Connect();
   }
@@ -1726,7 +1746,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     // TODO it's possible to get name of modifier on Dropbox, it will be in metadata response, but Java SDK
     // doesn't read it - need extend its Entry and add such fields (and exception handling)
-    createdBy = modifiedBy = currentUser();
+    createdBy = modifiedBy = currentUserName();
 
     Calendar created;
     Calendar modified;
@@ -1770,7 +1790,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       localFile = new JCRLocalCloudFile(node.getPath(),
                                         id,
                                         title,
-                                        link,
+                                        link(node),
                                         type,
                                         modifiedBy,
                                         createdBy,
@@ -1804,7 +1824,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
         typeMode = mimeTypes.getMimeTypeMode(type, title);
 
-        link = api.getFileLink(file.parentPath, dbxFile.name);
+        link = api.getUserFileLink(file.parentPath, dbxFile.name);
         embedLink = null;
         thumbnailLink = null; // TODO use eXo Thumbnails services in conjunction with Dropbox thumbs
 
@@ -1835,7 +1855,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       localFile = new JCRLocalCloudFile(node.getPath(),
                                         id,
                                         title,
-                                        link,
+                                        link(node),
                                         null,
                                         previewLink(node),
                                         thumbnailLink,
@@ -1852,13 +1872,121 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return localFile;
   }
 
+  protected String createSharedLink(Node fileNode) throws RepositoryException, CloudDriveException {
+    String idPath = fileAPI.getId(fileNode);
+    // obtain shared link from Dropbox
+    // WARN this call goes under the drive owner credentials on Dropbox
+    DbxUrlWithExpiration dbxLink = getUser().api().getSharedLink(idPath);
+    if (dbxLink.url != null) {
+      jcrListener.disable();
+      try {
+        Property dlProp = fileNode.setProperty("dropbox:sharedLink", dbxLink.url);
+        long sharedLinkExpires;
+        if (dbxLink.expires != null) {
+          sharedLinkExpires = dbxLink.expires.getTime();
+        } else {
+          sharedLinkExpires = System.currentTimeMillis() + DEFAULT_LINK_EXPIRATION_PERIOD;
+        }
+        Property dleProp = fileNode.setProperty("dropbox:sharedLinkExpires", sharedLinkExpires);
+        if (dlProp.isNew()) {
+          if (!fileNode.isNew()) { // use user's node here!
+            fileNode.save();
+          } // otherwise, it should be saved where the node added (by the owner)
+        } else {
+          // save only direct link properties for !
+          dlProp.save();
+          dleProp.save();
+        }
+        return dbxLink.url;
+      } finally {
+        jcrListener.enable();
+      }
+    } else {
+      throw new CloudDriveException("Cannot share Dropbox file: null shared link returned for " + idPath);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected String link(Node fileNode) throws RepositoryException {
+    // check is it a drive owner or does the file already shared to outside the owner's
+    // Personal Docs, and if not owner and shared already - we return shared link, otherwise return default
+    // (home-based) URL.
+
+    String currentUser = currentUserName();
+
+    boolean isNotOwner;
+    try {
+      String driveOwner = rootNode().getProperty("ecd:localUserName").getString();
+      isNotOwner = !driveOwner.equals(currentUser);
+    } catch (DriveRemovedException e) {
+      LOG.warn("Cannot read drive owner: " + e.getMessage());
+      isNotOwner = false;
+    }
+
+    if (isNotOwner) {
+      // Here we assume the following:
+      // * file or folder was shared to other users by the drive owner
+      // * owner of the drive agreed that he/she shares the file to others as Dropbox does for standard
+      // account
+      // * if owner will decide to remove the link (revoke the sharing), then this link will not be valid and
+      // others will not be able to access the file. To share the file again, the owner needs to copy-paste
+      // the file to its shared destination again or set such permission in Cloud File Sharing menu.
+
+      String idPath = fileAPI.getId(fileNode);
+
+      // Shared link expires on Dropbox (as for Aug 11, 2015 all expirations at Jan 1 2030), respect this fact
+      String sharedLink;
+      boolean acquireNew = false;
+      try {
+        sharedLink = fileNode.getProperty("dropbox:sharedLink").getString();
+        long expires = fileNode.getProperty("dropbox:sharedLinkExpires").getLong();
+        if (expires > System.currentTimeMillis()) {
+          return sharedLink;
+        } else {
+          // re-acquire a new shared link (this seems should happen after Jan 1 2030)
+          acquireNew = true;
+          try {
+            return createSharedLink(fileNode);
+          } catch (CloudDriveException e) {
+            LOG.error("Error creating shared link of Dropbox file " + idPath, e);
+          }
+        }
+      } catch (PathNotFoundException e) {
+        // shared link not saved locally, it may mean several things:
+        // * it is a file in shared folder and need acquire a shared link for this file
+        if (fileAPI.isFolder(fileNode) && fileNode.getParent().hasProperty("dropbox:sharedLink")) {
+          // if folder already shared...
+          // in case of sub-folder in shared folder, a shared link for the sub-folder will be acquired
+          // naturally in result of navigation in Documents explorer (except of explicit path pointing what is
+          // not possible for human usecases)
+          acquireNew = true;
+        }
+        // * the file wasn't shared via symlink but access somehow by other user (e.g. by root user, system
+        // session) - in this case we don't want do anything and return default link
+      }
+
+      if (acquireNew) {
+        // get a shared link from Dropbox here
+        try {
+          return createSharedLink(fileNode);
+        } catch (CloudDriveException e) {
+          LOG.error("Error creating shared link of Dropbox file " + idPath, e);
+        }
+      }
+    }
+    // by default, we show saved locally link build respectively the Home page of current (owner) user
+    return super.link(fileNode);
+  }
+
   /**
    * {@inheritDoc}
    */
   @Override
   protected String previewLink(Node fileNode) throws RepositoryException {
     String idPath = fileAPI.getId(fileNode);
-
     // Direct link expires on Dropbox, respect this fact
     String directLink;
     try {
@@ -1983,15 +2111,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return null;
   }
 
-  protected String currentUser() throws RepositoryException {
-    ConversationState convo = ConversationState.getCurrent();
-    if (convo != null) {
-      return convo.getIdentity().getUserId();
-    } else {
-      return session().getUserID(); // shouldn't happen
-    }
-  }
-
   protected String folderHash(Node node) throws RepositoryException {
     String hash;
     if (fileAPI.isFolder(node)) {
@@ -2049,5 +2168,4 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
     return fileNode;
   }
-
 }

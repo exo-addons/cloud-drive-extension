@@ -60,7 +60,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * Period to perform {@link FullSync} as a next sync request. See implementation of
    * {@link #getSyncCommand()}.
    */
-  public static final long FULL_SYNC_PERIOD = 24 * 60 * 60 * 60 * 1000; // 24hrs
+  public static final long FULL_SYNC_PERIOD = 24 * 60 * 60 * 1000; // 24hrs
 
   /**
    * Connect algorithm for Template drive.

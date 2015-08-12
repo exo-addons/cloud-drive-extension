@@ -425,12 +425,12 @@ public class DropboxAPI {
   }
 
   /**
-   * Link (URl) to a file for opening on provider site (UI).
+   * Link (URL) to a file for opening by its owner on Dropbox site.
    * 
    * @param file {@link DbxFileInfo}
    * @return String with the file URL.
    */
-  String getFileLink(String parentPath, String name) {
+  String getUserFileLink(String parentPath, String name) {
     // XXX it is undocumented URL structure observed on Dropbox
     // for files https://www.dropbox.com/home?preview=Comminications+in+Hanoi.jpg
     // file in subfolder https://www.dropbox.com/home/test/sub-folder%20N1?preview=20150713_182628.jpg
@@ -443,7 +443,7 @@ public class DropboxAPI {
   }
 
   /**
-   * Link (URl) to a folder for opening on provider site (UI).
+   * Link (URL) to a folder for opening by its owner on Dropbox site.
    * 
    * @param folder {@link String}
    * @return String with the file URL.
@@ -494,6 +494,76 @@ public class DropboxAPI {
         throw new DropboxException(msg);
       } catch (DbxException e) {
         String msg = "Error requesting file link";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
+        throw new DropboxException(msg);
+      }
+    }
+  }
+
+  /**
+   * Create shared link to a file or folder' "preview page" on Dropbox. See more on
+   * <a href="https://www.dropbox.com/help/167">https://www.dropbox.com/help/167</a><br>
+   * 
+   * @param dbxPath {@link String}
+   * @return DbxUrlWithExpiration with the shared link of file or folder "preview page".
+   * @throws RefreshAccessException
+   * @throws DropboxException
+   */
+  DbxUrlWithExpiration getSharedLink(String dbxPath) throws RefreshAccessException, DropboxException {
+    if (ROOT_PATH.equals(dbxPath)) {
+      // no shared link for root
+      return null;
+    } else {
+      try {
+        // FYI this URL has long expiration (years)
+        // but Dropbox Java client we don't get expiration time for the link, thus need custom API call
+        // String sharedUrl = client.createShareableUrl(dbxPath);
+
+        DbxPath.checkArg("path", dbxPath);
+
+        String apiPath = "1/shares/auto" + dbxPath;
+        String[] params = { "short_url", "false" };
+
+        return DbxRequestUtil.doPost(client.getRequestConfig(),
+                                     client.getAccessToken(),
+                                     DbxHost.Default.api,
+                                     apiPath,
+                                     params,
+                                     null,
+                                     new DbxRequestUtil.ResponseHandler<DbxUrlWithExpiration>() {
+                                       @Override
+                                       public DbxUrlWithExpiration handle(HttpRequestor.Response response) throws DbxException {
+                                         if (response.statusCode == 404)
+                                           return null;
+                                         if (response.statusCode != 200)
+                                           throw DbxRequestUtil.unexpectedStatus(response);
+                                         DbxUrlWithExpiration uwe = DbxRequestUtil.readJsonFromResponse(DbxUrlWithExpiration.Reader,
+                                                                                                        response.body);
+                                         return uwe;
+                                       }
+                                     });
+      } catch (DbxException.InvalidAccessToken e) {
+        String msg = "Invalid access credentials";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox.");
+      } catch (DbxException.RetryLater e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
+        throw new DropboxException(msg + ". Please try again later.");
+      } catch (DbxException.BadResponseCode e) {
+        String msg = "Error requesting file's shared link";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
+        throw new DropboxException(msg);
+      } catch (DbxException e) {
+        String msg = "Error requesting file's shared link";
         if (LOG.isDebugEnabled()) {
           LOG.debug(msg + ": " + e.getMessage(), e);
         }
@@ -922,9 +992,9 @@ public class DropboxAPI {
 
   private void initUser() throws DropboxException, RefreshAccessException, NotFoundException {
     // TODO do we have really something to init for the user?
-    //DbxAccountInfo user = getCurrentUser();
-    //this.userId = user.userId;
-    //this.userDisplayName = user.displayName;
+    // DbxAccountInfo user = getCurrentUser();
+    // this.userId = user.userId;
+    // this.userDisplayName = user.displayName;
   }
 
   String filePath(String parentId, String title) {
