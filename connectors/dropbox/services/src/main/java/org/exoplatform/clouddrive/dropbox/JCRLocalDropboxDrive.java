@@ -1948,16 +1948,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         } else {
           // re-acquire a new shared link (this seems should happen after Jan 1 2030)
           acquireNew = true;
-          try {
-            return createSharedLink(fileNode);
-          } catch (CloudDriveException e) {
-            LOG.error("Error creating shared link of Dropbox file " + idPath, e);
-          }
         }
       } catch (PathNotFoundException e) {
         // shared link not saved locally, it may mean several things:
         // * it is a file in shared folder and need acquire a shared link for this file
-        if (fileAPI.isFolder(fileNode) && fileNode.getParent().hasProperty("dropbox:sharedLink")) {
+        Node parent = fileNode.getParent();
+        if (fileAPI.isFolder(parent) && parent.hasProperty("dropbox:sharedLink")) {
           // if folder already shared...
           // in case of sub-folder in shared folder, a shared link for the sub-folder will be acquired
           // naturally in result of navigation in Documents explorer (except of explicit path pointing what is
@@ -1971,7 +1967,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       if (acquireNew) {
         // get a shared link from Dropbox here
         try {
-          return createSharedLink(fileNode);
+          Node node;
+          if (isNotOwner) {
+            // if not owner need use system session to have rights to save the sharedLink in the node
+            node = (Node) systemSession().getItem(fileNode.getPath());
+          } else {
+            node = fileNode;
+          }
+          return createSharedLink(node);
         } catch (CloudDriveException e) {
           LOG.error("Error creating shared link of Dropbox file " + idPath, e);
         }
@@ -2001,11 +2004,20 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     try {
       DbxUrlWithExpiration dbxLink = getUser().api().getDirectLink(idPath);
       jcrListener.disable();
-      Property dlProp = fileNode.setProperty("dropbox:directLink", directLink = dbxLink.url);
-      Property dleProp = fileNode.setProperty("dropbox:directLinkExpires", dbxLink.expires.getTime());
+      Node node;
+      // if not owner need use system session to have rights to save the directLink in the node
+      String currentUser = currentUserName();
+      String driveOwner = rootNode().getProperty("ecd:localUserName").getString();
+      if (!driveOwner.equals(currentUser)) {
+        node = (Node) systemSession().getItem(fileNode.getPath());
+      } else {
+        node = fileNode;
+      }
+      Property dlProp = node.setProperty("dropbox:directLink", directLink = dbxLink.url);
+      Property dleProp = node.setProperty("dropbox:directLinkExpires", dbxLink.expires.getTime());
       if (dlProp.isNew()) {
         if (!fileNode.isNew()) {
-          fileNode.save();
+          node.save();
         } // otherwise, it should be saved where the node added
       } else {
         // save only direct link properties for !
@@ -2013,6 +2025,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         dleProp.save();
       }
       return directLink;
+    } catch (DriveRemovedException e) {
+      LOG.warn("Error getting direct link of Dropbox file " + idPath + ": " + e.getMessage(), e);
     } catch (DropboxException e) {
       LOG.error("Error getting direct link of Dropbox file " + idPath, e);
     } catch (RefreshAccessException e) {
