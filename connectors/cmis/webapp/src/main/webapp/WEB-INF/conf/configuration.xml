@@ -28,14 +28,6 @@
     <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
   </component>
   
-  <component>
-    <type>org.exoplatform.clouddrive.cmis.ecms.viewer.storage.PDFViewerStorage</type>
-  </component>
-  
-  <component>
-    <type>org.exoplatform.clouddrive.cmis.rest.ContentService</type>
-  </component>
-
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>
     <component-plugin>
