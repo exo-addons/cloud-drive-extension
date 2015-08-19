@@ -27,7 +27,7 @@
   <component>
     <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
   </component>
-  
+
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>
     <component-plugin>
@@ -129,39 +129,6 @@
           </object>
         </object-param>
         <object-param>
-          <name>ShowCmisFile</name>
-          <object type="org.exoplatform.webui.ext.UIExtension">
-            <field name="type">
-              <string>org.exoplatform.ecm.dms.FileViewer</string>
-            </field>
-            <field name="name">
-              <string>ShowCmisFile</string>
-            </field>
-            <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.DefaultFileViewer</string>
-            </field>
-            <field name="category">
-              <string>FileViewer</string>
-            </field>
-            <field name="rank">
-              <int>45</int>
-            </field>
-            <field name="extendedFilters">
-              <collection type="java.util.ArrayList">
-                <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
-                    <field name="providers">
-                      <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
-                      </collection>
-                    </field>
-                  </object>
-                </value>
-              </collection>
-            </field>
-          </object>
-        </object-param>
-        <object-param>
           <name>ShowCmisText</name>
           <object type="org.exoplatform.webui.ext.UIExtension">
             <field name="type">
@@ -185,7 +152,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -195,27 +164,57 @@
                     <field name="mimeTypes">
                       <collection type="java.util.LinkedHashSet"> 
                         <!-- text/rtf, text/csv and others like that should be filtered by UI comp with lower rank! -->
-                        <value><string>text/</string></value>
-                        <value><string>application/x-</string></value>
+                        <value>
+                          <string>text/</string>
+                        </value>
+                        <value>
+                          <string>application/x-</string>
+                        </value>
                         <!-- value><string>text/html</string></value>
                         <value><string>text/plain</string></value>
                         <value><string>text/xml</string></value>
                         <value><string>text/css</string></value>
                         <value><string>text/javascript</string></value>
                         <value><string>text/ecmascript</string></value -->
-                        <value><string>application/xml</string></value>
-                        <value><string>application/xhtml</string></value>
-                        <value><string>application/xhtml+xml</string></value>
-                        <value><string>application/xml+dtd</string></value>
-                        <value><string>application/rss+xml</string></value>
-                        <value><string>application/atom+xml</string></value>
-                        <value><string>application/xop+xml</string></value>
-                        <value><string>application/rdf+xml</string></value>
-                        <value><string>application/soap+xml</string></value>
-                        <value><string>application/javascript</string></value>
-                        <value><string>application/json</string></value>
-                        <value><string>application/ecmascript</string></value>
-                        <value><string>application/php</string></value>
+                        <value>
+                          <string>application/xml</string>
+                        </value>
+                        <value>
+                          <string>application/xhtml</string>
+                        </value>
+                        <value>
+                          <string>application/xhtml+xml</string>
+                        </value>
+                        <value>
+                          <string>application/xml+dtd</string>
+                        </value>
+                        <value>
+                          <string>application/rss+xml</string>
+                        </value>
+                        <value>
+                          <string>application/atom+xml</string>
+                        </value>
+                        <value>
+                          <string>application/xop+xml</string>
+                        </value>
+                        <value>
+                          <string>application/rdf+xml</string>
+                        </value>
+                        <value>
+                          <string>application/soap+xml</string>
+                        </value>
+                        <value>
+                          <string>application/javascript</string>
+                        </value>
+                        <value>
+                          <string>application/json</string>
+                        </value>
+                        <value>
+                          <string>application/ecmascript</string>
+                        </value>
+                        <value>
+                          <string>application/php</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -248,7 +247,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -257,17 +258,35 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>image/jpeg</string></value>
-												<value><string>image/png</string></value>
-												<value><string>image/gif</string></value>
-												<value><string>image/bmp</string></value>
-                        <value><string>image/x-windows-bmp</string></value>
-                        <value><string>image/x-icon</string></value>
+                        <value>
+                          <string>image/jpeg</string>
+                        </value>
+                        <value>
+                          <string>image/png</string>
+                        </value>
+                        <value>
+                          <string>image/gif</string>
+                        </value>
+                        <value>
+                          <string>image/bmp</string>
+                        </value>
+                        <value>
+                          <string>image/x-windows-bmp</string>
+                        </value>
+                        <value>
+                          <string>image/x-icon</string>
+                        </value>
 												<!-- value><string>image/tiff</string></value>
                         <value><string>image/x-tiff</string></value -->
-                        <value><string>image/webp</string></value>
-                        <value><string>image/pjpeg</string></value>
-                        <value><string>image/svg+xml</string></value>
+                        <value>
+                          <string>image/webp</string>
+                        </value>
+                        <value>
+                          <string>image/pjpeg</string>
+                        </value>
+                        <value>
+                          <string>image/svg+xml</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -300,7 +319,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -309,32 +330,84 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>application/pdf</string></value>
-                        <value><string>application/msword</string></value>
-                        <value><string>application/xls</string></value>
-                        <value><string>application/xlt</string></value>
-                        <value><string>application/vnd.ms-excel</string></value>
-                        <value><string>application/ppt</string></value>
-                        <value><string>application/vnd.ms-powerpoint</string></value>
-                        <value><string>application/rtf</string></value>
-                        <value><string>application/vnd.oasis.opendocument.graphics</string></value>
-                        <value><string>application/vnd.oasis.opendocument.presentation</string></value>
-                        <value><string>application/vnd.oasis.opendocument.spreadsheet</string></value>
-                        <value><string>application/vnd.oasis.opendocument.spreadsheet-template</string></value>
-                        <value><string>application/vnd.oasis.opendocument.text</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.spreadsheetml.template</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.presentationml.template</string></value>
-                        <value><string>application/vnd.openxmlformats-officedocument.wordprocessingml.template</string></value>
-                        <value><string>application/vnd.sun.xml.impress</string></value>
-                        <value><string>application/vnd.sun.xml.writer</string></value>
-                        <value><string>application/wordperfect</string></value>
-                        <value><string>application/x-pdf</string></value>
-                        <value><string>text/pdf</string></value>
-                        <value><string>text/csv</string></value>
-                        <value><string>text/rtf</string></value>
+                        <value>
+                          <string>application/pdf</string>
+                        </value>
+                        <value>
+                          <string>application/msword</string>
+                        </value>
+                        <value>
+                          <string>application/xls</string>
+                        </value>
+                        <value>
+                          <string>application/xlt</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.ms-excel</string>
+                        </value>
+                        <value>
+                          <string>application/ppt</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.ms-powerpoint</string>
+                        </value>
+                        <value>
+                          <string>application/rtf</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.oasis.opendocument.graphics</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.oasis.opendocument.presentation</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.oasis.opendocument.spreadsheet</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.oasis.opendocument.spreadsheet-template</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.oasis.opendocument.text</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.presentationml.presentation</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.wordprocessingml.document</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.spreadsheetml.template</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.presentationml.template</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.openxmlformats-officedocument.wordprocessingml.template</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.sun.xml.impress</string>
+                        </value>
+                        <value>
+                          <string>application/vnd.sun.xml.writer</string>
+                        </value>
+                        <value>
+                          <string>application/wordperfect</string>
+                        </value>
+                        <value>
+                          <string>application/x-pdf</string>
+                        </value>
+                        <value>
+                          <string>text/pdf</string>
+                        </value>
+                        <value>
+                          <string>text/csv</string>
+                        </value>
+                        <value>
+                          <string>text/rtf</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -367,7 +440,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -376,7 +451,9 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>application/x-shockwave-flash</string></value>
+                        <value>
+                          <string>application/x-shockwave-flash</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -409,7 +486,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -418,23 +497,57 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>video/mp4</string></value>
-                        <value><string>video/ogg</string></value>
-                        <value><string>video/ogv</string></value>
-                        <value><string>video/webm</string></value>
-                        <value><string>video/quicktime</string></value>
-                        <value><string>video/avi</string></value>
-                        <value><string>video/msvideo</string></value>
-                        <value><string>video/x-msvideo</string></value>
-                        <value><string>audio/wav</string></value>
-                        <value><string>audio/x-wav</string></value>
-                        <value><string>audio/x-ms-wma</string></value>
-                        <value><string>audio/flac</string></value>
-                        <value><string>audio/x-flac</string></value>
-                        <value><string>video/3gpp</string></value>
-                        <value><string>video/3gpp2</string></value>
-                        <value><string>audio/3gpp</string></value>
-                        <value><string>audio/3gpp2</string></value>
+                        <value>
+                          <string>video/mp4</string>
+                        </value>
+                        <value>
+                          <string>video/ogg</string>
+                        </value>
+                        <value>
+                          <string>video/ogv</string>
+                        </value>
+                        <value>
+                          <string>video/webm</string>
+                        </value>
+                        <value>
+                          <string>video/quicktime</string>
+                        </value>
+                        <value>
+                          <string>video/avi</string>
+                        </value>
+                        <value>
+                          <string>video/msvideo</string>
+                        </value>
+                        <value>
+                          <string>video/x-msvideo</string>
+                        </value>
+                        <value>
+                          <string>audio/wav</string>
+                        </value>
+                        <value>
+                          <string>audio/x-wav</string>
+                        </value>
+                        <value>
+                          <string>audio/x-ms-wma</string>
+                        </value>
+                        <value>
+                          <string>audio/flac</string>
+                        </value>
+                        <value>
+                          <string>audio/x-flac</string>
+                        </value>
+                        <value>
+                          <string>video/3gpp</string>
+                        </value>
+                        <value>
+                          <string>video/3gpp2</string>
+                        </value>
+                        <value>
+                          <string>audio/3gpp</string>
+                        </value>
+                        <value>
+                          <string>audio/3gpp2</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -467,7 +580,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -476,8 +591,12 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>video/mpg</string></value>
-                        <value><string>video/mpeg</string></value>
+                        <value>
+                          <string>video/mpg</string>
+                        </value>
+                        <value>
+                          <string>video/mpeg</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -510,7 +629,9 @@
                   <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
-                        <value><string>cmis</string></value>
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>
@@ -519,12 +640,59 @@
                   <object type="org.exoplatform.webui.ext.filter.impl.FileFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.ArrayList">
-                        <value><string>video/x-flv</string></value>
-                        <value><string>video/x-f4v</string></value>
-                        <value><string>audio/mp3</string></value>
-                        <value><string>audio/mpeg</string></value>
-                        <value><string>audio/mpeg3</string></value>
-                        <value><string>audio/x-mpeg</string></value>
+                        <value>
+                          <string>video/x-flv</string>
+                        </value>
+                        <value>
+                          <string>video/x-f4v</string>
+                        </value>
+                        <value>
+                          <string>audio/mp3</string>
+                        </value>
+                        <value>
+                          <string>audio/mpeg</string>
+                        </value>
+                        <value>
+                          <string>audio/mpeg3</string>
+                        </value>
+                        <value>
+                          <string>audio/x-mpeg</string>
+                        </value>
+                      </collection>
+                    </field>
+                  </object>
+                </value>
+              </collection>
+            </field>
+          </object>
+        </object-param>
+        <object-param>
+          <name>ShowCmisFile</name>
+          <object type="org.exoplatform.webui.ext.UIExtension">
+            <field name="type">
+              <string>org.exoplatform.ecm.dms.FileViewer</string>
+            </field>
+            <field name="name">
+              <string>ShowCmisFile</string>
+            </field>
+            <field name="component">
+              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.DefaultFileViewer</string>
+            </field>
+            <field name="category">
+              <string>FileViewer</string>
+            </field>
+            <field name="rank">
+              <int>44</int>
+            </field>
+            <field name="extendedFilters">
+              <collection type="java.util.ArrayList">
+                <value>
+                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                    <field name="providers">
+                      <collection type="java.util.ArrayList">
+                        <value>
+                          <string>cmis</string>
+                        </value>
                       </collection>
                     </field>
                   </object>

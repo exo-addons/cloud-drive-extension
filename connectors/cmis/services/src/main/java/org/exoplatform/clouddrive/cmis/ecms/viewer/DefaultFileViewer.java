@@ -14,37 +14,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.exoplatform.clouddrive.ecms.viewer;
+package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
-import org.exoplatform.clouddrive.ecms.filters.CloudFileFilter;
+import org.exoplatform.clouddrive.ecms.viewer.AbstractFileViewer;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
-import org.exoplatform.web.application.Parameter;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
-import org.exoplatform.webui.ext.filter.UIExtensionFilter;
-import org.exoplatform.webui.ext.filter.UIExtensionFilters;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
- * Default WebUI component for Cloud Drive files. It shows content of remote file by its URL in iframe on file
- * page in eXo Documents.<br>
+ * Default WebUI component for CMIS files. It accepts only visual file formats and show the content of remote
+ * file by its URL in iframe on file page in eXo Documents.<br>
  * 
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: DefaultFileViewer.java 00000 Nov 1, 2012 pnedonosko $
+ * @version $Id: DefaultFileViewer.java 00000 Aug 14, 2015 pnedonosko $
  */
 @ComponentConfig(template = "classpath:groovy/templates/DefaultFileViewer.gtmpl")
 public class DefaultFileViewer extends AbstractFileViewer {
 
-  protected static final Log                     LOG        = ExoLogger.getLogger(DefaultFileViewer.class);
-
-  public static final String                     EVENT_NAME = "ShowCloudFile";
-
-  protected static final List<UIExtensionFilter> FILTERS    = Arrays.asList(new UIExtensionFilter[] {
-      new CloudFileFilter() });
+  protected static final Log LOG = ExoLogger.getLogger(DefaultFileViewer.class);
 
   public DefaultFileViewer() {
     super();
@@ -54,20 +43,15 @@ public class DefaultFileViewer extends AbstractFileViewer {
     super(viewableMaxSize);
   }
 
-  @UIExtensionFilters
-  public List<UIExtensionFilter> getFilters() {
-    return FILTERS;
-  }
-
   /**
    * {@inheritDoc}
    */
   @Override
-  public String renderEventURL(boolean ajax, String name, String beanId, Parameter[] params) throws Exception {
-    if (EVENT_NAME.equals(name)) {
-      initContext();
-      return "javascript:void(0);//objectId";
+  public boolean isViewable() {
+    if (super.isViewable()) {
+      String mimeType = file.getType();
+      return mimeType.startsWith("text/") || mimeType.startsWith("image/") || mimeType.startsWith("application/xhtml+");
     }
-    return super.renderEventURL(ajax, name, beanId, params);
+    return false;
   }
 }

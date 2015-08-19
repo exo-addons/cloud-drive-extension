@@ -81,6 +81,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -306,7 +307,7 @@ public class BoxAPI {
           // not_found or precondition_failed - then folder not found
           throw new NotFoundException("Folder not found " + folderId, e);
         }
-        throw new BoxException("Error reading folder items: " + e.getMessage(), e);
+        throw new BoxException("Error reading folder items: " + getErrorMessage(e), e);
       } catch (AuthFatalFailureException e) {
         checkTokenState();
         throw new BoxException("Authentication error on folder items: " + e.getMessage(), e);
@@ -370,7 +371,7 @@ public class BoxAPI {
       } catch (BoxRestException e) {
         throw new BoxException("Error requesting Events service: " + e.getMessage(), e);
       } catch (BoxServerException e) {
-        throw new BoxException("Error reading Events service: " + e.getMessage(), e);
+        throw new BoxException("Error reading Events service: " + getErrorMessage(e), e);
       } catch (AuthFatalFailureException e) {
         checkTokenState();
         throw new BoxException("Authentication error for Events service: " + e.getMessage(), e);
@@ -552,7 +553,7 @@ public class BoxAPI {
     } catch (BoxRestException e) {
       throw new BoxException("Error submiting authentication code: " + e.getMessage(), e);
     } catch (BoxServerException e) {
-      throw new BoxException("Error authenticating user code: " + e.getMessage(), e);
+      throw new BoxException("Error authenticating user code: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       throw new BoxException("Authentication code error: " + e.getMessage(), e);
     }
@@ -639,7 +640,7 @@ public class BoxAPI {
     } catch (BoxRestException e) {
       throw new BoxException("Error requesting current user: " + e.getMessage(), e);
     } catch (BoxServerException e) {
-      throw new BoxException("Error getting current user: " + e.getMessage(), e);
+      throw new BoxException("Error getting current user: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error for current user: " + e.getMessage(), e);
@@ -659,7 +660,7 @@ public class BoxAPI {
     } catch (BoxRestException e) {
       throw new BoxException("Error getting root folder: " + e.getMessage(), e);
     } catch (BoxServerException e) {
-      throw new BoxException("Error reading root folder: " + e.getMessage(), e);
+      throw new BoxException("Error reading root folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       throw new BoxException("Authentication error for root folder: " + e.getMessage(), e);
     }
@@ -847,7 +848,7 @@ public class BoxAPI {
     } catch (BoxRestException e) {
       throw new BoxException("Error requesting changes long poll URL: " + e.getMessage(), e);
     } catch (BoxServerException e) {
-      throw new BoxException("Error reading changes long poll URL: " + e.getMessage(), e);
+      throw new BoxException("Error reading changes long poll URL: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error for changes long poll URL: " + e.getMessage(), e);
@@ -899,7 +900,7 @@ public class BoxAPI {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
       }
-      throw new BoxException("Error uploading file: " + e.getMessage(), e);
+      throw new BoxException("Error uploading file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when uploading file: " + e.getMessage(), e);
@@ -930,7 +931,7 @@ public class BoxAPI {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
       }
-      throw new BoxException("Error creating folder: " + e.getMessage(), e);
+      throw new BoxException("Error creating folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when creating folder: " + e.getMessage(), e);
@@ -958,7 +959,7 @@ public class BoxAPI {
         // conflict - the same name file exists
         throw new ConflictException("File with the same name as creating already exists " + name, e);
       }
-      throw new BoxException("Error creating folder: " + e.getMessage(), e);
+      throw new BoxException("Error creating folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when creating folder: " + e.getMessage(), e);
@@ -989,7 +990,7 @@ public class BoxAPI {
       } else if (status == 403) {
         throw new NotFoundException("The user doesn't have access to the file " + id, e);
       }
-      throw new BoxException("Error deleting file: " + e.getMessage(), e);
+      throw new BoxException("Error deleting file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when deleting file: " + e.getMessage(), e);
@@ -1021,7 +1022,7 @@ public class BoxAPI {
       } else if (status == 403) {
         throw new NotFoundException("The user doesn't have access to the folder " + id, e);
       }
-      throw new BoxException("Error deleting folder: " + e.getMessage(), e);
+      throw new BoxException("Error deleting folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when deleting folder: " + e.getMessage(), e);
@@ -1064,7 +1065,7 @@ public class BoxAPI {
           // meaning: not trashed at all or deleted instead of trashed
           throw new FileTrashRemovedException("Trashed file deleted permanently " + id);
         }
-        throw new BoxException("Error reading trashed file: " + e.getMessage(), e);
+        throw new BoxException("Error reading trashed file: " + getErrorMessage(e), e);
       }
     } catch (BoxRestException e) {
       throw new BoxException("Error trashing file: " + e.getMessage(), e);
@@ -1076,7 +1077,7 @@ public class BoxAPI {
       } else if (status == 403) {
         throw new NotFoundException("The user doesn't have access to the file " + id, e);
       }
-      throw new BoxException("Error trashing file: " + e.getMessage(), e);
+      throw new BoxException("Error trashing file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when trashing file: " + e.getMessage(), e);
@@ -1119,7 +1120,7 @@ public class BoxAPI {
           // meaning: not trashed at all or deleted instead of trashed
           throw new FileTrashRemovedException("Trashed folder deleted permanently " + id);
         }
-        throw new BoxException("Error reading trashed foler: " + e.getMessage(), e);
+        throw new BoxException("Error reading trashed foler: " + getErrorMessage(e), e);
       }
     } catch (BoxRestException e) {
       throw new BoxException("Error trashing foler: " + e.getMessage(), e);
@@ -1131,7 +1132,7 @@ public class BoxAPI {
       } else if (status == 403) {
         throw new NotFoundException("The user doesn't have access to the folder " + id, e);
       }
-      throw new BoxException("Error trashing foler: " + e.getMessage(), e);
+      throw new BoxException("Error trashing foler: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when trashing foler: " + e.getMessage(), e);
@@ -1162,7 +1163,7 @@ public class BoxAPI {
         // conflict
         throw new ConflictException("File with the same name as untrashed already exists " + id, e);
       }
-      throw new BoxException("Error untrashing file: " + e.getMessage(), e);
+      throw new BoxException("Error untrashing file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when untrashing file: " + e.getMessage(), e);
@@ -1193,7 +1194,7 @@ public class BoxAPI {
         // conflict
         throw new ConflictException("Folder with the same name as untrashed already exists " + id, e);
       }
-      throw new BoxException("Error untrashing folder: " + e.getMessage(), e);
+      throw new BoxException("Error untrashing folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when untrashing folder: " + e.getMessage(), e);
@@ -1261,7 +1262,7 @@ public class BoxAPI {
             throw new ConflictException("File with the same name as updated already exists " + id);
           }
         } else {
-          throw new BoxException("Error updating file: " + e.getMessage(), e);
+          throw new BoxException("Error updating file: " + getErrorMessage(e), e);
         }
       } catch (UnsupportedEncodingException e) {
         throw new BoxException("Error updating file: " + e.getMessage(), e);
@@ -1293,7 +1294,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       }
-      throw new BoxException("Error uploading new version of file: " + e.getMessage(), e);
+      throw new BoxException("Error uploading new version of file: " + getErrorMessage(e), e);
     } catch (UnsupportedEncodingException e) {
       throw new BoxException("Error uploading new version of file: " + e.getMessage(), e);
     } catch (AuthFatalFailureException e) {
@@ -1357,7 +1358,7 @@ public class BoxAPI {
             throw new ConflictException("Folder with the same name as updated already exists " + id);
           }
         } else {
-          throw new BoxException("Error updating folder: " + e.getMessage(), e);
+          throw new BoxException("Error updating folder: " + getErrorMessage(e), e);
         }
       } catch (UnsupportedEncodingException e) {
         throw new BoxException("Error updating folder: " + e.getMessage(), e);
@@ -1406,7 +1407,7 @@ public class BoxAPI {
         }
         throw new ConflictException("File with the same name as copying already exists " + id);
       }
-      throw new BoxException("Error copying file: " + e.getMessage(), e);
+      throw new BoxException("Error copying file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when copying file: " + e.getMessage(), e);
@@ -1448,7 +1449,7 @@ public class BoxAPI {
         }
         throw new ConflictException("Folder with the same name as copying already exists " + id);
       }
-      throw new BoxException("Error copying folder: " + e.getMessage(), e);
+      throw new BoxException("Error copying folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when copying folder: " + e.getMessage(), e);
@@ -1466,7 +1467,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("File not found " + id, e);
       }
-      throw new BoxException("Error reading file: " + e.getMessage(), e);
+      throw new BoxException("Error reading file: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when reading file: " + e.getMessage(), e);
@@ -1484,7 +1485,7 @@ public class BoxAPI {
         // not_found or precondition_failed - then item not found
         throw new NotFoundException("Folder not found " + id, e);
       }
-      throw new BoxException("Error reading folder: " + e.getMessage(), e);
+      throw new BoxException("Error reading folder: " + getErrorMessage(e), e);
     } catch (AuthFatalFailureException e) {
       checkTokenState();
       throw new BoxException("Authentication error when reading folder: " + e.getMessage(), e);
@@ -1537,7 +1538,23 @@ public class BoxAPI {
     }
     return e.getStatusCode();
   }
-
+  
+  private String getErrorMessage(BoxServerException e) {
+    BoxServerError se = e.getError();
+    if (se != null) {
+      Object context = se.getExtraData("context_info");
+      if (context != null && context instanceof Map) {
+        Map<?, ?> cmap = (Map<?, ?>) context;
+        Object errors = cmap.get("errors");
+        if (errors != null) {
+          String message = ((List<?>) errors).get(0).toString();
+          return message;
+        }
+      }
+    }
+    return se.getMessage();
+  }
+  
   /**
    * Check if need new access token from user (refresh token already expired).
    * 

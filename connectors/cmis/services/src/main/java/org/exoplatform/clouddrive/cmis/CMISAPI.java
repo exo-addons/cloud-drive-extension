@@ -118,6 +118,11 @@ public class CMISAPI {
   public static final String TOKEN_DATATIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   public static final String EMPTY_TOKEN           = "".intern();
+  
+  /**
+   * Open CMIS connection timeout.
+   */
+  public static final int    CONNECTION_TIMEOUT      = 1024 * 180; // 3min should fit most of usecases
 
   /**
    * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
@@ -685,6 +690,9 @@ public class CMISAPI {
     parameters.setCompression(true);
     parameters.setClientCompression(false);
     parameters.setCookies(true);
+    
+    // Connection timeout to do not let it hang forever and dead-lock other commands (actual for Alfresco Demo). 
+    parameters.setConnectionTimeout(CONNECTION_TIMEOUT);
 
     this.parameters = parameters;
   }
