@@ -10,7 +10,6 @@ import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.container.PortalContainer;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -212,8 +211,8 @@ public class BoxConnector extends CloudDriveConnector {
     String code = params.get(OAUTH2_CODE);
     if (code != null && code.length() > 0) {
       BoxAPI driveAPI = new API().auth(code).build();
-      com.box.boxjavalibv2.dao.BoxUser buser = driveAPI.getCurrentUser();
-      BoxUser user = new BoxUser(buser.getId(), buser.getName(), buser.getLogin(), provider, driveAPI);
+      com.box.sdk.BoxUser.Info buser = driveAPI.getCurrentUser();
+      BoxUser user = new BoxUser(buser.getID(), buser.getName(), buser.getLogin(), provider, driveAPI);
       return user;
     } else {
       throw new CloudDriveException("Access code should not be null or empty");

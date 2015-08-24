@@ -54,7 +54,7 @@
     <com.google.api.services.oauth2.version>v2-rev92-1.20.0</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
-    <net.box.boxjavalibv2.version>3.2.1</net.box.boxjavalibv2.version>
+    <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
     
     <!-- Dropbox SDK -->
     <com.dropbox.core.version>1.7.7</com.dropbox.core.version>
@@ -185,9 +185,9 @@
         <version>${com.google.api.services.drive.version}</version>
       </dependency>
       <dependency>
-        <groupId>net.box</groupId>
-        <artifactId>boxjavalibv2</artifactId>
-        <version>${net.box.boxjavalibv2.version}</version>
+        <groupId>com.box</groupId>
+        <artifactId>box-java-sdk</artifactId>
+        <version>${com.box.boxjavasdk.version}</version>
       </dependency>
       <dependency>
         <groupId>com.dropbox.core</groupId>

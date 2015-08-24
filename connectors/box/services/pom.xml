@@ -106,21 +106,10 @@
 
     <!-- Box API -->
     <dependency>
-      <groupId>net.box</groupId>
-      <artifactId>boxjavalibv2</artifactId>
+      <groupId>com.box</groupId>
+      <artifactId>box-java-sdk</artifactId>
       <scope>compile</scope>
       <type>jar</type>
-      <exclusions>
-        <!-- exclude Apache HTTP as Box uses higher version (4.2.5) than the Platform 4.0 (4.1.2)-->
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpclient</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     
     <!-- Others third party -->

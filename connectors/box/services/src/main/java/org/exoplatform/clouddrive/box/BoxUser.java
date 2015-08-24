@@ -54,7 +54,7 @@ public class BoxUser extends CloudUser {
   BoxAPI api() {
     return api;
   }
-  
+
   /**
    * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
    * 
@@ -63,7 +63,7 @@ public class BoxUser extends CloudUser {
   public String getEnterpriseName() {
     return api.getEnterpriseName();
   }
-  
+
   /**
    * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
    * 
