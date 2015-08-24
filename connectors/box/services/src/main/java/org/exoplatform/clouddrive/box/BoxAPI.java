@@ -98,6 +98,11 @@ public class BoxAPI {
    * Box item_status for trashed items.
    */
   public static final String             BOX_ITEM_STATE_TRASHED      = "trashed";
+  
+  /**
+   * Box item_status for deleted items.
+   */
+  public static final String             BOX_ITEM_STATE_DELETED      = "deleted";
 
   /**
    * URL of Box app.
@@ -173,11 +178,15 @@ public class BoxAPI {
   public static final String[] ITEM_FIELDS = { "type", "id", "sequence_id", "etag", "name", "description", "size",
       "path_collection", "created_at", "modified_at", "created_by", "modified_by", "owned_by", "shared_link", "parent",
       "item_status", "item_collection" };
-  
+
   public static final String[] USER_FIELDS = { "type", "id", "name", "login", "created_at", "modified_at", "role",
       "language", "timezone", "status", "avatar_url", "enterprise" };
 
   class StoredToken extends UserToken implements BoxAPIConnectionListener {
+
+    void store() throws CloudDriveException {
+      this.store(api.getAccessToken(), api.getRefreshToken(), api.getExpires());
+    }
 
     /**
      * {@inheritDoc}
@@ -185,7 +194,7 @@ public class BoxAPI {
     @Override
     public void onRefresh(BoxAPIConnection api) {
       try {
-        this.store(api.getAccessToken(), api.getRefreshToken(), api.getExpires());
+        store();
       } catch (CloudDriveException e) {
         LOG.error("Error saving access token", e);
       }
@@ -439,6 +448,8 @@ public class BoxAPI {
       this.api = new BoxAPIConnection(clientId, clientSecret, authCode);
 
       this.token = new StoredToken();
+      // save just authorized access token in local store
+      this.token.store(); 
       this.api.addListener(token);
     } catch (BoxAPIException e) {
       throw new BoxException("Error submiting authentication code: " + e.getMessage(), e);
@@ -468,15 +479,12 @@ public class BoxAPI {
       this.api.setExpires(expirationTime);
 
       this.token = new StoredToken();
+      // for a case if access token was just refreshed by the Box SDK - save it in local store
+      this.token.store();  
       this.api.addListener(token);
     } catch (BoxAPIException e) {
       throw new BoxException("Error creating client with authentication tokens: " + e.getMessage(), e);
     }
-
-    // this.token = new StoredToken();
-    // this.token.load(accessToken, refreshToken, expirationTime);
-    // this.client.addOAuthRefreshListener(token);
-    // this.client.authenticateFromSecureStorage(token);
 
     // init user (enterprise etc.)
     initUser();
@@ -1357,7 +1365,7 @@ public class BoxAPI {
 
   private void initUser() throws BoxException, RefreshAccessException, NotFoundException {
     BoxUser.Info user = getCurrentUser();
-    
+
     String avatarUrl = user.getAvatarURL();
 
     Matcher m = BOX_URL_CUSTOM_PATTERN.matcher(avatarUrl);

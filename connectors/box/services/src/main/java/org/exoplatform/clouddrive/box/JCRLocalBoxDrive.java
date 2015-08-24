@@ -946,10 +946,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
               parentId = itemParent.getID();
             } else {
               // this user cannot access the parent of this item, as we already skipped trashed above,
-              // it is something what we don't expect here, postpone and continue the cycle: finally it will
-              // run full sync if no parent will be found.
+              // it is something what we don't expect here, postpone and break the cycle: need run full sync.
+              // XXX Aug 24 2015, after upgrade to SDK 1.1.0 it's possible ITEM_UNDELETE_VIA_TRASH event will
+              // appear with item status "deleted" (result of folder removed locally then restored in Box,
+              // prior this it was a file removal in the folder and it appears mixed with the other files in
+              // it during the restore)
               postpone(event);
-              continue;
+              break;
             }
           }
 
