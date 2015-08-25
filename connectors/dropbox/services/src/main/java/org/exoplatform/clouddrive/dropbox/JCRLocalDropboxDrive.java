@@ -549,7 +549,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
           initFolder(destFolderNode, id, name, type, link, createdBy, modifiedBy, created, created);
           initDropboxFolder(destFolderNode, folder.mightHaveThumbnail, folder.iconName, null);
-
+          
           return new JCRLocalCloudFile(destFolderNode.getPath(),
                                        id,
                                        name,
@@ -968,10 +968,29 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             // remember the file to do not move it again in next few seconds (move op in ECMS can do several
             // session saves)
             moved.put(localIdPath, new MovedFile(idPath, nodePath));
+            if (f.isFolder()) {
+              // need update local sub-tree for a right parent in idPaths
+              updateSubtreeId(node, idPath);
+            }
           }
           return f;
         } else {
           return null;
+        }
+      }
+    }
+
+    protected void updateSubtreeId(Node folderNode, String folderIdPath) throws RepositoryException {
+      String parentIdPath = idPath(folderIdPath);
+      for (NodeIterator niter = folderNode.getNodes(); niter.hasNext();) {
+        Node node = niter.nextNode();
+        if (isFile(node)) {
+          String title = getTitle(node);
+          String idPath = api.filePath(parentIdPath, title);
+          setId(node, idPath);
+          if (isFolder(node)) {
+            updateSubtreeId(node, idPath);
+          }
         }
       }
     }
@@ -996,6 +1015,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       // FYI copy conflicts will be solved by the caller (in core)
       DbxEntry f = api.copy(sourceIdPath, destIdPath);
+      
+      if (f != null && f.isFolder()) {
+        // need update local sub-tree for a right parent in idPaths
+        updateSubtreeId(destNode, destIdPath);
+      }
+      
       return f;
     }
 
@@ -1037,7 +1062,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // sync algorithm based on deltas from Dropbox API
       long changeId = System.currentTimeMillis(); // time of the begin
 
-      // clean map of moved from expired records
+      // clean map of moved from expired records (do it here as sync runs on delta changes
+      // from remote side - thus will clean periodically)
       cleanExpiredMoved();
 
       this.pathNodes.put(DropboxAPI.ROOT_PATH, rootNode);
@@ -1052,6 +1078,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       DeltaChanges deltas = api.getDeltas(cursor);
 
       iterators.add(deltas);
+
+      Set<String> movedIds = new LinkedHashSet<String>();
 
       // loop over deltas and respect this thread interrupted status to cancel the command correctly
       while (deltas.hasNext() && !Thread.currentThread().isInterrupted()) {
@@ -1099,13 +1127,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             // found local parent: create/update the file in it
             apply(updateItem(api, file, item, parent, null));
           }
-        } else {
-          // need remove local
+        } else { // need remove local
           removeFile(file);
         }
       }
 
-      if (!Thread.currentThread().isInterrupted()) {
+      if (!Thread.currentThread().isInterrupted())
+
+      {
         setChangeId(changeId);
         // save cursor explicitly to let use it in next sync even if nothing changed in this one
         Property cursorProp = rootNode.setProperty("dropbox:cursor", deltas.cursor);
@@ -1167,6 +1196,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // read from local storage
         node = readNode(file);
       }
+      // TODO cleanup
+      // if (node == null) {
+      // XXX in case of folder rename in eXo we'll receive a set of changes from Dropbox:
+      // there are will be removal of all subfiles with the original folder at the end. All subfiles have
+      // idPath locally with old folder (parent) name in the path, thus hierarchical reading above will not
+      // find
+      // them (due to old idPath) - we search by the idPath using JCR query (this will find only saved
+      // nodes)
+      // node = findNode(file.idPath);
+      // }
       if (node != null) {
         String nodePath = node.getPath();
         node.remove();
