@@ -268,7 +268,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       super();
       this.idPath = idPath;
       this.nodePath = nodePath;
-      this.expirationTime = System.currentTimeMillis() + 5000; // 5sec to outdate
+      // XXX 15sec to outdate - it is actually a nasty thing that can make troubles
+      this.expirationTime = System.currentTimeMillis() + 15000;
     }
 
     protected boolean isNotOutdated() {
@@ -549,7 +550,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
           initFolder(destFolderNode, id, name, type, link, createdBy, modifiedBy, created, created);
           initDropboxFolder(destFolderNode, folder.mightHaveThumbnail, folder.iconName, null);
-          
+
           return new JCRLocalCloudFile(destFolderNode.getPath(),
                                        id,
                                        name,
@@ -1015,12 +1016,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       // FYI copy conflicts will be solved by the caller (in core)
       DbxEntry f = api.copy(sourceIdPath, destIdPath);
-      
+
       if (f != null && f.isFolder()) {
         // need update local sub-tree for a right parent in idPaths
         updateSubtreeId(destNode, destIdPath);
       }
-      
+
       return f;
     }
 
