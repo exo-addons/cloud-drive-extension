@@ -6,6 +6,7 @@ The add-on it is a portal extension to Platform. And each connector it is also a
 
 Currently existing connectors embedded in Cloud Drive add-on package:
 * Google Drive
+* Dropbox
 * Box
 * Any CMIS compliant repository
 
@@ -51,6 +52,19 @@ Google Drive connector sample configuration:
 
     clouddrive.google.client.id=00000000000@developer.gserviceaccount.com
     clouddrive.google.client.secret=XXXXXXX
+
+Dropbox
+-------
+
+Provider ID: **dropbox**.
+This connector supports ~~only work in HTTPS~~ scheme. You cannot use Dropbox in production if don't run your Platform via secure HTTP connection. Thus `clouddrive.service.schema=https` is mandatory for Dropbox connector.  
+
+Dropbox connector sample configuration:
+
+    clouddrive.service.schema=https
+    clouddrive.service.host=mysecureplatform.com
+    clouddrive.dropbox.client.id=YYYYYY
+    clouddrive.dropbox.client.secret=ZZZZZZZ
 
 Box
 ---

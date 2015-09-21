@@ -7,6 +7,7 @@ Thanks to this extension it's possible connect cloud drives as folders in eXo Do
 
 Currently supported cloud drives:
 * Google Drive
+* Dropbox
 * Box
 * Any CMIS compliant repository
 
@@ -38,9 +39,9 @@ Go to packaging bundle file created by last build in `cloud-drive-extension/pack
 Deploy to eXo Platform
 ----------------------
 
-Install [eXo Platform 4.1 Tomcat bundle](http://learn.exoplatform.com/Download-eXo-Platform-Express-Edition-En.html) to some directory, e.g. `/opt/platform-tomcat`.
+Install [eXo Platform Tomcat bundle](http://learn.exoplatform.com/Download-eXo-Platform-Express-Edition-En.html) to some directory, e.g. `/opt/platform-tomcat`.
 
-Users of Platform 4.1, and those who installed [Addons Manager](https://github.com/exoplatform/addons-manager) in Platform 4.0, can simple install the add-on from central catalog by command:
+Users of Platform 4.1 and higher, and those who installed [Addons Manager](https://github.com/exoplatform/addons-manager) in Platform 4.0, can simple install the add-on from central catalog by command:
 
 ```
 ./addon install exo-cloud-drive
@@ -67,28 +68,48 @@ Enable Google Drive API
 
 - Go to the Google API Console : https://code.google.com/apis/console/
 - Create an new API project
-- In the Services page, enable the Drive API
+- In the APIs page, enable the Drive API
 
 ![Google Drive API](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-api.png)
 
-- In the API Access page, click on the "Create an OAuth 2.0 client ID..." button
-- Fill the form with a product name of your choice (e.g. "My Platform"), an optionnally a product logo and a home page URL
-- Click Next
-- Select the "Web application account" option
-- Click more options on "Your site or hostname", later assumed http://myplatform.com as host name of the server
-- Enter "Authorized Redirect URIs": http://myplatform.com/portal/rest/clouddrive/connect/gdrive. Note that path in the URI should exactly "/portal/rest/clouddrive/connect/gdrive".
-- "Authorized JavaScript Origins": http://myplatform.com
-- Click on "Create client ID"
+- You need OAuth consent screen for you app, if not yet already created - then fill this tab in API Credentials page: product name, homepage (below assumed as http://myplatform.com), logo, terms.
+- In the API Credentials tab, add credentials of type "OAuth 2.0 client ID"
+- Choose "Web application" type for your client ID 
+- Enter a name of the client, e.g. "My Platform Web Client"
+- Enter "Authorized Redirect URIs", e.g. http://myplatform.com/portal/rest/clouddrive/connect/gdrive. Note that path in the URI should be exactly  "/portal/rest/clouddrive/connect/gdrive".
+- Provide "Authorized JavaScript Origins": http://myplatform.com
+- Click "Create" button
 - Remember `Client ID` and `Client secret` for configuration below.
 
 ![Google Drive API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-access.png)
 
+Enable Dropbox API
+------------------
+
+- Go to Dropbox App Console : https://www.dropbox.com/developers/apps
+- Create a new Dropbox Platform app of type "Dropbox API app"
+- This app should have an access to all files already on Dropbox
+- The app needs access to all file types - a user's full Dropbox
+- Provide a name of your app and submit to create the app
+- Your app will be created with Development status and for development you'll need link user sits to the app (max 100 users). Later you can apply for production.
+- Add redirect URIs for you app : http://myplatform.com/portal/rest/clouddrive/connect/dropbox. Important that the path in the URI should ends exactly with "/portal/rest/clouddrive/connect/dropbox". URI should be secure (HTTPS). 
+- For development purpose you also can add redirect URI to a server on localhost, it can be non-HTTPS.
+
+![Dropbox App Settings](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/dropbox-app-settings.png)
+
+- Leave all other fileds as is: Cloud Drive doesn't require implicit grant, thus disallow it for the app; it doesn't need a pre-generated access token and doesn't use Webhooks.
+
+
 Enable Box API
 --------------
 
-- Go to Box Developers site, to [My Box Apps](http://box.com/developers/services).
-- Create a new app with API Key Type: Content API. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: don't need point `redirect_uri` for the app, it will be submited by the add-on in the authentication requests.
+- Go to Box Developers site, to [My Applications](https://app.box.com/developers/services).
+- Create a new app of type Box Content. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: when you create a new app it will not ask for `redirect_uri`, but later if you will try to save the app it will be required - the URI path should ends exactly with "/portal/rest/clouddrive/connect/box", e.g. http://myplatform.com/portal/rest/clouddrive/connect/box. URI should be secure (HTTPS) but for development purpose servers on localhost also possible. 
 - Use your `client_id` and `client_secret` values for configuration below.
+
+![Box API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/box-access.png)
+
+- You also can use Box SSO, see instructions provided below.
 
 CMIS repositories
 -----------------
@@ -98,7 +119,7 @@ To connect CMIS repository you need following:
 - username and password to authenticate to the server
 - if the the server has several repositories you'll need to select an one: each repository can be connected as a separate drive
 
-Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection in production. 
+Important notice that username and password will be sent in plain text, thus enasure you are connecting via secure connection in production (e.g. via HTTPS). 
 
 More information find on [CMIS connector page](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
 
