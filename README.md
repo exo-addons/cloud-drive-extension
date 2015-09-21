@@ -83,7 +83,7 @@ Enable Google Drive API
 
 ![Google Drive API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-access.png)
 
-- Sample configuration of Google Drive connector by the ![link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#google-drive)
+- Sample configuration of Google Drive connector by the [link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#google-drive)
 
 Enable Dropbox API
 ------------------
