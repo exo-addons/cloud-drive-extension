@@ -92,7 +92,7 @@ Enable Dropbox API
 - The app needs access to all file types - a user's full Dropbox
 - Provide a name of your app and submit to create the app
 - Your app will be created with Development status and for development you'll need link user sits to the app (max 100 users). Later you can apply for production.
-- Add redirect URIs for you app : https://myplatform.com/portal/rest/clouddrive/connect/dropbox. Important that the path in the URI should ends exactly with "/portal/rest/clouddrive/connect/dropbox". URI should be secure (HTTPS). 
+- Add redirect URIs for you app : https://myplatform.com/portal/rest/clouddrive/connect/dropbox. Important that the path in the URI should end exactly with "/portal/rest/clouddrive/connect/dropbox". URI should be secure (HTTPS). 
 - For development purpose you also can add redirect URI to a server on localhost, it can be non-HTTPS.
 
 ![Dropbox App Settings](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/dropbox-app-settings.png)
@@ -104,7 +104,7 @@ Enable Box API
 --------------
 
 - Go to Box Developers site, to [My Applications](https://app.box.com/developers/services).
-- Create a new app of type Box Content. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: when you create a new app it will not ask for `redirect_uri`, but later if you will try to save the app it will be required - the URI path should ends exactly with "/portal/rest/clouddrive/connect/box", e.g. https://myplatform.com/portal/rest/clouddrive/connect/box. URI should be secure (HTTPS) but for development purpose servers on localhost also possible. 
+- Create a new app of type Box Content. This action will warn you that it will upgrade your account to a Development type with an access to Enterprise features. Take this in account, you may consider for a dedicated Box account to manage your keys to Box API. Details about OAuth2 access described in [this guide](http://developers.box.com/oauth/). Note: when you create a new app it will not ask for `redirect_uri`, but later if you will try to save the app it will be required - the URI path should end exactly with "/portal/rest/clouddrive/connect/box", e.g. https://myplatform.com/portal/rest/clouddrive/connect/box. URI should be secure (HTTPS) but for development purpose servers on localhost also possible. 
 - Use your `client_id` and `client_secret` values for configuration below.
 
 ![Box API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/box-access.png)
