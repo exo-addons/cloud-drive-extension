@@ -46,7 +46,7 @@ Google Drive
 ------------
 
 Provider ID: **gdrive**.
-This connector ~~supports both in HTTP and HTTPS~~ schemes. 
+This connector _supports both in HTTP and HTTPS_ schemes. 
 
 Google Drive connector sample configuration:
 
@@ -57,7 +57,7 @@ Dropbox
 -------
 
 Provider ID: **dropbox**.
-This connector supports ~~only work in HTTPS~~ scheme. You cannot use Dropbox in production if don't run your Platform via secure HTTP connection. Thus `clouddrive.service.schema=https` is mandatory for Dropbox connector.  
+This connector supports _only work in HTTPS_ scheme. You cannot use Dropbox in production if don't run your Platform via secure HTTP connection. Thus `clouddrive.service.schema=https` is mandatory for Dropbox connector.  
 
 Dropbox connector sample configuration:
 
@@ -70,7 +70,7 @@ Box
 ---
 
 Provider ID: **box**.
-This connector supports ~~only work in HTTPS~~ scheme. You cannot use Box in production if don't run your Platform via secure HTTP connection. Thus `clouddrive.service.schema=https` is mandatory for Box connector.  
+This connector supports _only work in HTTPS_ scheme. You cannot use Box in production if don't run your Platform via secure HTTP connection. Thus `clouddrive.service.schema=https` is mandatory for Box connector.  
 
 Box connector sample configuration:
 
