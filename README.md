@@ -83,6 +83,8 @@ Enable Google Drive API
 
 ![Google Drive API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/google-drive-access.png)
 
+- Sample configuration of Google Drive connector by the ![link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#google-drive)
+
 Enable Dropbox API
 ------------------
 
@@ -97,8 +99,8 @@ Enable Dropbox API
 
 ![Dropbox App Settings](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/dropbox-app-settings.png)
 
-- Leave all other fileds as is: Cloud Drive doesn't require implicit grant, thus disallow it for the app; it doesn't need a pre-generated access token and doesn't use Webhooks.
-
+- Leave all other fileds as is: Cloud Drive doesn't require implicit grant, thus disallow it for the app; it doesn't need a pre-generated access token and doesn't use Webhooks
+- Sample configuration of Google Drive connector by the ![link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#dropbox)
 
 Enable Box API
 --------------
@@ -109,6 +111,7 @@ Enable Box API
 
 ![Box API Access](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/box-access.png)
 
+- Sample configuration of Google Drive connector by the ![link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#box)
 - You also can use Box SSO, see instructions provided below.
 
 CMIS repositories
