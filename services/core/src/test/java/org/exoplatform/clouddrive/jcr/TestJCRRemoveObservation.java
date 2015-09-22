@@ -121,7 +121,6 @@ public class TestJCRRemoveObservation extends TestCase {
    * @throws RepositoryException
    */
   public void testListenerSelfRemoval() throws Exception {
-
     // dummy listener class
     class DummyListener implements EventListener {
       @Override
