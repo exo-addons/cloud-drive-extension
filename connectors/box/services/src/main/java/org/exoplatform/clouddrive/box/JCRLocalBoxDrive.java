@@ -103,15 +103,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       // this will provide us a proper streamPosition to start sync from later
       EventsIterator eventsInit = api.getEvents(BoxAPI.STREAM_POSITION_NOW);
 
-      BoxFolder.Info boxRoot = fetchChilds(BoxAPI.BOX_ROOT_ID, rootNode);
-      initBoxItem(rootNode, boxRoot); // init parent
+      BoxFolder.Info boxRoot = fetchChilds(BoxAPI.BOX_ROOT_ID, driveNode);
+      initBoxItem(driveNode, boxRoot); // init parent
 
       // actual drive URL (its root folder's id), see initDrive() also
-      rootNode.setProperty("ecd:url", api.getLink(boxRoot));
+      driveNode.setProperty("ecd:url", api.getLink(boxRoot));
 
       // sync stream
       setChangeId(eventsInit.getNextStreamPosition());
-      rootNode.setProperty("box:streamHistory", ""); // empty history
+      driveNode.setProperty("box:streamHistory", ""); // empty history
     }
 
     protected BoxFolder.Info fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
@@ -121,7 +121,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         BoxItem.Info item = items.next();
         JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
         if (localItem.isChanged()) {
-          changed.add(localItem);
+          addChanged(localItem);
           if (localItem.isFolder()) {
             // go recursive to the folder
             fetchChilds(localItem.getId(), localItem.getNode());
@@ -169,12 +169,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       EventsIterator eventsInit = api.getEvents(BoxAPI.STREAM_POSITION_NOW);
 
       // sync with cloud
-      BoxFolder.Info boxRoot = syncChilds(BoxAPI.BOX_ROOT_ID, rootNode);
-      initBoxItem(rootNode, boxRoot); // init parent
+      BoxFolder.Info boxRoot = syncChilds(BoxAPI.BOX_ROOT_ID, driveNode);
+      initBoxItem(driveNode, boxRoot); // init parent
 
       // sync stream
       setChangeId(eventsInit.getNextStreamPosition());
-      rootNode.setProperty("box:streamHistory", "");
+      driveNode.setProperty("box:streamHistory", "");
 
       // remove local nodes of files not existing remotely, except of root
       nodes.remove(BoxAPI.BOX_ROOT_ID);
@@ -184,9 +184,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         niter.remove();
         for (Node n : nls) {
           String npath = n.getPath();
-          if (notInRange(npath, removed)) {
-            removed.add(npath);
+          if (notInRange(npath, getRemoved())) {
             n.remove();
+            addRemoved(npath);
+            saveChunk();
           }
         }
       }
@@ -201,7 +202,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
         JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
         if (localItem.isChanged()) {
-          changed.add(localItem);
+          addChanged(localItem);
+          saveChunk();
         }
 
         // cleanup of this file located in another place (usecase of rename/move)
@@ -213,9 +215,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
             Node enode = eiter.next();
             String epath = enode.getPath();
-            if (!epath.equals(path) && notInRange(epath, removed)) {
-              removed.add(epath);
+            if (!epath.equals(path) && notInRange(epath, getRemoved())) {
+              addRemoved(epath);
               enode.remove();
+              saveChunk();
               eiter.remove();
             }
           }
@@ -244,9 +247,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       try {
         jcrListener.disable();
         String empty = "".intern();
-        rootNode.setProperty("ecd:localHistory", empty);
-        rootNode.setProperty("ecd:localChanges", empty);
-        rootNode.save();
+        driveNode.setProperty("ecd:localHistory", empty);
+        driveNode.setProperty("ecd:localChanges", empty);
+        driveNode.save();
       } catch (Throwable e) {
         LOG.error("Error cleaning local history in " + title(), e);
       } finally {
@@ -869,6 +872,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      * Counter of events read from Box service. Used for multi-pass looping over the events.
      */
     protected int                                  readCounter    = 0;
+    
+    protected Long savedStreamPosition;
+    
+    protected Long localStreamPosition;
 
     /**
      * Create command for Box synchronization.
@@ -886,7 +893,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     @Override
     protected void syncFiles() throws CloudDriveException, RepositoryException {
-      long localStreamPosition = getChangeId();
+      localStreamPosition = getChangeId();
+      savedStreamPosition = null;
 
       // buffer all items,
       // apply them in proper order (taking in account parent existence),
@@ -897,7 +905,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       iterators.add(events);
 
       // Local history, it contains something applied in previous sync, it can be empty if it was full sync.
-      for (String es : rootNode.getProperty("box:streamHistory").getString().split(";")) {
+      for (String es : driveNode.getProperty("box:streamHistory").getString().split(";")) {
         history.add(es);
       }
 
@@ -959,7 +967,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
           // find parent node
           Node parent;
           if (BoxAPI.BOX_ROOT_ID.equals(parentId)) {
-            parent = rootNode;
+            parent = driveNode;
           } else {
             JCRLocalCloudFile local = applied(parentId);
             if (local != null) {
@@ -974,7 +982,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                 // and fail at the end if will be not applied.
                 // FYI special logic for child removal of already removed parent, JCR removes all together
                 // with the parent - we skip such events.
-                if (!(isRemoved(parentId) && eventType.equals(BoxEvent.Type.ITEM_TRASH))) {
+                if (!(removedIds.contains(parentId) && eventType.equals(BoxEvent.Type.ITEM_TRASH))) {
                   postpone(event);
                 } // else parent node not found and it is already removed: we skip it.
                 continue;
@@ -1139,6 +1147,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             postpone(event);
             break;
           }
+          saveChunk();
         } else {
           LOG.warn("Skipping non Item in Box events: " + source);
         }
@@ -1149,16 +1158,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         LOG.warn("Not all events applied for Box sync. Running full sync.");
 
         // rollback everything from this sync
-        rollback(rootNode);
+        rollback(driveNode);
 
         // we need full sync in this case
         FullSync fullSync = new FullSync();
         fullSync.execLocal();
 
-        changed.clear();
-        changed.addAll(fullSync.getFiles());
-        removed.clear();
-        removed.addAll(fullSync.getRemoved());
+        replaceChanged(fullSync.getFiles());
+        replaceRemoved(fullSync.getRemoved());
       } else {
         // save history
         // TODO consider for saving the history of several hours or even a day
@@ -1169,10 +1176,22 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             newHistoryData.append(';');
           }
         }
-        rootNode.setProperty("box:streamHistory", newHistoryData.toString());
+        driveNode.setProperty("box:streamHistory", newHistoryData.toString());
 
         // update sync position
         setChangeId(events.getNextStreamPosition());
+      }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      long streamPosition = events.getNextStreamPosition();
+      if (streamPosition > localStreamPosition && streamPosition > savedStreamPosition) {
+        // if chunk will be saved then also save the stream position of last applied event in the drive
+        setChangeId(streamPosition);
+        savedStreamPosition = streamPosition;
       }
     }
 
@@ -1286,9 +1305,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     protected void apply(JCRLocalCloudFile local) {
       if (local.isChanged()) {
         applied.put(local.getId(), local);
-        removed.remove(local.getPath());
+        removeRemoved(local.getPath());
         removedIds.remove(local.getId());
-        changed.add(local);
+        addChanged(local);
         appliedCounter++;
       }
     }
@@ -1300,14 +1319,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     protected JCRLocalCloudFile remove(String itemId, String itemPath) {
       appliedCounter++;
       if (itemPath != null) {
-        removed.add(itemPath);
+        addRemoved(itemPath);
       }
       removedIds.add(itemId);
       return applied.remove(itemId);
-    }
-
-    protected boolean isRemoved(String itemId) {
-      return removedIds.contains(itemId);
     }
   }
 
