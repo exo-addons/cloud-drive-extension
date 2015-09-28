@@ -36,6 +36,9 @@ target/
 .buildpath
 .factorypath
 
+# Maven Shade plugin
+dependency-reduced-pom.xml
+
 # OS
 .DS_Store
 
@@ -43,3 +46,4 @@ target/
 *.swp
 .groovy/
 transaction.log
+

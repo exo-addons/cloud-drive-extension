@@ -68,7 +68,7 @@
        <useTransitiveDependencies>true</useTransitiveDependencies>
        <includes>
          <include>org.exoplatform.addons:exo-clouddrive-*:jar</include>
-         <include>com.google.*:*:jar</include>
+         <!-- include>com.google.*:*:jar</include -->
          <include>com.box:*:jar</include>
          <include>com.dropbox.core:*:jar</include>
          <include>org.apache.chemistry.opencmis:*:jar</include>
