@@ -229,6 +229,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         jcrListener.enable();
       }
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // in case of full sync we don't require to save markers 
+    }
   }
 
   /**
@@ -829,17 +837,25 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       return items.parent;
     }
 
-    protected void apply(JCRLocalCloudFile local) {
+    protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
         removeRemoved(local.getPath());
         addChanged(local);
       }
     }
 
-    protected void remove(String itemId, String itemPath) {
+    protected void remove(String itemId, String itemPath) throws RepositoryException, CloudDriveException {
       if (itemPath != null) {
         addRemoved(itemPath);
       }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // TODO save event marker of last applied file that can be used by next sync 
     }
   }
 

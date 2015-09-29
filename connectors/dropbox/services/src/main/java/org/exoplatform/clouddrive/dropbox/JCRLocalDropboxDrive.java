@@ -108,9 +108,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       fetchSubtree(api, DropboxAPI.ROOT_PATH, driveNode, false, iterators, fetched);
       // add fetched files as applied
       for (JCRLocalCloudFile local : fetched) {
-        if (local.isChanged()) {
-          addChanged(local);
-        }
+        addChanged(local);
       }
 
       // sync stream
@@ -251,6 +249,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       } finally {
         jcrListener.enable();
       }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // nothing save for full sync
     }
   }
 
@@ -1152,7 +1158,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
-    protected void apply(JCRLocalCloudFile local) {
+    protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
         removeRemoved(local.getPath());
         addChanged(local);
@@ -1242,10 +1248,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       } else {
         return null;
       }
-      // TODO could get the node faster w/o traversing the sub-tree, but then need copy the logic of
-      // readNode() here
-      // String nodePath = new StringBuilder(rootPath).append(path).toString();
-      // return rootNode.getNode(nodePath);
     }
 
     /**
@@ -1264,6 +1266,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         parent = getFile(file.getParent());
       }
       return parent;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // nothing save for full sync
     }
   }
 
@@ -2125,10 +2135,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           }
 
           JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
-          if (localItem.isChanged()) {
-            if (fetched != null) {
-              fetched.add(localItem);
-            }
+          if (fetched != null && localItem.isChanged()) {
+            fetched.add(localItem);
           }
           if (localItem.isFolder()) {
             // go recursive to the folder

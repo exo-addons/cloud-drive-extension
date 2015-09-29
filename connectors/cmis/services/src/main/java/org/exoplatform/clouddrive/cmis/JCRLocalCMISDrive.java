@@ -142,7 +142,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
           if (localItem.isChanged()) {
             addChanged(localItem);
-            saveChunk();
             if (localItem.isFolder()) {
               // go recursive to the folder
               fetchChilds(localItem.getId(), localItem.getNode());
@@ -171,9 +170,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * Changes from drive to apply.
        */
       protected ChangesIterator changes;
-      
+
       protected ChangeToken getLastChangeToken() {
-        ChangeToken lastToken = changes.getLastChangeToken(); 
+        ChangeToken lastToken = changes.getLastChangeToken();
         return lastToken != null ? lastToken : api.emptyToken();
       }
 
@@ -192,7 +191,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             ChangeEvent change = changes.next();
             ChangeType changeType = change.getChangeType();
             String id = change.getObjectId();
-            
+
             // use change.getProperties() to try get the object type and process document/folder only
             if (api.isSyncableChange(change)) {
               if (!ChangeType.DELETED.equals(changeType)) {
@@ -289,7 +288,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                   updateFile(item, parentIds, isFolder);
                 }
               }
-              saveChunk();
             } // else, skip the change of unsupported object type
             previousItem = item;
             previousEvent = change;
@@ -304,14 +302,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * @param fileId {@link String}
        * @param parentIds set of Ids of parents (folders)
        * @throws RepositoryException
-       * @throws NotFoundException
-       * @throws CloudDriveAccessException
-       * @throws CMISException
+       * @throws CloudDriveException
        */
-      protected void deleteFile(String fileId, Set<String> parentIds) throws RepositoryException,
-                                                                      CMISException,
-                                                                      CloudDriveAccessException,
-                                                                      NotFoundException {
+      protected void deleteFile(String fileId, Set<String> parentIds) throws RepositoryException, CloudDriveException {
         List<Node> existing = nodes.get(fileId);
         if (existing != null) {
           // remove existing file,
@@ -419,7 +412,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
               }
               localNode = localFile.getNode();
             }
-
             synced.add(localNode);
           }
         }
@@ -430,8 +422,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             Node n = niter.next();
             if (!synced.contains(n)) {
               niter.remove();
+              String path = n.getPath();
               n.remove();
-              addRemoved(n.getPath());
+              addRemoved(path);
             }
           }
         }
@@ -541,7 +534,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             }
             n.remove();
             addRemoved(npath);
-            saveChunk();
           }
         }
 
@@ -585,7 +577,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 JCRLocalCloudFile localItem = updateItem(api, obj, parent, null);
                 if (localItem.isChanged()) {
                   addChanged(localItem);
-                  saveChunk(); // save a chunk
                   // maintain drive map with new/updated
                   List<Node> itemList = allLocal.get(localItem.getId());
                   if (itemList == null) {
@@ -659,7 +650,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
     protected CloudDriveException preSyncError = null;
 
-    protected ChangesAlgorithm         changesLog;
+    protected ChangesAlgorithm    changesLog;
 
     protected Sync() {
       super();
@@ -756,7 +747,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     protected void preSaveChunk() throws CloudDriveException, RepositoryException {
       if (changesLog != null) {
         // if chunk will be saved then also save the change token as last applied in the drive
-        setChangeToken(driveNode, changesLog.changes.getLastChangeToken().getString());
+        // this will work for ChangesAlgorithm only
+        ChangeToken lastChangeToken = changesLog.getLastChangeToken(); 
+        if (!lastChangeToken.isEmpty()) {
+          setChangeToken(driveNode, lastChangeToken.getString());
+        }
       }
     }
   }
