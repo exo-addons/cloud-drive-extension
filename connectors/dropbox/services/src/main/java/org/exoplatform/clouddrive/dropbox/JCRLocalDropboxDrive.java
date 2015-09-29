@@ -104,11 +104,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // this will provide us a proper cursor to start sync from later.
       String connectCursor = api.getDeltas(null).getCursor();
 
-      fetchSubtree(api, DropboxAPI.ROOT_PATH, rootNode, false, iterators, changed);
+      Set<JCRLocalCloudFile> fetched = new LinkedHashSet<JCRLocalCloudFile>();
+      fetchSubtree(api, DropboxAPI.ROOT_PATH, driveNode, false, iterators, fetched);
+      // add fetched files as applied
+      for (JCRLocalCloudFile local : fetched) {
+        addChanged(local);
+      }
 
       // sync stream
       setChangeId(changeId);
-      rootNode.setProperty("dropbox:cursor", connectCursor);
+      driveNode.setProperty("dropbox:cursor", connectCursor);
       updateState(connectCursor);
     }
   }
@@ -152,8 +157,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       String syncCursor = api.getDeltas(null).getCursor();
 
       // sync with cloud
-      Object root = syncChilds(syncCursor, rootNode); // TODO use actual ID
-      initCloudItem(rootNode, root); // init parent
+      Object root = syncChilds(syncCursor, driveNode); // TODO use actual ID
+      initCloudItem(driveNode, root); // init parent
 
       // remove local nodes of files not existing remotely, except of root
       nodes.remove("ROOT_ID"); // TODO use actual ID
@@ -163,16 +168,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         niter.remove();
         for (Node n : nls) {
           String npath = n.getPath();
-          if (notInRange(npath, removed)) {
-            removed.add(npath);
+          if (notInRange(npath, getRemoved())) {
             n.remove();
+            addRemoved(npath);
           }
         }
       }
 
       // update sync position
       setChangeId(changeId);
-      rootNode.setProperty("dropbox:cursor", syncCursor);
+      driveNode.setProperty("dropbox:cursor", syncCursor);
       updateState(syncCursor);
     }
 
@@ -196,7 +201,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
         JCRLocalCloudFile localItem = updateItem(api, file, item, parent, null);
         if (localItem.isChanged()) {
-          changed.add(localItem);
+          addChanged(localItem);
 
           // cleanup of this file located in another place (usecase of rename/move)
           // XXX this also assumes that cloud doesn't support linking of files to other folders
@@ -205,9 +210,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               Node enode = eiter.next();
               String path = localItem.getPath();
               String epath = enode.getPath();
-              if (!epath.equals(path) && notInRange(epath, removed)) {
-                removed.add(epath);
+              if (!epath.equals(path) && notInRange(epath, getRemoved())) {
                 enode.remove();
+                addRemoved(epath);
                 eiter.remove();
               }
             }
@@ -236,14 +241,22 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       try {
         jcrListener.disable();
         String empty = "".intern();
-        rootNode.setProperty("ecd:localHistory", empty);
-        rootNode.setProperty("ecd:localChanges", empty);
-        rootNode.save();
+        driveNode.setProperty("ecd:localHistory", empty);
+        driveNode.setProperty("ecd:localChanges", empty);
+        driveNode.save();
       } catch (Throwable e) {
         LOG.error("Error cleaning local history in " + title(), e);
       } finally {
         jcrListener.enable();
       }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // nothing save for full sync
     }
   }
 
@@ -1067,9 +1080,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // from remote side - thus will clean periodically)
       cleanExpiredMoved();
 
-      this.pathNodes.put(DropboxAPI.ROOT_PATH, rootNode);
+      this.pathNodes.put(DropboxAPI.ROOT_PATH, driveNode);
 
-      String cursor = rootNode.getProperty("dropbox:cursor").getString();
+      String cursor = driveNode.getProperty("dropbox:cursor").getString();
 
       // buffer all items,
       // apply them in proper order (taking in account parent existence),
@@ -1079,8 +1092,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       DeltaChanges deltas = api.getDeltas(cursor);
 
       iterators.add(deltas);
-
-      Set<String> movedIds = new LinkedHashSet<String>();
 
       // loop over deltas and respect this thread interrupted status to cancel the command correctly
       while (deltas.hasNext() && !Thread.currentThread().isInterrupted()) {
@@ -1111,11 +1122,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             Node existingAncestor = getExistingAncestor(file.getParent());
             if (existingAncestor != null) {
               String idPath = fileAPI.getId(existingAncestor);
-              Set<CloudFile> fetched = new LinkedHashSet<CloudFile>();
+              Set<JCRLocalCloudFile> fetched = new LinkedHashSet<JCRLocalCloudFile>();
               // FYI existing ancestor itself will not be updated
               JCRLocalDropboxDrive.this.fetchSubtree(api, idPath, existingAncestor, false, iterators, fetched);
-              for (CloudFile localFile : fetched) {
-                apply((JCRLocalCloudFile) localFile);
+              for (JCRLocalCloudFile localFile : fetched) {
+                apply(localFile);
               }
             } else {
               if (LOG.isDebugEnabled()) {
@@ -1138,31 +1149,20 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       {
         setChangeId(changeId);
         // save cursor explicitly to let use it in next sync even if nothing changed in this one
-        Property cursorProp = rootNode.setProperty("dropbox:cursor", deltas.cursor);
+        Property cursorProp = driveNode.setProperty("dropbox:cursor", deltas.cursor);
         cursorProp.save();
         updateState(deltas.cursor);
         if (LOG.isDebugEnabled()) {
-          LOG.debug("<< syncFiles: " + rootNode.getPath() + "\n\r" + cursor + " --> " + deltas.cursor);
+          LOG.debug("<< syncFiles: " + driveNode.getPath() + "\n\r" + cursor + " --> " + deltas.cursor);
         }
       }
     }
 
-    protected void apply(JCRLocalCloudFile local) {
+    protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
-        removed.remove(local.getPath());
-        changed.add(local);
+        removeRemoved(local.getPath());
+        addChanged(local);
       }
-    }
-
-    @Deprecated // TODO not used
-    protected void readLocalNodes() throws RepositoryException {
-      // we need natural and lower-case id (paths actually)
-      Map<String, List<Node>> lcNodes = new HashMap<String, List<Node>>();
-      for (Map.Entry<String, List<Node>> neiter : nodes.entrySet()) {
-        String id = neiter.getKey();
-        lcNodes.put(id.toUpperCase().toLowerCase(), neiter.getValue());
-      }
-      nodes.putAll(lcNodes);
     }
 
     /**
@@ -1197,20 +1197,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // read from local storage
         node = readNode(file);
       }
-      // TODO cleanup
-      // if (node == null) {
-      // XXX in case of folder rename in eXo we'll receive a set of changes from Dropbox:
-      // there are will be removal of all subfiles with the original folder at the end. All subfiles have
-      // idPath locally with old folder (parent) name in the path, thus hierarchical reading above will not
-      // find
-      // them (due to old idPath) - we search by the idPath using JCR query (this will find only saved
-      // nodes)
-      // node = findNode(file.idPath);
-      // }
       if (node != null) {
         String nodePath = node.getPath();
         node.remove();
-        removed.add(nodePath);
+        addRemoved(nodePath);
         return true;
       }
       return false;
@@ -1233,7 +1223,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         DbxFileInfo parent = file.getParent();
         if (parent.isRoot()) {
           // it's root node as parent - we already have it
-          node = rootNode;
+          node = driveNode;
         } else {
           node = getFile(parent);
           if (node == null) {
@@ -1243,7 +1233,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         return node;
       } else {
         // root node as a parent
-        return rootNode;
+        return driveNode;
       }
     }
 
@@ -1258,10 +1248,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       } else {
         return null;
       }
-      // TODO could get the node faster w/o traversing the sub-tree, but then need copy the logic of
-      // readNode() here
-      // String nodePath = new StringBuilder(rootPath).append(path).toString();
-      // return rootNode.getNode(nodePath);
     }
 
     /**
@@ -1275,11 +1261,19 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     protected Node getParent(DbxFileInfo file) throws RepositoryException, CloudDriveException {
       Node parent;
       if (file.isRoot()) {
-        parent = rootNode;
+        parent = driveNode;
       } else {
         parent = getFile(file.getParent());
       }
       return parent;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void preSaveChunk() throws CloudDriveException, RepositoryException {
+      // nothing save for full sync
     }
   }
 
@@ -2120,7 +2114,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                   Node node,
                                   boolean useHash,
                                   Collection<ChunkIterator<?>> iterators,
-                                  Collection<CloudFile> fetched) throws CloudDriveException, RepositoryException {
+                                  Collection<JCRLocalCloudFile> fetched) throws CloudDriveException, RepositoryException {
     String hash = useHash ? folderHash(node) : null;
     FileMetadata items = api.getWithChildren(idPath, hash);
     if (items != null) {
@@ -2141,10 +2135,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           }
 
           JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
-          if (localItem.isChanged()) {
-            if (fetched != null) {
-              fetched.add(localItem);
-            }
+          if (fetched != null && localItem.isChanged()) {
+            fetched.add(localItem);
           }
           if (localItem.isFolder()) {
             // go recursive to the folder
