@@ -469,9 +469,9 @@ Javascript API
 
 Cloud Drive comes with Javascript client module for integration in eXo Platform web applications. Client provides support of drive connection and synchronization in user interface. It also customizes Documents client app to render cloud drive properly: drive and files styling, context and action bar menus, embedded file preview and editing. 
 
-Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). Module can provide a special method for implicit on-load initialization: a method `onLoad(provider)`, if exisists, will be invoked by the client on the provider initialization for page or its gragment loading (see example code below).
+Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). Module can provide a special method for implicit on-load initialization: a method `onLoad(provider)`, if exisists, will be invoked by the client on the provider initialization for page or its fragment loading (see example code below).
 
-Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below). 
+Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below) and custom initialization of drive and files on the user pages (see "Custom initialization of the user context" below). 
 
 Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. Most of Cloud Drive methods return [jQuery Promise](http://api.jquery.com/deferred.promise/) object which can be used for callbacks registration for connect or synchronization operations. 
 
@@ -577,6 +577,32 @@ It is an example how a connector module can looks (simplified Template connector
 
 			return process.promise();
 		};
+    
+    /**
+		 * Initialize MyDrive instance.
+		 */
+    this.initDrive = function(drive) {
+      // TODO do something specific to your use case, e.g. login in social network
+      TheSocialNetwork.init({
+        appId : "{your-app-id}"  
+      });
+      TheSocialNetwork.getLoginStatus( function(status) {
+        if (status !== "connected") {
+          TheSocialNetwork.login();
+        }
+      });
+    };
+
+    /**
+		 * Initialize MyDrive file.
+		 */
+		this.initFile = function(file) {
+			if (file && file.link && !file.previewLink) {
+				// For example: if file has not preview link we construct an one from its link and current user social preferences.
+        var tsnProfile = TheSocialNetwork.api("/me"); // TODO here your call to the user social profile
+        file.previewLink = file.link + "/preview?" + "tsnId=" + tsnProfile.id; // set preview link to the file instance
+			}
+		};
 
 		/**
 		 * Read comments of a file. This method returns jQuery Promise of the asynchronous request.
@@ -613,6 +639,12 @@ It's possible to manage how the Cloud Drive client will invoke drive update (syn
 If connector provides a Javascript module and Cloud Drive client can load it, it will check if returned module has a method `onChange()` and if it does, then object returned by this method will be used as an initiator for drive synchronization. If method doesn't exists then default behaviour will be used. 
 
 Cloud Drive client expects that connector's `onChange()` method returns [jQuery Promise](http://api.jquery.com/deferred.promise/) and then it uses the promise to initiate synchronization process. This logic shown in the connector module code above. When the promise will be resolved by the connector (its `.resolve()` invoked), it will mean the drive has new remote changes and client will start synchronization and then refresh the UI. If promise rejected (`.reject(error)` invoked) then automatic synchronization will be canceled and a new synchronization will be attempted when an user perform an operation on the Documents page (navigate to other file or folder, use Cloud Drive menu). Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in the drive.
+
+Custom initialization of the user context
+-----------------------------------------
+
+Cloud Drive client allows to make a custom initialization of a drive and/or a file on the user page. When a current page will be initialized by core module, it will try to invoke a method `initDrive(drive)` on the client within the context drive (which is a serialized to JSON `DriveInfo` Java class instance) - the client can modify or add any extra data in this method. Similarly, when an user will click or open a file on the page, a method `initFile(file)` of the client will be invoked with the context file (serialized `CloudFile` instance). Both these methods are optional and if client has no such methods then nothing will be invoked. Mathods will be only invoked for a client that matches the context drive.
+You can find these methods in the sample above.
 
 Deploy to eXo Platform
 ======================
