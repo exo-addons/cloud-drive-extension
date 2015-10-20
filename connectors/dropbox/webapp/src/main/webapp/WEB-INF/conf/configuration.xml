@@ -55,17 +55,17 @@
       <init-params>
         <properties-param>
           <name>drive-configuration</name>
-          <property name="provider-id" value="dropbox" />
-          <property name="provider-name" value="Dropbox" />
           <!-- 
            Set JVM variables clouddrive.dropbox.client.id and clouddrive.dropbox.client.secret 
            in Platform's configuration.properties 
           -->
+          <property name="provider-id" value="dropbox" />
+          <property name="provider-name" value="Dropbox" />
           <property name="provider-client-id" value="${clouddrive.dropbox.client.id}" />
           <property name="provider-client-secret" value="${clouddrive.dropbox.client.secret}" />
           <property name="connector-host" value="${clouddrive.service.host}" />
           <property name="connector-schema" value="${clouddrive.service.schema:http}" />
-          <property name="login-sso" value="${clouddrive.login.sso:false}" />
+          <property name="disable" value="${clouddrive.dropbox.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>

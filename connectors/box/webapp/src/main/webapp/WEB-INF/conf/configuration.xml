@@ -59,6 +59,7 @@
           <property name="login-sso" value="${clouddrive.login.sso:false}" />
           <property name="box-sso-partneridpid" value="${clouddrive.box.sso.partneridpid}" />
           <property name="box-sso-url" value="${clouddrive.box.sso.url:}" />
+          <property name="disable" value="${clouddrive.box.disable:false}" />
         </properties-param>
       </init-params>
     </component-plugin>
