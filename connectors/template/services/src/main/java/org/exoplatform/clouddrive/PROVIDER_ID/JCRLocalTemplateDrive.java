@@ -93,20 +93,23 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       driveNode.setProperty("YOUR_PROVIDE_ID:streamHistory", "");
     }
 
-    protected Object fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
+    protected Object fetchChilds(String fileId, Node localFile) throws CloudDriveException, RepositoryException {
       ItemsIterator items = api.getFolderItems(fileId);
       iterators.add(items);
       while (items.hasNext()) {
         Object item = items.next();
-        JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
-        if (localItem.isChanged()) {
-          addChanged(localItem);
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchChilds(localItem.getId(), localItem.getNode());
+        String childId = "item.getId()"; // TODO
+        if (isConnected(fileId, childId)) { // if not already connected
+          JCRLocalCloudFile localItem = updateItem(api, item, localFile, null);
+          if (localItem.isChanged()) {
+            addConnected(fileId, localItem);
+            if (localItem.isFolder()) {
+              // go recursive to the folder
+              fetchChilds(localItem.getId(), localItem.getNode());
+            }
+          } else {
+            throw new TemplateException("Fetched item was not added to local drive storage");
           }
-        } else {
-          throw new TemplateException("Fetched item was not added to local drive storage");
         }
       }
       return items.parent;
@@ -229,13 +232,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         jcrListener.enable();
       }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected void preSaveChunk() throws CloudDriveException, RepositoryException {
-      // in case of full sync we don't require to save markers 
+      // in case of full sync we don't require to save markers
     }
   }
 
@@ -855,7 +858,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     @Override
     protected void preSaveChunk() throws CloudDriveException, RepositoryException {
-      // TODO save event marker of last applied file that can be used by next sync 
+      // TODO save event marker of last applied file that can be used by next sync
     }
   }
 

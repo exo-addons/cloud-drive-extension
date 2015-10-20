@@ -97,6 +97,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     void apply(JCRLocalCloudFile changedFile) throws RepositoryException, CloudDriveException;
 
+    /**
+     * Answers if given file ID under its parent (by ID) already applied locally.
+     * 
+     * @param parentId {@link String}
+     * @param fileId {@link String}
+     * @return boolean, <code>true</code> if file was already applied, <code>false</code> otherwise.
+     * @see
+     */
+    boolean canApply(String parentId, String fileId);
   }
 
   /**
@@ -132,6 +141,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     public void apply(JCRLocalCloudFile localFile) throws RepositoryException, CloudDriveException {
       String parentIdPath = fileAPI.getParentId(localFile.getNode());
       addConnected(parentIdPath, localFile);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canApply(String parentId, String fileId) {
+      return !isConnected(parentId, fileId);
     }
   }
 
@@ -1181,6 +1198,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canApply(String parentId, String fileId) {
+      // in case of sync we assume that any change can be applied
+      return true;
+    }
+
+    /**
      * Find file node by its Dropbox path (lower-case or natural form).
      * 
      * @param idPath {@link String}
@@ -2139,7 +2165,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       if (items.changed) {
         while (items.hasNext()) {
           DbxEntry item = items.next();
-
           DbxFileInfo file = new DbxFileInfo(item.path);
           if (file.isRoot()) {
             // skip root node - this shouldn't happen
@@ -2148,14 +2173,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             }
             continue;
           }
-
-          JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
-          if (changes != null && localItem.isChanged()) {
-            changes.apply(localItem);
-          }
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchSubtree(api, localItem.getId(), localItem.getNode(), useHash, iterators, changes);
+          if (changes == null || changes.canApply(idPath, file.idPath)) {
+            JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
+            if (changes != null && localItem.isChanged()) {
+              changes.apply(localItem);
+            }
+            if (localItem.isFolder()) {
+              // go recursive to the folder
+              fetchSubtree(api, localItem.getId(), localItem.getNode(), useHash, iterators, changes);
+            }
           }
         }
         if (items.target.isFolder()) {
