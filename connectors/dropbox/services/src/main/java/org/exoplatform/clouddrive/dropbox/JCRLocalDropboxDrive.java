@@ -1114,7 +1114,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // from remote side - thus will clean periodically)
       cleanExpiredMoved();
 
-      this.pathNodes.put(DropboxAPI.ROOT_PATH, driveNode);
+      pathNodes.put(DropboxAPI.ROOT_PATH, driveNode);
 
       String cursor = driveNode.getProperty("dropbox:cursor").getString();
 
