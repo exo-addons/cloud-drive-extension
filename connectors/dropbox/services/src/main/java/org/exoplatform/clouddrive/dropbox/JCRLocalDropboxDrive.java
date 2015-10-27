@@ -2234,8 +2234,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
-   * Ensure the cloud file node has name in lower-case. If name requires change it will be renamed immediately
-   * and don't need saving it.<br>
+   * Ensure the cloud file node has name in lower-case. If name requires change it will be renamed in the
+   * current session.<br>
    * NOTE: this method doesn't check if it is a cloud file and doesn't respect JCR namespaces and will check
    * against the whole name of the file.
    * 
@@ -2250,8 +2250,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       if (LOG.isDebugEnabled()) {
         LOG.debug("Normalizing node name: " + jcrName + " -> " + lcName);
       }
-      fileNode.getSession().getWorkspace().move(fileNode.getPath(), fileNode.getParent().getPath() + "/" + lcName);
-      fileNode.refresh(true);
+      fileNode.getSession().move(fileNode.getPath(), fileNode.getParent().getPath() + "/" + lcName);
     }
     return fileNode;
   }
