@@ -83,9 +83,35 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   public static final String FOLDER_TYPE                    = "folder".intern();
 
   /**
+   * Applicable changes of local Drobpox drive.
+   */
+  protected interface Changes {
+
+    /**
+     * Process locally applied file (it can be any extra operations including the gathering of effected
+     * files/stats or chunk saving in JRC).
+     * 
+     * @param changedFile {@link JCRLocalCloudFile} changed file
+     * @throws RepositoryException
+     * @throws CloudDriveException
+     */
+    void apply(JCRLocalCloudFile changedFile) throws RepositoryException, CloudDriveException;
+
+    /**
+     * Answers if given file ID under its parent (by ID) already applied locally.
+     * 
+     * @param parentId {@link String}
+     * @param fileId {@link String}
+     * @return boolean, <code>true</code> if file was already applied, <code>false</code> otherwise.
+     * @see
+     */
+    boolean canApply(String parentId, String fileId);
+  }
+
+  /**
    * Connect algorithm for Drobpox drive.
    */
-  protected class Connect extends ConnectCommand {
+  protected class Connect extends ConnectCommand implements Changes {
 
     protected final DropboxAPI api;
 
@@ -104,17 +130,25 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // this will provide us a proper cursor to start sync from later.
       String connectCursor = api.getDeltas(null).getCursor();
 
-      Set<JCRLocalCloudFile> fetched = new LinkedHashSet<JCRLocalCloudFile>();
-      fetchSubtree(api, DropboxAPI.ROOT_PATH, driveNode, false, iterators, fetched);
-      // add fetched files as applied
-      for (JCRLocalCloudFile local : fetched) {
-        addChanged(local);
-      }
+      fetchSubtree(api, DropboxAPI.ROOT_PATH, driveNode, false, iterators, this);
 
       // sync stream
       setChangeId(changeId);
       driveNode.setProperty("dropbox:cursor", connectCursor);
       updateState(connectCursor);
+    }
+
+    public void apply(JCRLocalCloudFile localFile) throws RepositoryException, CloudDriveException {
+      String parentIdPath = fileAPI.getParentId(localFile.getNode());
+      addConnected(parentIdPath, localFile);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canApply(String parentId, String fileId) {
+      return !isConnected(parentId, fileId);
     }
   }
 
@@ -1045,7 +1079,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * cloud service.
    * 
    */
-  protected class EventsSync extends SyncCommand {
+  protected class EventsSync extends SyncCommand implements Changes {
 
     /**
      * Internal API.
@@ -1080,7 +1114,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // from remote side - thus will clean periodically)
       cleanExpiredMoved();
 
-      this.pathNodes.put(DropboxAPI.ROOT_PATH, driveNode);
+      pathNodes.put(DropboxAPI.ROOT_PATH, driveNode);
 
       String cursor = driveNode.getProperty("dropbox:cursor").getString();
 
@@ -1124,10 +1158,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               String idPath = fileAPI.getId(existingAncestor);
               Set<JCRLocalCloudFile> fetched = new LinkedHashSet<JCRLocalCloudFile>();
               // FYI existing ancestor itself will not be updated
-              JCRLocalDropboxDrive.this.fetchSubtree(api, idPath, existingAncestor, false, iterators, fetched);
-              for (JCRLocalCloudFile localFile : fetched) {
-                apply(localFile);
-              }
+              JCRLocalDropboxDrive.this.fetchSubtree(api, idPath, existingAncestor, false, iterators, this);
             } else {
               if (LOG.isDebugEnabled()) {
                 LOG.debug("Cannot find existing ancestor in local drive storage. Delta path: " + deltaPath + ". File path: "
@@ -1144,9 +1175,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         }
       }
 
-      if (!Thread.currentThread().isInterrupted())
-
-      {
+      if (!Thread.currentThread().isInterrupted()) {
         setChangeId(changeId);
         // save cursor explicitly to let use it in next sync even if nothing changed in this one
         Property cursorProp = driveNode.setProperty("dropbox:cursor", deltas.cursor);
@@ -1158,11 +1187,23 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
-    protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
+    /**
+     * {@inheritDoc}
+     */
+    public void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
         removeRemoved(local.getPath());
         addChanged(local);
       }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canApply(String parentId, String fileId) {
+      // in case of sync we assume that any change can be applied
+      return true;
     }
 
     /**
@@ -2114,7 +2155,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                   Node node,
                                   boolean useHash,
                                   Collection<ChunkIterator<?>> iterators,
-                                  Collection<JCRLocalCloudFile> fetched) throws CloudDriveException, RepositoryException {
+                                  Changes changes) throws CloudDriveException, RepositoryException {
     String hash = useHash ? folderHash(node) : null;
     FileMetadata items = api.getWithChildren(idPath, hash);
     if (items != null) {
@@ -2124,7 +2165,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       if (items.changed) {
         while (items.hasNext()) {
           DbxEntry item = items.next();
-
           DbxFileInfo file = new DbxFileInfo(item.path);
           if (file.isRoot()) {
             // skip root node - this shouldn't happen
@@ -2133,14 +2173,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             }
             continue;
           }
-
-          JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
-          if (fetched != null && localItem.isChanged()) {
-            fetched.add(localItem);
-          }
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchSubtree(api, localItem.getId(), localItem.getNode(), useHash, iterators, fetched);
+          if (changes == null || changes.canApply(idPath, file.idPath)) {
+            JCRLocalCloudFile localItem = updateItem(api, file, item, node, null);
+            if (changes != null && localItem.isChanged()) {
+              changes.apply(localItem);
+            }
+            if (localItem.isFolder()) {
+              // go recursive to the folder
+              fetchSubtree(api, localItem.getId(), localItem.getNode(), useHash, iterators, changes);
+            }
           }
         }
         if (items.target.isFolder()) {
@@ -2193,8 +2234,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
-   * Ensure the cloud file node has name in lower-case. If name requires change it will be renamed immediately
-   * and don't need saving it.<br>
+   * Ensure the cloud file node has name in lower-case. If name requires change it will be renamed in the
+   * current session.<br>
    * NOTE: this method doesn't check if it is a cloud file and doesn't respect JCR namespaces and will check
    * against the whole name of the file.
    * 
@@ -2209,8 +2250,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       if (LOG.isDebugEnabled()) {
         LOG.debug("Normalizing node name: " + jcrName + " -> " + lcName);
       }
-      fileNode.getSession().getWorkspace().move(fileNode.getPath(), fileNode.getParent().getPath() + "/" + lcName);
-      fileNode.refresh(true);
+      fileNode.getSession().move(fileNode.getPath(), fileNode.getParent().getPath() + "/" + lcName);
     }
     return fileNode;
   }

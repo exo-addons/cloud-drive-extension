@@ -119,15 +119,17 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       iterators.add(items);
       while (items.hasNext()) {
         BoxItem.Info item = items.next();
-        JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
-        if (localItem.isChanged()) {
-          addChanged(localItem);
-          if (localItem.isFolder()) {
-            // go recursive to the folder
-            fetchChilds(localItem.getId(), localItem.getNode());
+        if (!isConnected(fileId, item.getID())) { // work if not already connected
+          JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
+          if (localItem.isChanged()) {
+            addConnected(fileId, localItem);
+            if (localItem.isFolder()) {
+              // go recursive to the folder
+              fetchChilds(localItem.getId(), localItem.getNode());
+            }
+          } else {
+            throw new BoxFormatException("Fetched item was not added to local drive storage");
           }
-        } else {
-          throw new BoxFormatException("Fetched item was not added to local drive storage");
         }
       }
       return items.getParent();

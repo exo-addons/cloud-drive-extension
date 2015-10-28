@@ -139,15 +139,17 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             LOG.debug("Skipped relationship object: " + item.getId() + " " + item.getName());
           }
         } else {
-          JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
-          if (localItem.isChanged()) {
-            addChanged(localItem);
-            if (localItem.isFolder()) {
-              // go recursive to the folder
-              fetchChilds(localItem.getId(), localItem.getNode());
+          if (!isConnected(fileId, item.getId())) { // work if not already connected
+            JCRLocalCloudFile localItem = updateItem(api, item, parent, null);
+            if (localItem.isChanged()) {
+              addConnected(fileId, localItem);
+              if (localItem.isFolder()) {
+                // go recursive to the folder
+                fetchChilds(localItem.getId(), localItem.getNode());
+              }
+            } else {
+              throw new CMISException("Fetched item was not added to local drive storage");
             }
-          } else {
-            throw new CMISException("Fetched item was not added to local drive storage");
           }
         }
       }
@@ -748,7 +750,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       if (changesLog != null) {
         // if chunk will be saved then also save the change token as last applied in the drive
         // this will work for ChangesAlgorithm only
-        ChangeToken lastChangeToken = changesLog.getLastChangeToken(); 
+        ChangeToken lastChangeToken = changesLog.getLastChangeToken();
         if (!lastChangeToken.isEmpty()) {
           setChangeToken(driveNode, lastChangeToken.getString());
         }
