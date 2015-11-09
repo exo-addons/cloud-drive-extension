@@ -334,6 +334,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                     }
                   } // else will be removed below
                 }
+                removeLinks(en); // explicitly remove file links outside the drive
                 en.remove(); // remove node
                 addRemoved(enpath); // add path to removed
                 enliter.remove(); // remove from existing list
@@ -534,6 +535,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 continue next;
               }
             }
+            removeLinks(n); // explicitly remove file links outside the drive
             n.remove();
             addRemoved(npath);
           }

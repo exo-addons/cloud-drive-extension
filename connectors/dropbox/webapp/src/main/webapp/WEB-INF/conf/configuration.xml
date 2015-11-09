@@ -24,11 +24,6 @@
   xsi:schemaLocation="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd http://www.exoplatform.org/xml/ns/kernel_1_2.xsd"
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
-
-  <!-- component>
-    <type>org.exoplatform.clouddrive.dropbox.rest.DropboxService</type>
-  </component -->
-
   <!-- Dropbox namespace for use within JCR -->
   <external-component-plugins>
     <target-component>org.exoplatform.services.jcr.RepositoryService</target-component>

@@ -427,7 +427,8 @@ public class DropboxAPI {
   /**
    * Link (URL) to a file for opening by its owner on Dropbox site.
    * 
-   * @param file {@link DbxFileInfo}
+   * @param parentPath
+   * @param name
    * @return String with the file URL.
    */
   String getUserFileLink(String parentPath, String name) {
@@ -448,7 +449,7 @@ public class DropboxAPI {
    * @param folder {@link String}
    * @return String with the file URL.
    */
-  String getFolderLink(String path) {
+  String getUserFolderLink(String path) {
     // for folders https://www.dropbox.com/home/test/sub-folder%20N1
     if (ROOT_PATH.equals(path)) {
       // XXX can smth better be possible?
