@@ -187,6 +187,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         for (Node n : nls) {
           String npath = n.getPath();
           if (notInRange(npath, getRemoved())) {
+            removeLinks(n); // explicitly remove file links outside the drive
             n.remove();
             addRemoved(npath);
           }
@@ -216,6 +217,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             Node enode = eiter.next();
             String epath = enode.getPath();
             if (!epath.equals(path) && notInRange(epath, getRemoved())) {
+              removeLinks(enode); // explicitly remove file links outside the drive
               enode.remove();
               addRemoved(epath);
               eiter.remove();
@@ -1069,6 +1071,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                 if (LOG.isDebugEnabled()) {
                   LOG.debug(">> File removal " + id + " " + name);
                 }
+                removeLinks(node); // explicitly remove file links outside the drive
                 String path = node.getPath();
                 node.remove();
                 remove(id, path);
