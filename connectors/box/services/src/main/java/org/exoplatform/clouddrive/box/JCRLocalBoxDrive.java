@@ -1244,7 +1244,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       if (nextEvent != null) {
         return true;
       }
-      return postponed.size() > 0 && (lastPostponed != null ? prevPostponedNumber > postponedNumber : true);
+      // return postponed once more only if more than one event was read, otherwise postponed has no sense
+      return readCounter > 1 && postponed.size() > 0 && (lastPostponed != null ? prevPostponedNumber > postponedNumber : true);
     }
 
     protected BoxEvent nextEvent() throws NoSuchElementException, CloudDriveException {
