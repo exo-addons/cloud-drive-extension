@@ -269,9 +269,44 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Dropbox uses specific encoding of file paths in its URLs, it is almost the same as Java URI does, but
+   * also requires encoding of such chars as ampersand etc.<br>
+   * Code grabbed from here http://stackoverflow.com/questions/724043/http-url-address-encoding-in-java.
+   */
+  class PathEncoder {
+    String encode(String input) {
+      StringBuilder resultStr = new StringBuilder();
+      for (char ch : input.toCharArray()) {
+        if (isUnsafe(ch)) {
+          resultStr.append('%');
+          resultStr.append(toHex(ch / 16));
+          resultStr.append(toHex(ch % 16));
+        } else {
+          resultStr.append(ch);
+        }
+      }
+      return resultStr.toString();
+    }
+
+    private char toHex(int ch) {
+      return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
+    }
+
+    private boolean isUnsafe(char ch) {
+      if (ch > 128 || ch < 0) {
+        return true;
+      }
+      // Do not escape slash!
+      return " %$&+,:;=?@<>#%".indexOf(ch) >= 0;
+    }
+  }
+
   private DbxClient   client;
 
   private StoredToken token;
+
+  private PathEncoder pathEncoder = new PathEncoder();
 
   /**
    * Create Dropbox API from OAuth2 authentication code.
@@ -437,7 +472,8 @@ public class DropboxAPI {
     // file in subfolder https://www.dropbox.com/home/test/sub-folder%20N1?preview=20150713_182628.jpg
     StringBuilder link = new StringBuilder(ROOT_URL);
     if (!ROOT_PATH.equals(parentPath)) {
-      link.append(Web.pathEncode(parentPath));
+      // FYI prior Nov 12 2015 was: link.append(Web.pathEncode(parentPath));
+      link.append(pathEncoder.encode(parentPath));
     }
     link.append("?preview=").append(Web.formEncode(name));
     return link.toString();
@@ -455,7 +491,9 @@ public class DropboxAPI {
       // XXX can smth better be possible?
       return ROOT_URL;
     } else {
-      return new StringBuilder(ROOT_URL).append(Web.pathEncode(path)).toString();
+      // FYI prior Nov 12 2015 was: return new
+      // StringBuilder(ROOT_URL).append(Web.pathEncode(path)).toString();
+      return new StringBuilder(ROOT_URL).append(pathEncoder.encode(path)).toString();
     }
   }
 
