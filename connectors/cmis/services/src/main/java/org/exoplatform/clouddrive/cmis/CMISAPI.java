@@ -118,11 +118,12 @@ public class CMISAPI {
   public static final String TOKEN_DATATIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
   public static final String EMPTY_TOKEN           = "".intern();
-  
+
   /**
    * Open CMIS connection timeout.
    */
-  public static final int    CONNECTION_TIMEOUT      = 1024 * 180; // 3min should fit most of usecases
+  public static final int    CONNECTION_TIMEOUT    = 1024 * 180;                        // 3min should fit
+                                                                                        // most of usecases
 
   /**
    * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
@@ -144,6 +145,14 @@ public class CMISAPI {
      */
     protected ItemIterable<CmisObject> children;
 
+    protected ChildrenIterator(Folder parent) throws CloudDriveException {
+      this.folderId = parent.getId();
+      this.parent = parent;
+
+      // fetch first
+      this.iter = nextChunk();
+    }
+
     protected ChildrenIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
 
@@ -153,28 +162,29 @@ public class CMISAPI {
 
     protected Iterator<CmisObject> nextChunk() throws CloudDriveException {
       try {
-        CmisObject obj = readObject(folderId, session(), folderContext);
-        if (isFolder(obj)) {
-          // it is folder
-          parent = (Folder) obj;
-          children = parent.getChildren(fileContext);
-          long total = children.getTotalNumItems();
-          if (total == -1) {
-            total = children.getPageNumItems();
+        if (parent == null) {
+          CmisObject obj = readObject(folderId, session(), folderContext);
+          if (isFolder(obj)) {
+            // it is folder
+            parent = (Folder) obj;
+          } else {
+            // empty iterator
+            return new ArrayList<CmisObject>().iterator();
           }
-          available(total);
-          return children.iterator();
-        } else {
-          // empty iterator
-          return new ArrayList<CmisObject>().iterator();
         }
+        children = parent.getChildren(fileContext);
+        long total = children.getTotalNumItems();
+        if (total == -1) {
+          total = children.getPageNumItems();
+        }
+        available(total);
+        return children.iterator();
       } catch (CmisConnectionException e) {
         // communication (REST) error
         throw new CMISException("Error getting folder items: " + e.getMessage(), e);
       } catch (CmisInvalidArgumentException e) {
         // wrong input data: use dedicated exception type to let upper code to recognize it
-        throw new CMISInvalidArgumentException("Error getting folder items (parent not a folder): "
-            + e.getMessage(), e);
+        throw new CMISInvalidArgumentException("Error getting folder items (parent not a folder): " + e.getMessage(), e);
       } catch (CmisPermissionDeniedException e) {
         throw new RefreshAccessException("Permission denied for getting folder items: " + e.getMessage(), e);
       } catch (CmisUnauthorizedException e) {
@@ -252,7 +262,7 @@ public class CMISAPI {
                 nextToken = latestChunkToken;
               }
               hasMoreItems = lastFetchedToken.isEmpty() ? true : nextToken.isAfter(lastFetchedToken);
-              changeToken = hasMoreItems ? nextToken : null;
+              changeToken = hasMoreItems ? nextToken : emptyToken();
             } else {
               hasMoreItems = false;
               changeToken = emptyToken();
@@ -311,8 +321,7 @@ public class CMISAPI {
         lastFetchedToken = readToken(next);
         if (!ChangeType.DELETED.equals(next.getChangeType())) {
           for (ChangeEvent che : changes) {
-            if (next.getObjectId().equals(che.getObjectId())
-                && ChangeType.DELETED.equals(che.getChangeType())) {
+            if (next.getObjectId().equals(che.getObjectId()) && ChangeType.DELETED.equals(che.getChangeType())) {
               try {
                 // skip this event as it was DELETED in this changes set
                 next();
@@ -342,7 +351,7 @@ public class CMISAPI {
     }
 
     /**
-     * Last consumed event change token. Can be the same as start token. Can be <code>null</code> if no data
+     * Last consumed event change token. Can be the same as start token. Can be empty if no data
      * received by fetching and if CMIS service doesn't return the chunk latest token.
      * 
      * @return {@link ChangeToken} last fetched change token, token of last fetched events portion or
@@ -351,8 +360,7 @@ public class CMISAPI {
     protected ChangeToken getLastChangeToken() {
       // first priority in actually fetched token, then if nothing fetched we'll try a token from last fetched
       // chunk, and if not available, return last used for fetching token (it can be null also)
-      return !lastFetchedToken.isEmpty() ? lastFetchedToken : (!latestChunkToken.isEmpty() ? latestChunkToken
-                                                                                          : changeToken);
+      return !lastFetchedToken.isEmpty() ? lastFetchedToken : (!latestChunkToken.isEmpty() ? latestChunkToken : changeToken);
     }
   }
 
@@ -532,7 +540,8 @@ public class CMISAPI {
   /**
    * Set of properties for CMIS files (document or folder).
    */
-  protected static final Set<String>       FILE_PROPERTY_SET    = new LinkedHashSet<String>();
+  protected static final Set<String> FILE_PROPERTY_SET = new LinkedHashSet<String>();
+
   static {
     FILE_PROPERTY_SET.add(PropertyIds.OBJECT_ID);
     FILE_PROPERTY_SET.add(PropertyIds.PARENT_ID);
@@ -563,7 +572,8 @@ public class CMISAPI {
   /**
    * Set of properties for CMIS folder.
    */
-  protected static final Set<String>       FOLDER_PROPERTY_SET  = new LinkedHashSet<String>();
+  protected static final Set<String> FOLDER_PROPERTY_SET = new LinkedHashSet<String>();
+
   static {
     FOLDER_PROPERTY_SET.add(PropertyIds.OBJECT_ID);
     FOLDER_PROPERTY_SET.add(PropertyIds.PARENT_ID);
@@ -584,7 +594,8 @@ public class CMISAPI {
    * Copied set of properties from OpenCMIS Workbench app with added extras.
    */
   @Deprecated
-  private static final Set<String>         VERSION_PROPERTY_SET = new LinkedHashSet<String>();
+  private static final Set<String> VERSION_PROPERTY_SET = new LinkedHashSet<String>();
+
   static {
     VERSION_PROPERTY_SET.add(PropertyIds.OBJECT_ID);
     VERSION_PROPERTY_SET.add(PropertyIds.OBJECT_TYPE_ID);
@@ -611,17 +622,17 @@ public class CMISAPI {
   /**
    * Client session lock.
    */
-  private final Lock                       lock                 = new ReentrantLock();
+  private final Lock                       lock       = new ReentrantLock();
 
   /**
    * Session holder.
    */
-  protected final AtomicReference<Session> session              = new AtomicReference<Session>();
+  protected final AtomicReference<Session> session    = new AtomicReference<Session>();
 
   /**
    * Singleton of empty change token.
    */
-  protected final ChangeToken              emptyToken           = new ChangeToken(EMPTY_TOKEN);
+  protected final ChangeToken              emptyToken = new ChangeToken(EMPTY_TOKEN);
 
   /**
    * Client session parameters.
@@ -665,8 +676,7 @@ public class CMISAPI {
    * @throws CMISException
    * @throws CloudDriveException
    */
-  protected CMISAPI(String serviceURL, String user, String password) throws CMISException,
-      CloudDriveException {
+  protected CMISAPI(String serviceURL, String user, String password) throws CMISException, CloudDriveException {
 
     // Prepare CMIS server parameters
     SessionParameterMap parameters = new SessionParameterMap();
@@ -690,8 +700,9 @@ public class CMISAPI {
     parameters.setCompression(true);
     parameters.setClientCompression(false);
     parameters.setCookies(true);
-    
-    // Connection timeout to do not let it hang forever and dead-lock other commands (actual for Alfresco Demo). 
+
+    // Connection timeout to do not let it hang forever and dead-lock other commands (actual for Alfresco
+    // Demo).
     parameters.setConnectionTimeout(CONNECTION_TIMEOUT);
 
     this.parameters = parameters;
@@ -890,9 +901,9 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected CmisObject getObject(String objectId) throws CMISException,
-                                                 NotFoundException,
-                                                 CloudDriveAccessException,
-                                                 UnauthorizedException {
+                                                  NotFoundException,
+                                                  CloudDriveAccessException,
+                                                  UnauthorizedException {
     Session session = session();
     try {
       CmisObject object = readObject(objectId, session, fileContext);
@@ -929,8 +940,7 @@ public class CMISAPI {
     }
   }
 
-  protected Document readDocumentVersionOrPWC(String id) throws CloudDriveAccessException,
-                                                        UnauthorizedException {
+  protected Document readDocumentVersionOrPWC(String id) throws CloudDriveAccessException, UnauthorizedException {
     try {
       return getLatestDocumentVersionOrPWC(id);
     } catch (CMISException e) {
@@ -958,9 +968,9 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected Document getLatestDocumentVersionOrPWC(String id) throws CMISException,
-                                                             NotFoundException,
-                                                             CloudDriveAccessException,
-                                                             UnauthorizedException {
+                                                              NotFoundException,
+                                                              CloudDriveAccessException,
+                                                              UnauthorizedException {
     Session session = session();
     try {
       Document document = session.getLatestDocumentVersion(id, fileContext);
@@ -973,8 +983,8 @@ public class CMISAPI {
               return (Document) readObject(pwcid, session, fileContext);
             } catch (CmisBaseException e) {
               if (LOG.isDebugEnabled()) {
-                LOG.debug("Cannot read object of version " + pwcid + " " + document.getName() + ": "
-                    + e.getMessage() + ". Will use version document " + document.getId());
+                LOG.debug("Cannot read object of version " + pwcid + " " + document.getName() + ": " + e.getMessage()
+                    + ". Will use version document " + document.getId());
               }
             }
           }
@@ -1014,9 +1024,9 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected List<Document> getAllVersion(Document document) throws CMISException,
-                                                           NotFoundException,
-                                                           CloudDriveAccessException,
-                                                           UnauthorizedException {
+                                                            NotFoundException,
+                                                            CloudDriveAccessException,
+                                                            UnauthorizedException {
     try {
       return document.getAllVersions(fileContext);
     } catch (CmisObjectNotFoundException e) {
@@ -1028,11 +1038,9 @@ public class CMISAPI {
       // wrong input data: use dedicated exception type to let upper code to recognize it
       throw new CMISInvalidArgumentException("Error reading document versions: " + e.getMessage(), e);
     } catch (CmisStreamNotSupportedException e) {
-      throw new RefreshAccessException("Permission denied for document versions content reading: "
-          + e.getMessage(), e);
+      throw new RefreshAccessException("Permission denied for document versions content reading: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
-      throw new RefreshAccessException("Permission denied for document versions reading: " + e.getMessage(),
-                                       e);
+      throw new RefreshAccessException("Permission denied for document versions reading: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
       throw new UnauthorizedException("Unauthorized for reading document versions", e);
     } catch (CmisRuntimeException e) {
@@ -1053,8 +1061,8 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected Collection<Folder> getParents(CmisObject obj) throws CMISException,
-                                                         CloudDriveAccessException,
-                                                         UnauthorizedException {
+                                                          CloudDriveAccessException,
+                                                          UnauthorizedException {
     try {
       if (isFileable(obj)) {
         return ((FileableCmisObject) obj).getParents(folderContext);
@@ -1066,8 +1074,8 @@ public class CMISAPI {
       throw new CMISException("Error reading object parents: " + e.getMessage(), e);
     } catch (CmisInvalidArgumentException e) {
       // wrong input data: use dedicated exception type to let upper code to recognize it
-      throw new CMISInvalidArgumentException("Error reading object parents (not a folder or root folder): "
-          + e.getMessage(), e);
+      throw new CMISInvalidArgumentException("Error reading object parents (not a folder or root folder): " + e.getMessage(),
+                                             e);
     } catch (CmisPermissionDeniedException e) {
       throw new RefreshAccessException("Permission denied for object parents reading: " + e.getMessage(), e);
     } catch (CmisUnauthorizedException e) {
@@ -1082,9 +1090,12 @@ public class CMISAPI {
   protected ChildrenIterator getFolderItems(String folderId) throws CloudDriveException {
     return new ChildrenIterator(folderId);
   }
+  
+  protected ChildrenIterator getFolderItems(Folder folder) throws CloudDriveException {
+    return new ChildrenIterator(folder);
+  }
 
-  protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException,
-                                                               CloudDriveAccessException {
+  protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException, CloudDriveAccessException {
     return new ChangesIterator(changeToken);
   }
 
@@ -1116,19 +1127,16 @@ public class CMISAPI {
    */
   protected String getLink(Folder file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
-    String linkSelfEntry = link.loadLink(repositoryId,
-                                         file.getId(),
-                                         Constants.REL_SELF,
-                                         Constants.MEDIATYPE_ENTRY);
+    String linkSelfEntry = link.loadLink(repositoryId, file.getId(), Constants.REL_SELF, Constants.MEDIATYPE_ENTRY);
     return linkSelfEntry;
   }
 
   protected Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
-                                                                                                    NotFoundException,
-                                                                                                    ConflictException,
-                                                                                                    CloudDriveAccessException,
-                                                                                                    ConstraintException,
-                                                                                                    UnauthorizedException {
+                                                                                                     NotFoundException,
+                                                                                                     ConflictException,
+                                                                                                     CloudDriveAccessException,
+                                                                                                     ConstraintException,
+                                                                                                     UnauthorizedException {
     Session session = session();
     try {
       CmisObject obj = null;
@@ -1176,8 +1184,7 @@ public class CMISAPI {
         // properties.put(PropertyIds.CREATION_DATE, created);
 
         // content length = -1 if it is unknown
-        ContentStream contentStream = session.getObjectFactory()
-                                             .createContentStream(name, -1, mimeType, data);
+        ContentStream contentStream = session.getObjectFactory().createContentStream(name, -1, mimeType, data);
         return parent.createDocument(properties, contentStream, vstate, null, null, null, fileContext);
       } else {
         throw new CMISException("Parent not a folder: " + parentId + ", " + obj.getName());
@@ -1192,12 +1199,10 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to create document with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to create document with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new ConstraintException("Unable to create document '" + name + "' due to repository constraints",
-                                    e);
+      throw new ConstraintException("Unable to create document '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error creating document: " + e.getMessage(), e);
@@ -1218,11 +1223,11 @@ public class CMISAPI {
   }
 
   protected Folder createFolder(String parentId, String name) throws CMISException,
-                                                             NotFoundException,
-                                                             ConflictException,
-                                                             CloudDriveAccessException,
-                                                             ConstraintException,
-                                                             UnauthorizedException {
+                                                              NotFoundException,
+                                                              ConflictException,
+                                                              CloudDriveAccessException,
+                                                              ConstraintException,
+                                                              UnauthorizedException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1247,8 +1252,7 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to create folder with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to create folder with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
       throw new ConstraintException("Unable to create folder '" + name + "' due to repository constraints", e);
@@ -1281,11 +1285,11 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected void deleteDocument(String id) throws CMISException,
-                                          NotFoundException,
-                                          ConflictException,
-                                          CloudDriveAccessException,
-                                          ConstraintException,
-                                          UnauthorizedException {
+                                           NotFoundException,
+                                           ConflictException,
+                                           CloudDriveAccessException,
+                                           ConstraintException,
+                                           UnauthorizedException {
     Session session = session();
     String name = "";
     try {
@@ -1299,8 +1303,7 @@ public class CMISAPI {
       throw new ConflictException("Document removal conflict for '" + name + "'", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new ConstraintException("Unable to delete document '" + name + "' due to repository constraints",
-                                    e);
+      throw new ConstraintException("Unable to delete document '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error deleting document: " + e.getMessage(), e);
@@ -1330,11 +1333,11 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected void deleteFolder(String id) throws CMISException,
-                                        NotFoundException,
-                                        ConflictException,
-                                        CloudDriveAccessException,
-                                        ConstraintException,
-                                        UnauthorizedException {
+                                         NotFoundException,
+                                         ConflictException,
+                                         CloudDriveAccessException,
+                                         ConstraintException,
+                                         UnauthorizedException {
     Session session = session();
     String name = "";
     try {
@@ -1386,12 +1389,16 @@ public class CMISAPI {
    * @throws ConstraintException
    * @throws UnauthorizedException
    */
-  protected Document updateContent(String id, String name, InputStream data, String mimeType, LocalFile local) throws CMISException,
-                                                                                                              NotFoundException,
-                                                                                                              ConflictException,
-                                                                                                              CloudDriveAccessException,
-                                                                                                              ConstraintException,
-                                                                                                              UnauthorizedException {
+  protected Document updateContent(String id,
+                                   String name,
+                                   InputStream data,
+                                   String mimeType,
+                                   LocalFile local) throws CMISException,
+                                                    NotFoundException,
+                                                    ConflictException,
+                                                    CloudDriveAccessException,
+                                                    ConstraintException,
+                                                    UnauthorizedException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1424,8 +1431,7 @@ public class CMISAPI {
         }
 
         // content length = -1 if it is unknown
-        ContentStream contentStream = session.getObjectFactory()
-                                             .createContentStream(name, -1, mimeType, data);
+        ContentStream contentStream = session.getObjectFactory().createContentStream(name, -1, mimeType, data);
 
         if (checkin) {
           // do update in checkin call
@@ -1466,8 +1472,7 @@ public class CMISAPI {
       }
     } catch (CmisContentAlreadyExistsException e) {
       // conflict actual for setContentStream only
-      throw new ConflictException("Document content already exists for '" + name
-          + "' and overwrite not requested", e);
+      throw new ConflictException("Document content already exists for '" + name + "' and overwrite not requested", e);
     } catch (CmisUpdateConflictException e) {
       // conflict actual for update/deletion/move
       throw new ConflictException("Conflict of document updating for '" + name + "'", e);
@@ -1477,12 +1482,10 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to update document with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to update document with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
-      throw new ConstraintException("Unable to update document '" + name + "' due to repository constraints",
-                                    e);
+      throw new ConstraintException("Unable to update document '" + name + "' due to repository constraints", e);
     } catch (CmisConnectionException e) {
       // communication (REST) error
       throw new CMISException("Error updating document: " + e.getMessage(), e);
@@ -1523,17 +1526,18 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
-                                                                                             NotFoundException,
-                                                                                             ConflictException,
-                                                                                             CloudDriveAccessException,
-                                                                                             ConstraintException,
-                                                                                             UnauthorizedException {
+                                                                                              NotFoundException,
+                                                                                              ConflictException,
+                                                                                              CloudDriveAccessException,
+                                                                                              ConstraintException,
+                                                                                              UnauthorizedException {
     Session session = session();
     try {
       CmisObject result;
       CmisObject obj;
       try {
-        obj = readObject(id, session, fileContext); // FIXME On SP id may be null here (not always, on file removal)
+        obj = readObject(id, session, fileContext); // FIXME On SP id may be null here (not always, on file
+                                                    // removal)
       } catch (CmisObjectNotFoundException e) {
         // try use version series id to get an object
         String vid = local.findVersionSeriesId();
@@ -1548,7 +1552,8 @@ public class CMISAPI {
       }
 
       // update name
-      if (!obj.getName().equals(name)) {
+      String remoteName = obj.getName();
+      if (!remoteName.equals(name)) {
         // if versioned document is checked it - do check out it
         boolean checkin = false;
         Document document = null;
@@ -1567,6 +1572,8 @@ public class CMISAPI {
 
         // simple rename
         obj = result = rename(name, obj, session);
+
+        local.markRenamed(remoteName);
 
         if (checkin) {
           // FYI rename via check-in properties may cause errors on some vendors:
@@ -1623,12 +1630,13 @@ public class CMISAPI {
               } else {
                 // if all remote parents are local also,
                 // we only can use multi-filing to add this document to the required parent
+                // Nov 13 2015: we don't mark the file as moved in this case
                 if (session.getRepositoryInfo().getCapabilities().isMultifilingSupported()) {
                   fileable.addToFolder(parent, true);
                   return fileable; // and return from here
                 } else {
-                  throw new CMISException("Cannot move document without source folder and with disabled multi-filing: "
-                      + id + ", " + name);
+                  throw new CMISException("Cannot move document without source folder and with disabled multi-filing: " + id
+                      + ", " + name);
                 }
               }
             } else {
@@ -1639,6 +1647,7 @@ public class CMISAPI {
             FileableCmisObject moved = fileable.move(srcParent, parent, fileContext);
             if (moved != null) {
               result = moved;
+              local.markMoved(srcParent.getId());
             } else {
               fileable.refresh();
               result = fileable;
@@ -1663,8 +1672,7 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to update object with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to update object with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
       throw new ConstraintException("Unable to update object '" + name + "' due to repository constraints", e);
@@ -1721,12 +1729,13 @@ public class CMISAPI {
    * @throws ConstraintException
    * @throws UnauthorizedException
    */
+  @Deprecated
   protected Document copyDocument(String id, String parentId, String name) throws CMISException,
-                                                                          NotFoundException,
-                                                                          ConflictException,
-                                                                          CloudDriveAccessException,
-                                                                          ConstraintException,
-                                                                          UnauthorizedException {
+                                                                           NotFoundException,
+                                                                           ConflictException,
+                                                                           CloudDriveAccessException,
+                                                                           ConstraintException,
+                                                                           UnauthorizedException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1740,7 +1749,7 @@ public class CMISAPI {
         try {
           obj = readObject(id, session, fileContext);
         } catch (CmisObjectNotFoundException e) {
-          throw new NotFoundException("Source not found: " + parentId, e);
+          throw new NotFoundException("Source not found: " + id, e);
         }
         if (isDocument(obj)) {
           return copyDocument((Document) obj, parent, name);
@@ -1774,11 +1783,11 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected Document copyDocument(Document source, Folder parent, String name) throws CMISException,
-                                                                              NotFoundException,
-                                                                              ConflictException,
-                                                                              CloudDriveAccessException,
-                                                                              ConstraintException,
-                                                                              UnauthorizedException {
+                                                                               NotFoundException,
+                                                                               ConflictException,
+                                                                               CloudDriveAccessException,
+                                                                               ConstraintException,
+                                                                               UnauthorizedException {
     try {
       Session session = session();
 
@@ -1798,16 +1807,15 @@ public class CMISAPI {
       try {
         return parent.createDocumentFromSource(source, properties, vstate, null, null, null, fileContext);
       } catch (CmisNotSupportedException e) {
-        LOG.warn("Cannot copy document " + source.getName() + " (" + source.getId() + ") to "
-            + parent.getName() + "/" + name + ". Will try use actual content copying. " + e.getMessage());
+        LOG.warn("Cannot copy document " + source.getName() + " (" + source.getId() + ") to " + parent.getName() + "/" + name
+            + ". Will try use actual content copying. " + e.getMessage());
         // createDocumentFromSource not supported, will do copying via client (it is AtomPub case)
 
         ContentStream sourceContent = source.getContentStream();
-        ContentStream destContent = session.getObjectFactory()
-                                           .createContentStream(name,
-                                                                sourceContent.getLength(),
-                                                                sourceContent.getMimeType(),
-                                                                sourceContent.getStream());
+        ContentStream destContent = session.getObjectFactory().createContentStream(name,
+                                                                                   sourceContent.getLength(),
+                                                                                   sourceContent.getMimeType(),
+                                                                                   sourceContent.getStream());
         for (Property<?> p : source.getProperties()) {
           if (!properties.containsKey(p.getId())) {
             if (p.isMultiValued()) {
@@ -1825,8 +1833,7 @@ public class CMISAPI {
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to copy document with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to copy document with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
       throw new ConstraintException("Unable to copy document '" + name + "' due to repository constraints", e);
@@ -1869,12 +1876,13 @@ public class CMISAPI {
    * 
    * @see #copyFolder(Folder, Folder, String)
    */
+  @Deprecated
   protected Folder copyFolder(String id, String parentId, String name) throws CMISException,
-                                                                      NotFoundException,
-                                                                      ConflictException,
-                                                                      CloudDriveAccessException,
-                                                                      ConstraintException,
-                                                                      UnauthorizedException {
+                                                                       NotFoundException,
+                                                                       ConflictException,
+                                                                       CloudDriveAccessException,
+                                                                       ConstraintException,
+                                                                       UnauthorizedException {
     Session session = session();
     try {
       CmisObject obj;
@@ -1909,9 +1917,8 @@ public class CMISAPI {
   /**
    * Copy folder to a new one using CMIS objects. If folder was successfully copied this method return new
    * folder object. <br>
-   * Notable that CMIS doesn't support folder copy and this method does traversing of the source and create
-   * new folder with sub-folders and only copy documents from them. This may cause not full copy of a folder
-   * in general case (permissions or other metadata may not be copied).
+   * Notable that CMIS doesn't support folder copy and this method will create only a copy of the source
+   * folder object without copying its sub-files - they must be copied one by one by the caller.
    * 
    * @param id {@link String}
    * @param parentId {@link String}
@@ -1925,33 +1932,23 @@ public class CMISAPI {
    * @throws UnauthorizedException
    */
   protected Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
-                                                                        NotFoundException,
-                                                                        ConflictException,
-                                                                        CloudDriveAccessException,
-                                                                        ConstraintException,
-                                                                        UnauthorizedException {
+                                                                         NotFoundException,
+                                                                         ConflictException,
+                                                                         CloudDriveAccessException,
+                                                                         ConstraintException,
+                                                                         UnauthorizedException {
     try {
       Map<String, Object> properties = new HashMap<String, Object>(2);
       properties.put(PropertyIds.NAME, source.getName());
       properties.put(PropertyIds.OBJECT_TYPE_ID, source.getBaseTypeId().value());
-      Folder copyFolder = parent.createFolder(properties, null, null, null, folderContext);
-      // copy child documents recursively
-      for (CmisObject child : source.getChildren()) {
-        if (isDocument(child)) {
-          copyDocument((Document) child, parent, child.getName());
-        } else if (child instanceof Folder) {
-          copyFolder((Folder) child, parent, child.getName());
-        }
-      }
-      return copyFolder;
+      return parent.createFolder(properties, null, null, null, folderContext);
     } catch (CmisObjectNotFoundException e) {
       // this can be a rice condition when parent just deleted or similar happened remotely
       throw new NotFoundException("Error copying folder: " + e.getMessage(), e);
     } catch (CmisNameConstraintViolationException e) {
       // name constraint considered as conflict (requires another name)
       // TODO check cyclic loop not possible due to infinite error - change name - error - change...
-      throw new ConflictException("Unable to copy folder with name '" + name
-          + "' due to repository constraints", e);
+      throw new ConflictException("Unable to copy folder with name '" + name + "' due to repository constraints", e);
     } catch (CmisConstraintException e) {
       // repository/object level constraint considered as critical error (cancels operation)
       throw new ConstraintException("Unable to copy folder '" + name + "' due to repository constraints", e);
@@ -2036,8 +2033,7 @@ public class CMISAPI {
       // Wrong service end-point used or incompatible CMIS version
       throw new WrongCMISProviderException("Error reading repositories list: " + e.getMessage(), e);
     } catch (CmisPermissionDeniedException e) {
-      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(),
-                                       e);
+      throw new RefreshAccessException("Permission denied for reading repositories list: " + e.getMessage(), e);
     } catch (CmisRuntimeException e) {
       throw new CMISException("Runtime error when reading CMIS repositories list", e);
     } catch (CmisBaseException e) {
@@ -2129,7 +2125,8 @@ public class CMISAPI {
           // check if repository supports and the user can request ACLs
           boolean includeAcls = !r.getCapabilities().getAclCapability().equals(CapabilityAcl.NONE);
 
-          Context fileContext = new Context(filter.toString(), includeAcls, // includeAcls
+          Context fileContext = new Context(filter.toString(),
+                                            includeAcls, // includeAcls
                                             true, // includeAllowableActions
                                             true, // includePolicies
                                             IncludeRelationships.BOTH,
@@ -2148,7 +2145,8 @@ public class CMISAPI {
               filter.append(propDef.getQueryName());
             }
           }
-          Context folderContext = new Context(filter.toString(), false, // includeAcls
+          Context folderContext = new Context(filter.toString(),
+                                              false, // includeAcls
                                               false, // includeAllowableActions
                                               false, // includePolicies
                                               IncludeRelationships.NONE,
@@ -2181,8 +2179,8 @@ public class CMISAPI {
     if (time != null) {
       return new TimeChangeToken(time);
     }
-    throw new CMISException("ChangeToken property not found, change time is null for " + event.getObjectId()
-        + " " + event.getChangeType());
+    throw new CMISException("ChangeToken property not found, change time is null for " + event.getObjectId() + " "
+        + event.getChangeType());
   }
 
   protected ChangeToken readToken(String tokenString) throws CMISException {
