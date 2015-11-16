@@ -1042,7 +1042,7 @@ public class BoxAPI {
         if (parentChanged) {
           // it's move of a file
           BoxFolder destination = new BoxFolder(api, parentId);
-          return (BoxFile.Info) file.move(destination);
+          return (BoxFile.Info) file.move(destination, nameChanged ? name : null);
         } else {
           // it's rename - FYI file.rename(name) doesn't return info
           BoxFile.Info info = file.new Info();

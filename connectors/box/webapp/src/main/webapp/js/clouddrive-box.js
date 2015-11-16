@@ -44,6 +44,7 @@
 						renewState(process, drive);
 					} else {
 						var linkLive;
+						var linkOutdated = false;
 						var changes = cloudDrive.ajaxGet(drive.state.url);
 						changes.done(function(info, status) {
 							//utils.log(">>> changes done " + JSON.stringify(info) + " " + status);
@@ -68,13 +69,14 @@
 								} else {
 									process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
 								}
-							} else {
+							} else if (!linkOutdated) {
 								process.reject("Long-polling changes request aborted");
 							}
 						});
 						// long-polling can outdate, if request runs longer of the period - need start a new one
 						linkLive = setTimeout(function() {
 							//utils.log(">>> long-polling link outdated, renewing it...");
+							linkOutdated = true;
 							changes.request.abort();
 							renewState(process, drive);
 						}, drive.state.outdatedTimeout - linkAge);
