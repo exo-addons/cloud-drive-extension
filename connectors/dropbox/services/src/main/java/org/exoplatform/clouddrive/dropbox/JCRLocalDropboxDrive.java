@@ -1734,7 +1734,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     try {
       return rootNode().getProperty("dropbox:changePosition").getLong();
     } catch (PathNotFoundException e) {
-      throw new CloudDriveException("Change id not found for the drive " + title());
+      throw new CloudDriveException("Change id not found for the drive " + title(), e);
     }
   }
 

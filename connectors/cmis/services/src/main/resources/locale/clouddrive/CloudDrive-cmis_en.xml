@@ -9,7 +9,7 @@
   <!-- For menu caption in Action Bar -->
   <UIActionBar>
     <tooltip>
-      <ConnectTemplate>Connect CMIS Server</ConnectTemplate>
+      <ConnectCMIS>Connect CMIS Server</ConnectCMIS>
     </tooltip>
   </UIActionBar>
   <!-- For login form -->

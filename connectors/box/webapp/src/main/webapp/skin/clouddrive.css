@@ -1,11 +1,14 @@
 .uiIconEcmsConnectBox {
-	background: url('icons/box-gray-16x16.png') no-repeat scroll left center transparent !important;
-	height: 16px !important;
-	width: 16px !important;
+	/*background: url('icons/box-gray-14x14.png') no-repeat scroll left center transparent !important;*/
+	height: 14px !important;
+	width: 14px !important;
+}
+.uiIconEcmsConnectBox:before {
+	content: url("icons/box-gray-14x14.png");
 }
 
 .uiIconEcmsConnectDialog-box {
-	background: url('icons/box-gray-24x24.png') no-repeat scroll left center transparent !important;
+	background: url("icons/box-gray-24x24.png") no-repeat scroll left center transparent !important;
 	height: 32px !important;
 	width: 32px !important;
 }
