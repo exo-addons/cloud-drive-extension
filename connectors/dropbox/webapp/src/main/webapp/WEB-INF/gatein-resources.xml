@@ -26,7 +26,7 @@
 
   <!-- Javascript for Cloud Drive support of Dropbox -->
   <module>
-    <name>cloudDrive.dropbox</name>
+    <name>cloudDrive_dropbox</name>
     <script>
       <path>/js/clouddrive-dropbox.js</path>
     </script>

@@ -26,7 +26,7 @@
 
   <!-- Javascript for Cloud Drive support of Box -->
   <module>
-    <name>cloudDrive.box</name>
+    <name>cloudDrive_box</name>
     <script>
       <path>/js/clouddrive-box.js</path>
     </script>

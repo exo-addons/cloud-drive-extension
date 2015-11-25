@@ -67,7 +67,7 @@
   </module>
 
   <module>
-    <name>cloudDrive.cmis</name>
+    <name>cloudDrive_cmis</name>
     <as>cloudDriveCMIS</as>
     <script>
       <path>/js/clouddrive-cmis.js</path>

@@ -28,7 +28,7 @@
 
   <!-- Javascript for Cloud Drive support of PROVIDER_ID -->
   <module>
-    <name>cloudDrive.PROVIDER_ID</name>
+    <name>cloudDrive_PROVIDER_ID</name>
     <script>
       <path>/js/clouddrive-PROVIDER_ID.js</path>
     </script>
