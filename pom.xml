@@ -57,7 +57,7 @@
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
     
     <!-- Dropbox SDK -->
-    <com.dropbox.core.version>1.7.7</com.dropbox.core.version>
+    <com.dropbox.core.version>1.8.2</com.dropbox.core.version>
     
     <!-- Apache Chemistry (OpencCMIS) API -->
     <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>

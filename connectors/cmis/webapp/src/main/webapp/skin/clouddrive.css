@@ -2,7 +2,6 @@
  * Icon for dedicated UI action "ConnectCMIS"
  */
 .uiIconEcmsConnectCMIS {
-	/*background: url('icons/cmis-logo-gray-16x16.png') no-repeat scroll left center transparent !important;*/
 	height: 14px !important;
 	width: 14px !important;
 }
@@ -23,15 +22,22 @@
  * File icon in file view.
  */
 .uiIcon16x16CloudFile-cmis {
-	background: url("icons/cmis-logo-gray-16x16.png") no-repeat left center transparent !important;
+	top: 3px;
 }
+.uiIcon16x16CloudFile-cmis:before {
+	content: url("icons/cmis-logo-gray-14x14.png");
+}
+
 
 /*
  * Drive icon in side-bar tree.
  */
 .uiIcon16x16CloudDrive-cmis {
-	left: 2px;
-	top: 4px;
+	left: -1px;
+	top: 1px;
+	width: 16px;
+  height: 16px;
+  position: absolute !important;
 	-webkit-transform: scale(0.36);
 	-moz-transform: scale(0.36);
 	-o-transform: scale(0.36);
@@ -44,8 +50,10 @@
  * Drive icon in Admin/List view.
  */
 .uiIcon24x24CloudDrive-cmis {
-	left: -1px;
-	top: -3px;
+	left: 1px;
+  top: -19px;
+  width: 20px;
+  height: 20px;
 	-webkit-transform: scale(0.7);
 	-moz-transform: scale(0.7);
 	-o-transform: scale(0.7);
@@ -58,12 +66,50 @@
  * Drive icon in Icon view.
  */
 .uiIcon64x64CloudDrive-cmis {
-	left: 1px;
-	top: -20px;
+	left: 44px;
+	top: 17px;
+	width: 40px;
+  height: 40px;
+  position: absolute !important;
 	-webkit-transform: scale(0.7);
 	-moz-transform: scale(0.7);
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
 	background: url("icons/cmis-logo-gray-32x32.png") no-repeat center center transparent !important;
+}
+
+/*
+ * Responsive styles
+ */
+@media (min-width: 481px) and (max-width: 1024px) {
+	.uiIcon24x24CloudDrive-cmis {
+		left: 4px;
+	  top: -28px;
+	  -webkit-transform: scale(0.9);
+		-moz-transform: scale(0.9);
+		-o-transform: scale(0.9);
+		-ms-transform: scale(0.9);
+		transform: scale(0.9);
+	}
+	
+	.uiIcon64x64CloudDrive-cmis {
+		left: 44px;
+		top: 27px;
+		-webkit-transform: scale(0.9);
+		-moz-transform: scale(0.9);
+		-o-transform: scale(0.9);
+		-ms-transform: scale(0.9);
+		transform: scale(0.9);
+	}
+	
+	.uiIcon16x16CloudDrive-cmis {
+		left: 1px;
+		top: 3px;
+		-webkit-transform: scale(0.45);
+		-moz-transform: scale(0.45);
+		-o-transform: scale(0.45);
+		-ms-transform: scale(0.45);
+		transform: scale(0.45);
+	}
 }

@@ -35,7 +35,6 @@
   <!-- Javascript for Cloud Drive support of CMIS -->
   <module>
     <name>jqueryUI</name>
-    <as>jqueryUI</as>
     <script>
       <path>/js/jquery-ui.min.js</path>
     </script>
@@ -68,7 +67,6 @@
 
   <module>
     <name>cloudDrive_cmis</name>
-    <as>cloudDriveCMIS</as>
     <script>
       <path>/js/clouddrive-cmis.js</path>
     </script>
