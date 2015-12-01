@@ -13,12 +13,12 @@
 		var prefixUrl = utils.pageBaseUrl(location);
 
 		var changes;
-		
+
 		var changesTimeout;
 
 		var pollChanges = function(process, drive, timeout) {
 			timeout = timeout && typeof timeout === "number" ? timeout : 2000;
-			//utils.log(">>> poll next changes in " + timeout + "ms for Cloud Drive " + drive.path);
+			// utils.log(">>> poll next changes in " + timeout + "ms for Cloud Drive " + drive.path);
 			clearTimeout(changesTimeout);
 			// wait the timeout, get actual drive state and run delta check (w/ fresh longpoll url)
 			changesTimeout = setTimeout(function() {
@@ -32,7 +32,7 @@
 							return;
 						} else {
 							// cancel previous longpoll request
-							changes.request.abort();	
+							changes.request.abort();
 						}
 					}
 					// get-and-wait longpoll delta from Dropbox
@@ -105,30 +105,20 @@
 		};
 
 		/**
-		 * Initialize Dropbox client on its load on the page (or the page fragment update).
+		 * Initialize Dropbox client in context of current file.
 		 */
-		this.onLoad = function(provider) {
-			// Add an action to "show plain text" tab to load the frame content to the code viewer
-			$(function() {
-				cloudDrive.initTextViewer();
-
-				// we also want use preview link as download link for not viewable files
-				var file = cloudDrive.getContextFile();
-				if (file) {
-					var $notViewable = $(".NotViewable a.btn");
-					$notViewable.attr("href", file.previewLink);
-				}
-			});
+		this.initContext = function(provider) {
+			if (PROVIDER_ID == provider.id) {
+				$(function() {
+					// we want use preview link as download link for not viewable files
+					var file = cloudDrive.getContextFile();
+					if (file) {
+						var $notViewable = $(".NotViewable a.btn");
+						$notViewable.attr("href", file.previewLink);
+					}
+				});
+			}
 		};
-	}
-
-	if (window == top) {// run only in window (not in iframe as gadgets may do)
-		try {
-			// load codemirror styles
-			utils.loadStyle("/cloud-drive/skin/codemirror.css");
-		} catch(e) {
-			utils.log("Error intializing Dropbox client.", e);
-		}
 	}
 
 	return new DropboxClient();

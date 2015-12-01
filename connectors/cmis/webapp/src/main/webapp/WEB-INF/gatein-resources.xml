@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <!--
 
-  Copyright (C) 2013 eXo Platform SAS.
+  Copyright (C) 2015 eXo Platform SAS.
 
   This is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as
@@ -58,29 +58,6 @@
     </depends>
   </module>
   
-  <module>
-    <name>codeMirror</name>
-    <script>
-      <path>/js/codemirror-bundle.min.js</path>
-    </script>
-  </module>
-
-  <module>
-    <name>cloudDrive_cmis</name>
-    <script>
-      <path>/js/clouddrive-cmis.js</path>
-    </script>
-    <depends>
-      <module>jquery</module>
-    </depends>
-    <depends>
-      <module>cloudDrive</module>
-    </depends>
-    <depends>
-      <module>cloudDriveUtils</module>
-    </depends>
-  </module>
-
   <portlet>
     <name>CMISLoginPortlet</name>
     <module>
