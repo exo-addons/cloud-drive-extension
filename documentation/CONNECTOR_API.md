@@ -57,7 +57,10 @@ It's recommended to name connector classes using provider ID. This way configura
 
 **Javascript module name**
 
-When need to provide an additional logic for your connector in client browser, it's possible to define an [AMD](http://en.wikipedia.org/wiki/Asynchronous_module_definition) [module](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html) in the Platform, it will be loaded by Cloud Drive add-on when your connector will initialize its provider in the browser. Javascript module name should have a name in form of `cloudDrive.PROVIDER_ID`, e.g. "cloudDrive.box" for Box. Cloud Drive client automaticaly loads connector module if it is defined in the extension, no special action required.
+When need to provide an additional logic for your connector in client browser, it's possible to define an [AMD](http://en.wikipedia.org/wiki/Asynchronous_module_definition) [module](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html) in the Platform, it will be loaded by Cloud Drive add-on when your connector will initialize its provider in the browser. Javascript module name should have a name in form of `cloudDrive_PROVIDER_ID`, e.g. "cloudDrive\_box" for Box. Cloud Drive client automaticaly loads connector module if it is defined in the extension, no special action required.
+
+_NOTE_
+In versions 1.3.x and prior module names were in form `cloudDrive.PROVIDER_ID`. But since Platform 3.4 Javascript module name cannot contain dots.
 
 **CSS style file**
 
@@ -471,7 +474,7 @@ Cloud Drive comes with Javascript client module for integration in eXo Platform 
 
 Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). Module can provide a special method for implicit on-load initialization: a method `onLoad(provider)`, if exisists, will be invoked by the client on the provider initialization for page or its fragment loading (see example code below).
 
-Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below) and custom initialization of drive and files on the user pages (see "Custom initialization of the user context" below). 
+Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive\_PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below) and custom initialization of drive and files on the user pages (see "Custom initialization of the user context" below). 
 
 Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. Most of Cloud Drive methods return [jQuery Promise](http://api.jquery.com/deferred.promise/) object which can be used for callbacks registration for connect or synchronization operations. 
 

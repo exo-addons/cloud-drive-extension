@@ -47,7 +47,7 @@ Users of Platform 4.1 and higher, and those who installed [Addons Manager](https
 ./addon install exo-cloud-drive
 ```
 
-If want install latest development milestone use "--unstable" key with the _addon_ tool.
+If want install latest development milestone (beta or RC) use "--unstable" option with the _addon_ tool. To install current development version (daily build from our CI) use "--snapshots" option.
 
 Users of base Platform 4.0 need [download](http://sourceforge.net/projects/exo/files/Addons/Cloud%20Drive/) the add-on bundle and extract it to `extensions` subfolder in the Platform folder.
 
@@ -62,6 +62,7 @@ Install the add-on extension from root of the Platform:
 ```
 
 This will copy required files to the Platform Tomcat folders, details will be printed to the console.
+
 
 Enable Google Drive API
 -----------------------
@@ -126,6 +127,8 @@ Important notice that username and password will be sent in plain text, thus ena
 
 More information find on [CMIS connector page](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
 
+If you need connect Microsoft SharePoint in eXo Platform, use out [dedicated add-on](https://github.com/exo-addons/cloud-drive-sharepoint) based on the Cloud Drive.
+
 Configuration
 -------------
 
@@ -150,6 +153,39 @@ By default, Cloud Drive assumes that it runs on non-secure host (http protocol).
 For more details check [configuration section](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/README.md) on connectors page. 
 
 CMIS connector has additional optional settings to [configure](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
+
+Enable and disable connectors
+-----------------------------
+
+Cloud Drive allows you to manage which connectors from available to use in your server. There are several levels where connectors can be removed or disabled. 
+
+Since Cloud Drive version 1.3.1 and all 1.4, it's possible to disable a connector by configuration:
+- in _exo.properties_ by property in format clouddrive.PROVIDER\_ID.disable where PROVIDER\_ID , e.g. to disable CMIS you need the following
+  
+    clouddrive.cmis.disable=true
+  
+- use `CloudDriveService` component plugin to remove the connector, it is similar to addition configuration: provider's ID and name should be the same as for the added
+    <!-- CMIS connector removal -->
+    <external-component-plugins>
+      <target-component>org.exoplatform.clouddrive.CloudDriveService</target-component>
+      <component-plugin>
+        <name>remove.clouddriveprovider</name>
+        <set-method>removePlugin</set-method>
+        <type>org.exoplatform.clouddrive.cmis.CMISConnector</type>
+        <init-params>
+          <properties-param>
+            <name>drive-configuration</name>
+            <property name="provider-id" value="cmis" />
+            <property name="provider-name" value="CMIS" />
+            <property name="provider-client-id" value="" />
+            <property name="provider-client-secret" value="" />
+          </properties-param>
+        </init-params>
+      </component-plugin>
+    </external-component-plugins>
+
+When you use Cloud Drive from own extension or custom Platform build, then you also can exclude a connector artifacts (JAR and WAR) from the packaging - then Cloud Drive core will not load them at all. If packging approach not possible then you can use XML configuration of `CloudDriveService` as described above.
+
 
 Single Sign-On support
 ----------------------
@@ -189,8 +225,20 @@ Switch to a folder with your Platform and start it.
 Use Cloud Drive extension
 =========================
 
-In running Platform go to Documents app, open Personal Documents folder root and click "Connect your Google Drive".
-Detailed steps described in this post [eXo Add-on in Action: Connecting your Google Drive to eXo Platform](http://blog.exoplatform.com/2013/02/28/exo-add-on-in-action-connecting-your-google-drive-to-exo-platform).
+In running Platform go to Documents app, open Personal Documents folder root and click "Connect Cloud Document". There are also menu actions dedicated for each registred connector, e.g. for Google Drive it will be "Connect your Google Drive". You can enable them via Content Administration menu, in Explorer, Views section go edit the view and edit its action.
+Detailed steps you can find in this post [Access your Box.com documents using this great Cloud Drive Add-on](https://www.exoplatform.com/blog/en/2014/01/15/access-box-com-documents-great-cloud-drive-add).
+
+Troubleshooting
+---------------
+
+Cloud Drive works between two storages: local Platform repository (JCR) and remote cloud services. In most cases the Cloud Drive able to fix the probpems related to connectivity or eventual inconsistency. But rare cases also may have a place: disk failurs that lead to server crash or inconsistency or cloud provider's temporal unavailability will need a human action. When an error happen you will see a red popup with short details, often it will ask run operation later. In most of cases it's enough to refresh the Documents portlet (use Refresh icon), but if doesn't help then need reload the browser page.
+
+In some cases it may be required to remove the connected drive folder and connect it again. This can be required if error cannot be fixed by refreshing the explorer. By drive folder removal need understand only removal of local representation of the drive in eXo Platform - nothing will be deleted actually in your cloud documents. 
+
+Should you care about your local data possibly not saved remotelly? It's depeends on an operation that caused the not recoverable error. If you just uploaded a document via eXo and its synchronization failed, you'll see that your file's name have gray color (semi-transparent), it also may have "Push to..." menu action when selected in the documents explorer. In this case it's recommended to copy your document to some folder outside the local drive folder, e.g. to _Documents_ in root of your Personal Documents. And only then do remove the drive folder. After connecting it again, you will be able to move your document to the drive to upload it remotelly.
+
+When strugling with unrecoverable error in your drive it's also may help to ask your Platform administrator to check the logs. There can be technical details that will help understand the problem and how better to fix it.
+
 
 Developing with Cloud Drive
 ===========================
