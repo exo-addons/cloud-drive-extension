@@ -127,7 +127,7 @@ Important notice that username and password will be sent in plain text, thus ena
 
 More information find on [CMIS connector page](https://github.com/exo-addons/cloud-drive-extension/blob/master/connectors/cmis/README.md).
 
-If you need connect Microsoft SharePoint in eXo Platform, use our [dedicated add-on](https://github.com/exo-addons/cloud-drive-sharepoint) based on the Cloud Drive.
+If you need connect Microsoft SharePoint in eXo Platform, use our [dedicated add-on](https://github.com/exo-addons/cloud-drive-sharepoint) based on the Cloud Drive CMIS connector.
 
 Configuration
 -------------
