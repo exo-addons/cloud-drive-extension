@@ -11,7 +11,7 @@ Currently supported cloud drives:
 * Box
 * Any CMIS compliant repository
 
-This addon is for eXo Platform version 4.0 and 4.1.
+This addon is for eXo Platform version 4.0 and higher.
 
 Getting started
 ===============
