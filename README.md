@@ -233,13 +233,13 @@ Detailed steps you can find in this post [Access your Box.com documents using th
 Troubleshooting
 ---------------
 
-Cloud Drive works between two storages: local Platform repository (JCR) and remote cloud services. In most cases the Cloud Drive able to fix the probpems related to connectivity or eventual inconsistency. But rare cases also may have a place: disk failurs that lead to server crash or inconsistency or cloud provider's temporal unavailability will need a human action. When an error happen you will see a red popup with short details, often it will ask run operation later. In most of cases it's enough to refresh the Documents portlet (use Refresh icon), but if doesn't help then need reload the browser page.
+Cloud Drive works between two storages: local Platform repository (JCR) and remote cloud services. In most cases the Cloud Drive able to fix the problems related to connectivity or eventual inconsistency. But rare cases also may have a place: disk or power failures that lead to server crash or remote cloud temporal errors. They may create data inconsistency that will need a human action. When an error happen you will see a red popup with short details, often it will ask to retry an operation later. In most of cases it will be enough to refresh the Documents portlet (use Refresh icon), but if it doesn't help then need reload the browser page.
 
 In some cases it may be required to remove the connected drive folder and connect it again. This can be required if error cannot be fixed by refreshing the explorer. By drive folder removal need understand only removal of local representation of the drive in eXo Platform - nothing will be deleted actually in your cloud documents. 
 
 Should you care about your local data possibly not saved remotelly? It's depeends on an operation that caused the not recoverable error. If you just uploaded a document via eXo and its synchronization failed, you'll see that your file's name have gray color (semi-transparent), it also may have "Push to..." menu action when selected in the documents explorer. In this case it's recommended to copy your document to some folder outside the local drive folder, e.g. to _Documents_ in root of your Personal Documents. And only then do remove the drive folder. After connecting it again, you will be able to move your document to the drive to upload it remotelly.
 
-When strugling with unrecoverable error in your drive it's also may help to ask your Platform administrator to check the logs. There can be technical details that will help understand the problem and how better to fix it.
+When struggling with unrecoverable error in your drive it's also may help to ask your Platform administrator to check the logs. There can be technical details that will help understand the problem and how better to fix it.
 
 
 Developing with Cloud Drive
