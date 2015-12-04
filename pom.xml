@@ -102,12 +102,12 @@
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
-      <dependency>
+      <!-- dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-config</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
-      </dependency>
+      </dependency -->
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-webapp</artifactId>
@@ -255,7 +255,7 @@
   </dependencyManagement>
   
   <modules>
-    <module>config</module>
+    <!-- module>config</module -->
     <module>services</module>
     <module>webapp</module>
     <module>connectors</module>

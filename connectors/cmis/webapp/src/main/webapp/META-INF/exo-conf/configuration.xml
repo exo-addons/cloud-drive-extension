@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-  Copyright (C) 2014 eXo Platform SAS.
+  Copyright (C) 2015 eXo Platform SAS.
   
   This is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as
@@ -23,14 +23,14 @@
   xsi:schemaLocation="http://www.exoplaform.org/xml/ns/kernel_1_0.xsd http://www.exoplaform.org/xml/ns/kernel_1_0.xsd"
   xmlns="http://www.exoplaform.org/xml/ns/kernel_1_0.xsd">
 
-  <!-- Portal extension configuration for Box -->
+  <!-- Portal extension configuration for CMIS -->
   <external-component-plugins>
     <target-component>org.exoplatform.container.definition.PortalContainerConfig</target-component>
     <component-plugin>
       <name>Change PortalContainer Definitions</name>
       <set-method>registerChangePlugin</set-method>
       <type>org.exoplatform.container.definition.PortalContainerDefinitionChangePlugin</type>
-      <priority>1200</priority>
+      <priority>1100</priority>
       <init-params>
         <value-param>
           <name>apply.default</name>
@@ -42,7 +42,7 @@
             <field name="dependencies">
               <collection type="java.util.ArrayList">
                 <value>
-                  <string>cloud-drive-box</string>
+                  <string>cloud-drive-cmis</string>
                 </value>
               </collection>
             </field>

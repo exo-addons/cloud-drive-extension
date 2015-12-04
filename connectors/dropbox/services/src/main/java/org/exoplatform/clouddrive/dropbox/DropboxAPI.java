@@ -41,7 +41,6 @@ import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.NotFoundException;
 import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.dropbox.JCRLocalDropboxDrive.DbxFileInfo;
 import org.exoplatform.clouddrive.oauth2.UserToken;
 import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.clouddrive.utils.Web;
