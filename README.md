@@ -228,7 +228,7 @@ Use Cloud Drive extension
 =========================
 
 In running Platform go to Documents app, open Personal Documents folder root and click "Connect Cloud Document". There are also menu actions dedicated for each registred connector, e.g. for Google Drive it will be "Connect your Google Drive". You can enable them via Content Administration menu, in Explorer, Views section go edit the view and edit its action.
-Detailed steps you can find in this post [Access your Box.com documents using this great Cloud Drive Add-on](https://www.exoplatform.com/blog/en/2014/01/15/access-box-com-documents-great-cloud-drive-add).
+More details you can find in this post [Connect Dropbox to your documents in eXo](https://www.exoplatform.com/blog/en/2015/08/25/connect-dropbox-to-your-documents-in-exo). There is also described how to share your cloud documents with other users.
 
 Troubleshooting
 ---------------
