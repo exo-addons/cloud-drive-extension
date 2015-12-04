@@ -162,10 +162,10 @@ Cloud Drive allows you to manage which connectors from available to use in your 
 Since Cloud Drive version 1.3.1 and all 1.4, it's possible to disable a connector by configuration:
 * in _exo.properties_ by property in format clouddrive.PROVIDER\_ID.disable where PROVIDER\_ID an actual ID of your connector, e.g. to disable CMIS you need the following
   
-    clouddrive.cmis.disable=true
-  
+    `clouddrive.cmis.disable=true`
   
 * use `CloudDriveService` component plugin to remove the connector, it is similar to addition configuration: provider's ID and name should be the same as for the added
+    ```
     <!-- CMIS connector removal -->
     <external-component-plugins>
       <target-component>org.exoplatform.clouddrive.CloudDriveService</target-component>
@@ -184,7 +184,7 @@ Since Cloud Drive version 1.3.1 and all 1.4, it's possible to disable a connecto
         </init-params>
       </component-plugin>
     </external-component-plugins>
-    
+    ```
 
 When you use Cloud Drive from own extension or custom Platform build, then you also can exclude a connector artifacts (JAR and WAR) from the packaging - then Cloud Drive core will not load them at all. If packaging approach not possible then you can use XML configuration of `CloudDriveService` as described above.
 
