@@ -118,7 +118,7 @@ Cloud Drive connector consists of following artiracts:
 Configuration
 -------------
 
-Connector extension should depend on Cloud Drive extension in its `PortalContainerConfig` settings. The services JAR needs following configuration in `conf/configuration.xml` file: use `PortalContainerDefinitionChange$AddDependenciesAfter` type to add itself as a dependency to the Cloud Drive (replace PROVIDER_ID with your value), priority should be higher of 1000:
+Connector extension should depend on Cloud Drive extension in its `PortalContainerConfig` settings. The web app WAR needs following configuration in `META-INF/exo-conf/configuration.xml` file: use `PortalContainerDefinitionChange$AddDependenciesAfter` type to add itself as a dependency to the Cloud Drive (replace PROVIDER_ID with your value), priority should be higher of 1000:
 
 ```xml
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
