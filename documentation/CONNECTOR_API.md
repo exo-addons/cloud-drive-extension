@@ -12,7 +12,7 @@ Getting started
 
 Depending on needs and features a cloud provider exposes, the Cloud Drive connector can provide a basic API implementation (Java API) or also contain client UI parts such as new forms, templates, scripts or styles. Connector also may provide internationalization resources.
 
-Connector it is a portal extension that depends on Cloud Drive extension. As any other [Platform extension](http://docs.exoplatform.com/PLF40/PLFDevGuide.eXoPlatformExtensions.html), each connector consists of _services JAR_ and _web application WAR_. Services JAR contains Java API implemenation and related resources. Web app WAR contains the connector configuration and, optionally, styles for supported file types, JCR namespaces and nodetypes, required UI pages, templates and scripts. 
+Connector it is a [portal extension](https://www.exoplatform.com/docs/PLF43/PLFDevGuide.eXoAdd-ons.PortalExtension.Mechanism.html) that depends on Cloud Drive extension. Each connector consists of _services JAR_ and _web application WAR_. Services JAR contains Java API implemenation and related resources. Web app WAR contains the connector configuration and, optionally, styles for supported file types, JCR namespaces and nodetypes, required UI pages, templates and scripts. 
 
 Cloud Drive integrated with eXo Documents (eXo ECMS project) to make possible most of operations on remote cloud files as on local documents. Cloud Drive itself introduces an abstraction to represent documents from different souces in cloud in unificated form inside eXo. Thus files from Google Drive, Box.com, or any other connector are accessible through the single API which includes server-side Java API, RESTful services and client-side styles and Javascript. All this has a name - _Connector API_. When creating a new connector need implement this API following the conventions and then deploy the connector to the Platform. 
 
@@ -57,7 +57,10 @@ It's recommended to name connector classes using provider ID. This way configura
 
 **Javascript module name**
 
-When need to provide an additional logic for your connector in client browser, it's possible to define an [AMD](http://en.wikipedia.org/wiki/Asynchronous_module_definition) [module](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html) in the Platform, it will be loaded by Cloud Drive add-on when your connector will initialize its provider in the browser. Javascript module name should have a name in form of `cloudDrive.PROVIDER_ID`, e.g. "cloudDrive.box" for Box. Cloud Drive client automaticaly loads connector module if it is defined in the extension, no special action required.
+When need to provide an additional logic for your connector in client browser, it's possible to define an [AMD](http://en.wikipedia.org/wiki/Asynchronous_module_definition) [module](https://www.exoplatform.com/docs/PLF42/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html) in the Platform, it will be loaded by Cloud Drive add-on when your connector will initialize its provider in the browser. Javascript module name should have a name in form of `cloudDrive_PROVIDER_ID`, e.g. "cloudDrive\_box" for Box. Cloud Drive client automaticaly loads connector module if it is defined in the extension, no special action required.
+
+_NOTE_
+In versions 1.3.x and prior module names were in form `cloudDrive.PROVIDER_ID`. But since Platform 3.4 Javascript module name cannot contain dots.
 
 **CSS style file**
 
@@ -65,7 +68,7 @@ To provide branded styles for your connector and its files you may need load a C
 
 **CSS class names**
 
-eXo ECMS automatically generate CSS class names from [Action UI](http://docs.exoplatform.com/PLF40/PLFRefGuide.PLFDevelopment.Extensions.UIExtensions.UIExtensionComponents.html) components. 
+eXo ECMS automatically generate CSS class names from [Action UI](https://www.exoplatform.com/docs/PLF43/PLFRefGuide.PLFDevelopment.Extensions.UIExtensions.UIExtensionComponents.html) components. 
 Additionaly Cloud Drive adds following classes:
 * for "Connect Cloud Documents" dialog, icons for connectors: `uiIconEcmsConnectDialog-PROVIDER_ID`,
 * for icons of connected drives in Icon, List and Admin views: `uiIcon64x64CloudDrive-PROVIDER_ID`, `uiIcon16x16CloudDrive-PROVIDER_ID` and `uiIcon24x24CloudDrive-PROVIDER_ID`, 
@@ -471,7 +474,7 @@ Cloud Drive comes with Javascript client module for integration in eXo Platform 
 
 Cloud Drive client loads its Javascript using [RequireJS](requirejs.org/docs/api.html) framework integrated in [eXo Platform](http://docs.exoplatform.com/PLF40/sect-Reference_Guide-Javascript_Development-JavaScript_In_GateIn-GMD_Declaring_Module.html). The client it is an [AMD module](http://en.wikipedia.org/wiki/Asynchronous_module_definition) with name `cloudDrive`, it will be loaded when a connector will initialize its provider on the Documents app page (via UI extension context). The module itself will load requires resources for drive providers (CSS, Javascript module etc.). Module can provide a special method for implicit on-load initialization: a method `onLoad(provider)`, if exisists, will be invoked by the client on the provider initialization for page or its fragment loading (see example code below).
 
-Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive.PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below) and custom initialization of drive and files on the user pages (see "Custom initialization of the user context" below). 
+Javascript API pluggable and specific logic can be provided by a connector to invoke synchronization on drive state change. When client module initialized it starts automatic synchrinization and check if a connector module exists for a drve provider. Connector module name should have a name in form of `cloudDrive\_PROVIDER_ID` to be loaded by the client automaticaly. If module loaded successfully, then this module can provide asynchronous invokation on the drive state change (see "Drive state monitoring" below) and custom initialization of drive and files on the user pages (see "Custom initialization of the user context" below). 
 
 Connector module, as any other scripts, can use `cloudDrive` as AMD dependency. Most of Cloud Drive methods return [jQuery Promise](http://api.jquery.com/deferred.promise/) object which can be used for callbacks registration for connect or synchronization operations. 
 
