@@ -1286,7 +1286,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     /**
      * Find file node by its Dropbox path (lower-case or natural form).
      * 
-     * @param path {@link String}
+     * @param file {@link DbxFileInfo}
      * @return {@link Node}
      * @throws RepositoryException
      * @throws CloudDriveException
