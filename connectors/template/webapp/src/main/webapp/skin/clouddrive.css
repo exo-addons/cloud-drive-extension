@@ -19,8 +19,8 @@
 /*
  * Icon of a provider in connect dialog (where all available connectors visible)
  */
-.uiIconEcmsConnectDialog-PROVIDER_ID {
-	background: url('icons/logo-gray-24x24.png') no-repeat scroll left center transparent !important;
+.uiIconEcmsConnectDialog-PROVIDER_ID:before {
+	content: url("icons/logo-gray-24x24.png");
 	height: 32px !important;
 	width: 32px !important;
 }
@@ -38,55 +38,68 @@
 /*
  * Drive icon in side-bar tree.
  */
-.uiIcon16x16CloudDrive-PROVIDER_ID {
-	left: -1px;
-	top: 1px;
+.uiIcon16x16CloudDrive-PROVIDER_ID:before {
+	left: -15px;
+  top: 0px;
 	width: 16px;
   height: 16px;
+  position: absolute !important;
 	-webkit-transform: scale(0.36);
 	-moz-transform: scale(0.36);
 	-o-transform: scale(0.36);
 	-ms-transform: scale(0.36);
 	transform: scale(0.36);
-	background: url("icons/logo-gray-16x16.png") no-repeat center center transparent !important;
+	content: url("icons/logo-gray-16x16.png");
 }
 
 /*
  * Drive icon in Admin/List view.
  */
-.uiIcon24x24CloudDrive-PROVIDER_ID {
-	left: 1px;
-  top: -19px;
+.uiIcon24x24CloudDrive-PROVIDER_ID:before {
+	left: 2px;
+  top: -21px;
   width: 20px;
   height: 20px;
-	-webkit-transform: scale(0.7);
+  position: absolute !important;
+ 	-webkit-transform: scale(0.7);
 	-moz-transform: scale(0.7);
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/logo-gray-16x16.png") no-repeat center center transparent !important;
+	content: url("icons/logo-gray-16x16.png");
 }
 
 /*
  * Drive icon in Icon view.
  */
-.uiIcon64x64CloudDrive-PROVIDER_ID {
-	left: 44px;
-	top: 17px;
+.uiIcon64x64CloudDrive-PROVIDER_ID:before {
+	left: -50px;
+  top: 3px;
 	width: 40px;
   height: 40px;
+  position: absolute !important;
 	-webkit-transform: scale(0.7);
 	-moz-transform: scale(0.7);
 	-o-transform: scale(0.7);
 	-ms-transform: scale(0.7);
 	transform: scale(0.7);
-	background: url("icons/logo-gray-32x32.png") no-repeat center center transparent !important;
+	content: url("icons/logo-gray-32x32.png");
 }
 
 @media (min-width: 481px) and (max-width: 1024px) {
-	.uiIcon24x24CloudDrive-PROVIDER_ID {
-		left: 4px;
-	  top: -28px;
+	.uiIcon16x16CloudDrive-PROVIDER_ID:before {
+		left: -17px;
+		top: 2px;
+		-webkit-transform: scale(0.45);
+		-moz-transform: scale(0.45);
+		-o-transform: scale(0.45);
+		-ms-transform: scale(0.45);
+		transform: scale(0.45);
+	}
+	
+	.uiIcon24x24CloudDrive-PROVIDER_ID:before {
+		left: 7px;
+	  top: -30px;
 	  -webkit-transform: scale(0.9);
 		-moz-transform: scale(0.9);
 		-o-transform: scale(0.9);
@@ -94,24 +107,14 @@
 		transform: scale(0.9);
 	}
 	
-	.uiIcon64x64CloudDrive-PROVIDER_ID {
-		left: 44px;
-		top: 27px;
+	.uiIcon64x64CloudDrive-PROVIDER_ID:before {
+		left: -57px;
+    top: -5px;
 		-webkit-transform: scale(0.9);
 		-moz-transform: scale(0.9);
 		-o-transform: scale(0.9);
 		-ms-transform: scale(0.9);
 		transform: scale(0.9);
-	}
-	
-	.uiIcon16x16CloudDrive-PROVIDER_ID {
-		left: 1px;
-		top: 3px;
-		-webkit-transform: scale(0.45);
-		-moz-transform: scale(0.45);
-		-o-transform: scale(0.45);
-		-ms-transform: scale(0.45);
-		transform: scale(0.45);
 	}
 }
 
