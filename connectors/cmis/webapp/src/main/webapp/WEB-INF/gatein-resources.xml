@@ -76,6 +76,9 @@
       <depends>
         <module>juzu-ajax</module>
       </depends>
+      <depends>
+        <module>bts_dropdown</module>
+      </depends>
     </module>
   </portlet>
 </gatein-resources>

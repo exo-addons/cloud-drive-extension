@@ -3,43 +3,49 @@
 @import "/cloud-drive-cmis/skin/jquery-ui.structure.min.css";
 @import "/cloud-drive-cmis/skin/jquery-ui.theme.min.css";
 
-.uiIconError {
-	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat scroll left top transparent;
-	margin-left: 20px;
-}
-.uiIconWarning {
-	background: url("/eXoResources/skin/images/Icons/uiIconColor.png") no-repeat -20px top transparent;
-	margin-left: 20px;
+#cmis-login-error.error-message {
+	margin: 20px 50px 0;
+	text-align: justify;
 }
 
-#cmis-login-wrapper .error-message {
-	margin: 25px 10px 0;
+#cmis-login-error .uiIconError {
+  background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat scroll left top transparent;
+  padding-left: 20px;
+}
+#cmis-login-error .uiIconError:before {
+	content: none;
 }
 
-#cmis-login-wrapper .error-message .alert {
+#cmis-login-error .uiIconWarning {
+  background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat -20px top transparent;
+  padding-left: 20px;
+}
+#cmis-login-error .uiIconWarning:before {
+	content: none;
+}
+
+#cmis-login-error .alert {
 	background: none repeat scroll 0 0 transparent;
 	border: medium none;
 	box-shadow: none;
 	padding: 0;
 	color: #c09853;
+	width: 420px;
+  margin: 0 auto;
 }
 
-#cmis-login-wrapper .error-message .alert > i {
+#cmis-login-error .alert > i {
 	margin-top: 0px;
 }
 
-label.login-error {
+#cmis-login-wrapper .login-error {
 	position: relative;
 	top: -6px;
 	font-size: 11px;
 	margin-bottom: 0px;
 }
 
-div.control-group {
-	margin-bottom: 0px;
-}
-
-div.login-error-container {
+#cmis-login-wrapper .login-error-container {
 	display: block;
 	height: 12px;
 }
@@ -67,9 +73,27 @@ button.btn.dropdown-toggle {
 }
 
 div.form-buttons {
-	marging-top : 10px;
+	margin-top : 10px;
 }
 
-.input-append {
+#cmis-login-wrapper .input-append {
 	display: block;
+}
+
+#cmis-login-wrapper .control-group {
+	margin-bottom: 2px;
+}
+
+#cmis-login-wrapper .controls {
+	margin-bottom: 5px;
+}
+
+#cmis-login-wrapper .controls input {
+	margin-bottom: 0;
+}
+
+@media (max-width: 1024px) and (min-width: 481px) {
+	#cmis-login-wrapper .btn.dropdown-toggle {
+		height: 32px;
+	}
 }

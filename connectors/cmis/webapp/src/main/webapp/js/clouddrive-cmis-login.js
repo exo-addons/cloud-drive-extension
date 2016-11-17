@@ -22,7 +22,7 @@
 		var providerId = urlParam("providerId");
 		
 		// hide PLF admin toolbar items
-		$("#UIToolbarContainer div.UIContainer").toggle("fade");
+		//$("#UIToolbarContainer div.UIContainer").toggle("fade");
 
 		// setup validator
 		var $message = $("#requiredMessage");
