@@ -24,6 +24,9 @@ import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.config.annotation.EventConfig;
 import org.exoplatform.webui.event.Event;
 
+/**
+ * The Class ConnectBoxActionComponent.
+ */
 @ComponentConfig(
                  events = { @EventConfig(listeners = ConnectBoxActionComponent.ConnectBoxActionListener.class) })
 public class ConnectBoxActionComponent extends BaseConnectActionComponent {
@@ -33,8 +36,20 @@ public class ConnectBoxActionComponent extends BaseConnectActionComponent {
    * */
   protected static final String PROVIDER_ID = "box";
 
+  /**
+   * The listener interface for receiving connectBoxAction events.
+   * The class that is interested in processing a connectBoxAction
+   * event implements this interface, and the object created
+   * with that class is registered with a component using the
+   * component's <code>addConnectBoxActionListener</code> method. When
+   * the connectBoxAction event occurs, that object's appropriate
+   * method is invoked.
+   */
   public static class ConnectBoxActionListener extends UIActionBarActionListener<ConnectBoxActionComponent> {
 
+    /**
+     * {@inheritDoc}
+     */
     public void processEvent(Event<ConnectBoxActionComponent> event) throws Exception {
     }
   }

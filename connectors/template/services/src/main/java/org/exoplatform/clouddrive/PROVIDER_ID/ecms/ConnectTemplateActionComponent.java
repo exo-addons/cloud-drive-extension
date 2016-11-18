@@ -38,10 +38,23 @@ public class ConnectTemplateActionComponent extends BaseConnectActionComponent {
    * */
   protected static final String PROVIDER_ID = "YOUR PROVIDER_ID";
 
+  /**
+   * The listener interface for receiving connectPROVIDER_IDAction events.
+   * The class that is interested in processing a connectPROVIDER_IDAction
+   * event implements this interface, and the object created
+   * with that class is registered with a component using the
+   * component's <code>addConnectPROVIDER_IDActionListener</code> method. When
+   * the connectPROVIDER_IDAction event occurs, that object's appropriate
+   * method is invoked.
+   *
+   */
   public static class ConnectPROVIDER_IDActionListener
                                                       extends
                                                       UIActionBarActionListener<ConnectTemplateActionComponent> {
 
+    /**
+     * {@inheritDoc}
+     */
     public void processEvent(Event<ConnectTemplateActionComponent> event) throws Exception {
     }
   }

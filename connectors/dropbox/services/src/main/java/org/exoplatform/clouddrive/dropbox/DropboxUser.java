@@ -31,6 +31,7 @@ import javax.jcr.RepositoryException;
  */
 public class DropboxUser extends CloudUser {
 
+  /** The api. */
   protected final DropboxAPI api;
 
   /**
@@ -40,7 +41,7 @@ public class DropboxUser extends CloudUser {
    * @param username {@link String}
    * @param email {@link String}
    * @param provider {@link CloudProvider}
-   * @param api {@link TemplateAPI}
+   * @param api {@link DropboxAPI}
    */
   public DropboxUser(String id, String username, String email, CloudProvider provider, DropboxAPI api) {
     super(id, username, email, provider);

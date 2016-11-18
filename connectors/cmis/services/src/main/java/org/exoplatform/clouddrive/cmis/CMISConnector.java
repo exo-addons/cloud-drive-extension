@@ -58,6 +58,7 @@ import javax.jcr.RepositoryException;
  */
 public class CMISConnector extends CloudDriveConnector {
 
+  /** The Constant CONFIG_PREDEFINED. */
   protected static final String CONFIG_PREDEFINED = "";
 
   /**
@@ -65,6 +66,7 @@ public class CMISConnector extends CloudDriveConnector {
    */
   protected class API {
 
+    /** The password. */
     protected String serviceUrl, user, password;
 
     /**
@@ -122,21 +124,46 @@ public class CMISConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * The Class AuthFlow.
+   */
   class AuthFlow {
+    
+    /** The user. */
     final CMISUser user;
 
+    /** The identity. */
     final Identity identity;
 
+    /**
+     * Instantiates a new auth flow.
+     *
+     * @param user the user
+     * @param identity the identity
+     */
     AuthFlow(CMISUser user, Identity identity) {
       this.user = user;
       this.identity = identity;
     }
   }
 
+  /** The code auth. */
   private final CodeAuthentication                  codeAuth;
 
+  /** The users. */
   private final ConcurrentHashMap<String, AuthFlow> users = new ConcurrentHashMap<String, AuthFlow>();
 
+  /**
+   * Instantiates a new CMIS connector.
+   *
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param params the params
+   * @param codeAuth the code auth
+   * @throws ConfigurationException the configuration exception
+   */
   public CMISConnector(RepositoryService jcrService,
                        SessionProviderService sessionProviders,
                        NodeFinder finder,
@@ -156,6 +183,9 @@ public class CMISConnector extends CloudDriveConnector {
     return (CMISProvider) super.getProvider();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudProvider createProvider() throws ConfigurationException {
     String redirectURL = redirectLink();
@@ -208,9 +238,10 @@ public class CMISConnector extends CloudDriveConnector {
    * done outside this connector (e.g. via dedicated authenticator).<br>
    * CMIS connector will detect if dedicated connector available for given service and then will return user
    * instance initialized by that connector.
-   * 
-   * @param code {@link String} authentication code
+   *
+   * @param params the params
    * @return {@link CMISUser}
+   * @throws CloudDriveException the cloud drive exception
    */
   @Override
   protected CMISUser authenticate(Map<String, String> params) throws CloudDriveException {
@@ -271,6 +302,9 @@ public class CMISConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof CMISUser) {
@@ -282,6 +316,9 @@ public class CMISConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
@@ -292,6 +329,11 @@ public class CMISConnector extends CloudDriveConnector {
 
   // ***** specifics ******
 
+  /**
+   * Exo URL.
+   *
+   * @return the string
+   */
   protected String exoURL() {
     StringBuilder exoURL = new StringBuilder();
     exoURL.append(getConnectorSchema());
@@ -301,12 +343,12 @@ public class CMISConnector extends CloudDriveConnector {
   }
 
   /**
-   * Create {@link CMISAPI} instance.<b>
-   * 
+   * Create {@link CMISAPI} instance.<br>
+   *
    * @param userId {@link Identity}
    * @return {@link CMISAPI} instance
-   * @throws CMISException
-   * @throws CloudDriveException
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected CMISAPI createAPI(Identity userId) throws CMISException, CloudDriveException {
     return new API().auth(userId.getUser(), userId.getPassword()).serviceUrl(userId.getServiceURL()).build();
@@ -314,12 +356,11 @@ public class CMISConnector extends CloudDriveConnector {
 
   /**
    * Create an instance of {@link CMISUser} using data from given {@link Identity} or/and {@link CMISAPI}.
-   * 
+   *
    * @param userId {@link Identity}
-   * @param api {@link CMISAPI}
    * @return {@link CMISUser}
-   * @throws CMISException
-   * @throws CloudDriveException
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected CMISUser createUser(Identity userId) throws CMISException, CloudDriveException {
     CMISAPI api = createAPI(userId);

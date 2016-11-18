@@ -35,12 +35,21 @@ import org.exoplatform.webui.config.annotation.ComponentConfig;
 @ComponentConfig(template = "classpath:groovy/templates/DefaultFileViewer.gtmpl")
 public class DefaultFileViewer extends AbstractFileViewer {
 
+  /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(DefaultFileViewer.class);
 
+  /**
+   * Instantiates a new default file viewer.
+   */
   public DefaultFileViewer() {
     super();
   }
 
+  /**
+   * Instantiates a new default file viewer.
+   *
+   * @param viewableMaxSize the viewable max size
+   */
   protected DefaultFileViewer(long viewableMaxSize) {
     super(viewableMaxSize);
   }

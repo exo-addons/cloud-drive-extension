@@ -31,18 +31,23 @@ import javax.jcr.RepositoryException;
  */
 public class DropboxProvider extends CloudProvider {
 
+  /** The auth bilder. */
   protected final API            authBilder;
 
+  /** The redirect URL. */
   protected final String            redirectURL;
 
+  /** The jcr service. */
   protected final RepositoryService jcrService;
 
   /**
-   * @param id
-   * @param name
-   * @param authURL
-   * @param redirectURL
-   * @param jcrService
+   * Instantiates a new dropbox provider.
+   *
+   * @param id the id
+   * @param name the name
+   * @param authBilder the auth bilder
+   * @param redirectURL the redirect URL
+   * @param jcrService the jcr service
    */
   public DropboxProvider(String id, String name, API authBilder, String redirectURL, RepositoryService jcrService) {
     super(id, name);
@@ -71,6 +76,8 @@ public class DropboxProvider extends CloudProvider {
   }
 
   /**
+   * Gets the redirect URL.
+   *
    * @return the redirectURL
    */
   public String getRedirectURL() {

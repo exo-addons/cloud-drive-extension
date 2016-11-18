@@ -22,14 +22,14 @@ import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxUser.java 00000 Aug 30, 2013 pnedonosko $
- * 
  */
 public class BoxUser extends CloudUser {
 
+  /** The api. */
   protected final BoxAPI api;
 
   /**

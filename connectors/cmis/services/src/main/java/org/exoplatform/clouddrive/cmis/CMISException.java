@@ -26,28 +26,32 @@ import org.exoplatform.clouddrive.CloudProviderException;
  */
 public class CMISException extends CloudProviderException {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 6749012210061821060L;
 
   /**
-   * @param message
+   * Instantiates a new CMIS exception.
+   *
+   * @param message the message
    */
   public CMISException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new CMIS exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public CMISException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param cause
+   * Instantiates a new CMIS exception.
+   *
+   * @param cause the cause
    */
   public CMISException(Throwable cause) {
     super(cause);

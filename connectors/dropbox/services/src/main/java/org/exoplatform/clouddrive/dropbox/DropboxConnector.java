@@ -67,8 +67,12 @@ import javax.jcr.RepositoryException;
  */
 public class DropboxConnector extends CloudDriveConnector {
 
+  /**
+   * The Class AuthSessionStore.
+   */
   class AuthSessionStore implements DbxSessionStore {
 
+    /** The state. */
     final AtomicReference<String> state = new AtomicReference<String>();
 
     /**
@@ -100,18 +104,31 @@ public class DropboxConnector extends CloudDriveConnector {
    * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
    */
   class API {
+    
+    /** The app info. */
     final DbxAppInfo        appInfo    = new DbxAppInfo(getClientId(), getClientSecret());
 
+    /** The auth config. */
     final DbxRequestConfig  authConfig = new DbxRequestConfig("eXo Cloud Drive Client", Locale.getDefault().toString());
 
+    /** The access token. */
     String                  redirectUri, accessToken;
 
+    /** The auths. */
     Map<String, DbxWebAuth> auths      = new HashMap<String, DbxWebAuth>();
 
+    /** The auth links. */
     Map<String, String>     authLinks  = new HashMap<String, String>();
 
+    /** The params. */
     Map<String, String[]>   params;
 
+    /**
+     * Inits the.
+     *
+     * @param user the user
+     * @return the dbx web auth
+     */
     private synchronized DbxWebAuth init(String user) {
       DbxWebAuth auth = auths.get(user);
       if (auth == null) {
@@ -121,6 +138,12 @@ public class DropboxConnector extends CloudDriveConnector {
       return auth;
     }
 
+    /**
+     * Finish.
+     *
+     * @param user the user
+     * @return the dbx web auth
+     */
     private synchronized DbxWebAuth finish(String user) {
       return auths.remove(user);
     }
@@ -155,8 +178,8 @@ public class DropboxConnector extends CloudDriveConnector {
 
     /**
      * Authenticate to the API with OAuth2 parameters returned from redirect request.
-     * 
-     * @param params
+     *
+     * @param params the params
      * @return this API
      */
     API auth(Map<String, String> params) {
@@ -171,8 +194,8 @@ public class DropboxConnector extends CloudDriveConnector {
 
     /**
      * Authenticate to the API with locally stored tokens.
-     * 
-     * @param accessToken
+     *
+     * @param accessToken the access token
      * @return this API
      */
     API load(String accessToken) {
@@ -242,10 +265,23 @@ public class DropboxConnector extends CloudDriveConnector {
     }
   }
 
+  /** The organization. */
   protected final OrganizationService organization;
 
+  /** The api builder. */
   protected API                       apiBuilder;
 
+  /**
+   * Instantiates a new dropbox connector.
+   *
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
+   * @param organization the organization
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
   public DropboxConnector(RepositoryService jcrService,
                           SessionProviderService sessionProviders,
                           OrganizationService organization,
@@ -265,6 +301,9 @@ public class DropboxConnector extends CloudDriveConnector {
     return (DropboxProvider) super.getProvider();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudProvider createProvider() throws ConfigurationException {
     // this method will be called from the constructor: need init API builder
@@ -279,6 +318,9 @@ public class DropboxConnector extends CloudDriveConnector {
     return new DropboxProvider(getProviderId(), getProviderName(), apiBuilder, redirectURL, jcrService);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
     String code = params.get(OAUTH2_CODE);
@@ -294,6 +336,9 @@ public class DropboxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof DropboxUser) {
@@ -305,6 +350,9 @@ public class DropboxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);

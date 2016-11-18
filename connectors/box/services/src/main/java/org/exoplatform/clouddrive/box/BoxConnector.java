@@ -40,11 +40,10 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxConnector.java 00000 Aug 30, 2013 pnedonosko $
- * 
  */
 public class BoxConnector extends CloudDriveConnector {
 
@@ -64,8 +63,11 @@ public class BoxConnector extends CloudDriveConnector {
    * Box API builder (code grabbed from GoogleDriveConnector, 30 Aug 2013).
    */
   class API {
+    
+    /** The access token. */
     String code, refreshToken, accessToken;
 
+    /** The expiration time. */
     long   expirationTime;
 
     /**
@@ -81,10 +83,10 @@ public class BoxConnector extends CloudDriveConnector {
 
     /**
      * Authenticate to the API with locally stored tokens.
-     * 
-     * @param refreshToken
-     * @param accessToken
-     * @param expirationTime
+     *
+     * @param refreshToken the refresh token
+     * @param accessToken the access token
+     * @param expirationTime the expiration time
      * @return this API
      */
     API load(String refreshToken, String accessToken, long expirationTime) {
@@ -112,6 +114,16 @@ public class BoxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * Instantiates a new box connector.
+   *
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
   public BoxConnector(RepositoryService jcrService,
                       SessionProviderService sessionProviders,
                       NodeFinder finder,
@@ -150,6 +162,9 @@ public class BoxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudProvider createProvider() {
     String redirectURL = redirectLink();
@@ -224,6 +239,9 @@ public class BoxConnector extends CloudDriveConnector {
                            jcrService);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
     String code = params.get(OAUTH2_CODE);
@@ -237,6 +255,9 @@ public class BoxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof BoxUser) {
@@ -248,6 +269,9 @@ public class BoxConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);

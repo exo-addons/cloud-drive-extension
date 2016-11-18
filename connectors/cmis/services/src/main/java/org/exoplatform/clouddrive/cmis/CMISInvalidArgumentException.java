@@ -33,8 +33,10 @@ import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentExcep
 public class CMISInvalidArgumentException extends CMISException {
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new CMIS invalid argument exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public CMISInvalidArgumentException(String message, Throwable cause) {
     super(message, cause);

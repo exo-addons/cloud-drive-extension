@@ -26,22 +26,31 @@ import org.exoplatform.webui.event.Event;
 
 /**
  * CMIS UI component for a menu action dedicated to a single provider. Its UI configuration will refer
- * the action by "ConnectCMIS" key (see in webapp config), rename it for an actual name (e.g. based on provider ID).
+ * the action by "ConnectCMIS" key (see in webapp config), rename it for an actual name (e.g. based on
+ * provider ID).
  */
-@ComponentConfig(
-                 events = { @EventConfig(
-                                         listeners = ConnectCMISActionComponent.ConnectCMISActionListener.class) })
+@ComponentConfig(events = { @EventConfig(listeners = ConnectCMISActionComponent.ConnectCMISActionListener.class) })
 public class ConnectCMISActionComponent extends BaseConnectActionComponent {
 
   /**
    * CMISProvider ID from configuration.
-   * */
+   */
   protected static final String PROVIDER_ID = "cmis";
 
-  public static class ConnectCMISActionListener
-                                                      extends
-                                                      UIActionBarActionListener<ConnectCMISActionComponent> {
+  /**
+   * The listener interface for receiving connectCMISAction events.
+   * The class that is interested in processing a connectCMISAction
+   * event implements this interface, and the object created
+   * with that class is registered with a component using the
+   * component's <code>addConnectCMISActionListener</code> method. When
+   * the connectCMISAction event occurs, that object's appropriate
+   * method is invoked.
+   */
+  public static class ConnectCMISActionListener extends UIActionBarActionListener<ConnectCMISActionComponent> {
 
+    /**
+     * {@inheritDoc}
+     */
     public void processEvent(Event<ConnectCMISActionComponent> event) throws Exception {
     }
   }

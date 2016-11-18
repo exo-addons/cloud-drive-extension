@@ -64,10 +64,6 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
-import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.version.VersionException;
 
 /**
  * Local drive for Dropbox provider.<br>
@@ -80,8 +76,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   public static final long   DEFAULT_LINK_EXPIRATION_PERIOD = 3 * 60 * 60 * 1000; // 3hrs
 
+  /** The Constant FOLDER_REV. */
   public static final String FOLDER_REV                     = "".intern();
 
+  /** The Constant FOLDER_TYPE. */
   public static final String FOLDER_TYPE                    = "folder".intern();
 
   /**
@@ -92,10 +90,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     /**
      * Process locally applied file (it can be any extra operations including the gathering of effected
      * files/stats or chunk saving in JRC).
-     * 
+     *
      * @param changedFile {@link JCRLocalCloudFile} changed file
-     * @throws RepositoryException
-     * @throws CloudDriveException
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
      */
     void apply(JCRLocalCloudFile changedFile) throws RepositoryException, CloudDriveException;
 
@@ -105,7 +103,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * @param parentId {@link String}
      * @param fileId {@link String}
      * @return boolean, <code>true</code> if file was already applied, <code>false</code> otherwise.
-     * @see
      */
     boolean canApply(String parentId, String fileId);
   }
@@ -115,8 +112,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   protected class Connect extends ConnectCommand implements Changes {
 
+    /** The api. */
     protected final DropboxAPI api;
 
+    /**
+     * Instantiates a new connect.
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
+     */
     protected Connect() throws RepositoryException, DriveRemovedException {
       this.api = getUser().api();
     }
@@ -140,6 +144,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       updateState(connectCursor);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void apply(JCRLocalCloudFile localFile) throws RepositoryException, CloudDriveException {
       String parentIdPath = fileAPI.getParentId(localFile.getNode());
       addConnected(parentIdPath, localFile);
@@ -170,9 +177,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Create command for Template synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected FullSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -218,6 +225,15 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       updateState(syncCursor);
     }
 
+    /**
+     * Sync childs.
+     *
+     * @param folderId the folder id
+     * @param parent the parent
+     * @return the object
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected Object syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
       FileMetadata items = api.getWithChildren(folderId, null);// TODO items can be null
       iterators.add(items);
@@ -267,6 +283,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Execute full sync from current thread.
+     *
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
      */
     protected void execLocal() throws CloudDriveException, RepositoryException {
       // XXX we need this to be able run it from EventsSync.syncFiles()
@@ -298,6 +317,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
   }
 
+  /**
+   * The Class MovedFile.
+   */
   protected class MovedFile {
 
     /**
@@ -315,6 +337,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     protected final long   expirationTime;
 
+    /**
+     * Instantiates a new moved file.
+     *
+     * @param path the path
+     * @param nodePath the node path
+     */
     protected MovedFile(String path, String nodePath) {
       super();
       this.path = path;
@@ -323,10 +351,20 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       this.expirationTime = System.currentTimeMillis() + 15000;
     }
 
+    /**
+     * Checks if is not outdated.
+     *
+     * @return true, if is not outdated
+     */
     protected boolean isNotOutdated() {
       return this.expirationTime >= System.currentTimeMillis();
     }
 
+    /**
+     * Checks if is outdated.
+     *
+     * @return true, if is outdated
+     */
     protected boolean isOutdated() {
       return this.expirationTime < System.currentTimeMillis();
     }
@@ -342,6 +380,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     protected final DropboxAPI api;
 
+    /**
+     * Instantiates a new file API.
+     */
     FileAPI() {
       this.api = getUser().api();
     }
@@ -909,10 +950,30 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     // ********* internals **********
 
+    /**
+     * Gets the rev.
+     *
+     * @param fileNode the file node
+     * @return the rev
+     * @throws RepositoryException the repository exception
+     */
     protected String getRev(Node fileNode) throws RepositoryException {
       return fileNode.getProperty("dropbox:rev").getString();
     }
 
+    /**
+     * Upload file.
+     *
+     * @param fileNode the file node
+     * @param created the created
+     * @param modified the modified
+     * @param mimeType the mime type
+     * @param content the content
+     * @param update the update
+     * @return the cloud file
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected CloudFile uploadFile(Node fileNode,
                                    Calendar created,
                                    Calendar modified,
@@ -988,6 +1049,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                    true);
     }
 
+    /**
+     * Removes the.
+     *
+     * @param node the node
+     * @throws RepositoryException the repository exception
+     */
     protected void remove(Node node) throws RepositoryException {
       // remove only if not already ignored
       if (!fileAPI.isIgnored(node)) {
@@ -999,6 +1066,18 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
+    /**
+     * Move.
+     *
+     * @param node the node
+     * @return the dbx entry
+     * @throws RepositoryException the repository exception
+     * @throws TooManyFilesException the too many files exception
+     * @throws DropboxException the dropbox exception
+     * @throws RefreshAccessException the refresh access exception
+     * @throws ConflictException the conflict exception
+     * @throws NotFoundException the not found exception
+     */
     protected DbxEntry move(Node node) throws RepositoryException,
                                        TooManyFilesException,
                                        DropboxException,
@@ -1081,6 +1160,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
+    /**
+     * Update subtree.
+     *
+     * @param folderNode the folder node
+     * @param folderIdPath the folder id path
+     * @throws RepositoryException the repository exception
+     */
     protected void updateSubtree(Node folderNode, String folderIdPath) throws RepositoryException {
       for (NodeIterator niter = folderNode.getNodes(); niter.hasNext();) {
         Node node = niter.nextNode();
@@ -1099,9 +1185,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     /**
      * Reset Dropbox file direct/shared link to force generation of a new one within new path. It is a
      * required step when copying or moving file - Dropbox maintains links respectively the file location.
-     * 
-     * @param fileNode
-     * @throws RepositoryException
+     *
+     * @param fileNode the file node
+     * @throws RepositoryException the repository exception
      */
     protected void resetSharing(Node fileNode) throws RepositoryException {
       // by setting null in JCR we remove the property if it was found
@@ -1111,6 +1197,19 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
+    /**
+     * Copy.
+     *
+     * @param sourceNode the source node
+     * @param destNode the dest node
+     * @return the dbx entry
+     * @throws RepositoryException the repository exception
+     * @throws TooManyFilesException the too many files exception
+     * @throws DropboxException the dropbox exception
+     * @throws RefreshAccessException the refresh access exception
+     * @throws ConflictException the conflict exception
+     * @throws NotFoundException the not found exception
+     */
     protected DbxEntry copy(Node sourceNode, Node destNode) throws RepositoryException,
                                                             TooManyFilesException,
                                                             DropboxException,
@@ -1161,9 +1260,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Create command for Template synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected EventsSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -1285,11 +1384,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Find file node by its Dropbox path (lower-case or natural form).
-     * 
+     *
      * @param file {@link DbxFileInfo}
      * @return {@link Node}
-     * @throws RepositoryException
-     * @throws CloudDriveException
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
      */
     protected Node getFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
       // FYI Drive root nodes already in the map
@@ -1303,11 +1402,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Remove file or folder node by its Dropbox path (lower-case or natural form).
-     * 
+     *
      * @param file {@link DbxFileInfo}
      * @return <code>true</code> if file found and successfully removed, <code>false</code> otherwise
-     * @throws RepositoryException
-     * @throws CloudDriveException
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
      */
     protected boolean removeFile(DbxFileInfo file) throws RepositoryException, CloudDriveException {
       Node node = pathNodes.remove(file.idPath);
@@ -1327,11 +1426,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Find nearest existing ancestor of the file using its Dropbox path (lower-case or natural form).
-     * 
+     *
      * @param file {@link DbxFileInfo}
      * @return {@link Node}
-     * @throws RepositoryException
-     * @throws CloudDriveException
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
      * @throws IllegalArgumentException when file argument is a root drive of Dropbox
      */
     protected Node getExistingAncestor(DbxFileInfo file) throws RepositoryException,
@@ -1356,6 +1455,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
+    /**
+     * Read node.
+     *
+     * @param file the file
+     * @return the node
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected Node readNode(DbxFileInfo file) throws RepositoryException, CloudDriveException {
       Node parent = getParent(file);
       if (parent != null) {
@@ -1371,11 +1478,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     /**
      * Return parent node of the given file path.
-     * 
+     *
      * @param file {@link DbxFileInfo}
      * @return {@link Node}
-     * @throws RepositoryException
-     * @throws CloudDriveException
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
      */
     protected Node getParent(DbxFileInfo file) throws RepositoryException, CloudDriveException {
       Node parent;
@@ -1396,14 +1503,25 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
   }
 
+  /**
+   * The Class DropboxState.
+   */
   public class DropboxState extends DriveState {
 
+    /** The cursor. */
     final String cursor;
 
+    /** The url. */
     final String url;
 
+    /** The timeout. */
     final int    timeout;
 
+    /**
+     * Instantiates a new dropbox state.
+     *
+     * @param cursor the cursor
+     */
     protected DropboxState(String cursor) {
       this.cursor = cursor;
       this.timeout = DropboxAPI.DELTA_LONGPOLL_TIMEOUT;
@@ -1415,6 +1533,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
+     * Gets the cursor.
+     *
      * @return the cursor
      */
     public String getCursor() {
@@ -1422,6 +1542,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
+     * Gets the url.
+     *
      * @return the url
      */
     public String getUrl() {
@@ -1429,6 +1551,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
+     * Gets the timeout.
+     *
      * @return the timeout
      */
     public int getTimeout() {
@@ -1465,6 +1589,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     protected DbxFileInfo  parent;
 
+    /**
+     * Instantiates a new dbx file info.
+     *
+     * @param dbxPath the dbx path
+     */
     protected DbxFileInfo(String dbxPath) {
       if (dbxPath == null) {
         throw new NullPointerException("Null path not allowed");
@@ -1516,6 +1645,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       this.parentPath = parentPath;
     }
 
+    /**
+     * Gets the lazy obtained parent info instance.
+     *
+     * @return the lazy obtained parent info instance
+     */
     protected DbxFileInfo getParent() {
       if (isRoot()) {
         return null;
@@ -1527,6 +1661,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
     }
 
+    /**
+     * Checks if is root.
+     *
+     * @return true, if is root
+     */
     protected boolean isRoot() {
       return parentPath == null;
     }
@@ -1543,27 +1682,45 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   protected Map<String, MovedFile> moved = new ConcurrentHashMap<String, MovedFile>();
 
   /**
-   * @param user
-   * @param driveNode
-   * @param sessionProviders
-   * @throws CloudDriveException
-   * @throws RepositoryException
+   * Instantiates a new JCR local dropbox drive.
+   *
+   * @param user the user
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
    */
   protected JCRLocalDropboxDrive(DropboxUser user,
                                  Node driveNode,
                                  SessionProviderService sessionProviders,
                                  NodeFinder finder,
-                                 ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException, RepositoryException {
+                                 ExtendedMimeTypeResolver mimeTypes)
+      throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
 
+  /**
+   * Instantiates a new JCR local dropbox drive.
+   *
+   * @param apiBuilder the api builder
+   * @param provider the provider
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected JCRLocalDropboxDrive(API apiBuilder,
                                  DropboxProvider provider,
                                  Node driveNode,
                                  SessionProviderService sessionProviders,
                                  NodeFinder finder,
-                                 ExtendedMimeTypeResolver mimeTypes) throws RepositoryException, CloudDriveException {
+                                 ExtendedMimeTypeResolver mimeTypes)
+      throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
 
@@ -1585,20 +1742,25 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     driveNode.setProperty("ecd:url", DropboxAPI.ROOT_URL);
   }
 
+  /**
+   * Update state.
+   *
+   * @param cursor the cursor
+   */
   protected void updateState(String cursor) {
     this.state = new DropboxState(cursor);
   }
 
   /**
    * Load user from the drive Node.
-   * 
+   *
    * @param apiBuilder {@link API} API builder
    * @param provider {@link DropboxProvider}
    * @param driveNode {@link Node} root of the drive
    * @return {@link DropboxUser}
-   * @throws RepositoryException
-   * @throws DropboxException
-   * @throws CloudDriveException
+   * @throws RepositoryException the repository exception
+   * @throws DropboxException the dropbox exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected static DropboxUser loadUser(API apiBuilder, DropboxProvider provider, Node driveNode) throws RepositoryException,
                                                                                                   DropboxException,
@@ -1615,8 +1777,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * {@inheritDoc}
-   * 
-   * @throws DropboxException
    */
   @Override
   public void onUserTokenRefresh(UserToken token) throws CloudDriveException {
@@ -1780,11 +1940,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * Initialize cloud's common specifics of files and folders.
-   * 
+   *
    * @param localNode {@link Node}
    * @param item {@link Object}
-   * @throws RepositoryException
-   * @throws DropboxException
+   * @throws RepositoryException the repository exception
+   * @throws DropboxException the dropbox exception
    */
   @Deprecated // Nothing common to init for Dropbox
   protected void initCloudItem(Node localNode, Object item) throws RepositoryException, DropboxException {
@@ -1813,11 +1973,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * Initialize Dropbox file.
-   * 
+   *
    * @param localNode {@link Node}
-   * @param file {@link DbxEntry.File}
-   * @throws RepositoryException
-   * @throws DropboxException
+   * @param mightHaveThumbnail the might have thumbnail
+   * @param iconName the icon name
+   * @param rev the rev
+   * @param size the size
+   * @throws RepositoryException the repository exception
+   * @throws DropboxException the dropbox exception
    */
   protected void initDropboxFile(Node localNode,
                                  Boolean mightHaveThumbnail,
@@ -1836,13 +1999,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * Initialize Dropbox folder.
-   * 
+   *
    * @param localNode {@link Node}
    * @param mightHaveThumbnail {@link Boolean}
    * @param iconName {@link String}
    * @param deltaHash String a hash of last Delta synchronization, if <code>null</code> it will be ignored
-   * @throws RepositoryException
-   * @throws DropboxException
+   * @throws RepositoryException the repository exception
+   * @throws DropboxException the dropbox exception
    */
   protected void initDropboxFolder(Node localNode,
                                    Boolean mightHaveThumbnail,
@@ -1856,12 +2019,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * Initialize Dropbox entry (commons for file and folder).
-   * 
+   *
    * @param localNode {@link Node}
    * @param mightHaveThumbnail {@link Boolean}
    * @param iconName {@link String}
-   * @throws RepositoryException
-   * @throws DropboxException
+   * @throws RepositoryException the repository exception
+   * @throws DropboxException the dropbox exception
    */
   protected void initDropboxCommon(Node localNode, Boolean mightHaveThumbnail, String iconName) throws RepositoryException,
                                                                                                 DropboxException {
@@ -1939,17 +2102,18 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         link = thumbnailLink = null;
       }
 
-      localFile = new JCRLocalCloudFile(node.getPath(),
-                                        id,
-                                        title,
-                                        link(node),
-                                        type,
-                                        modifiedBy,
-                                        createdBy,
-                                        created,
-                                        modified,
-                                        node,
-                                        changed);
+      localFile =
+                new JCRLocalCloudFile(node.getPath(),
+                                      id,
+                                      title,
+                                      link(node),
+                                      type,
+                                      modifiedBy,
+                                      createdBy,
+                                      created,
+                                      modified,
+                                      node,
+                                      changed);
     } else {
       DbxEntry.File dbxFile = metadata.asFile();
 
@@ -2023,6 +2187,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return localFile;
   }
 
+  /**
+   * Creates the shared link.
+   *
+   * @param fileNode the file node
+   * @return the string
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected String createSharedLink(Node fileNode) throws RepositoryException, CloudDriveException {
     String idPath = fileAPI.getId(fileNode);
     // obtain shared link from Dropbox
@@ -2189,6 +2361,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return ContentService.contentLink(rootWorkspace, fileNode.getPath(), idPath);
   }
 
+  /**
+   * Not in range.
+   *
+   * @param path the path
+   * @param range the range
+   * @return true, if successful
+   */
   protected boolean notInRange(String path, Collection<String> range) {
     for (String p : range) {
       if (path.startsWith(p)) {
@@ -2209,6 +2388,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return loPath;
   }
 
+  /**
+   * Find mimetype.
+   *
+   * @param fileName the file name
+   * @return the string
+   */
   protected String findMimetype(String fileName) {
     final String defaultType = mimeTypes.getDefaultMimeType();
     String fileType;
@@ -2221,11 +2406,34 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return fileType;
   }
 
+  /**
+   * Restore subtree.
+   *
+   * @param api the api
+   * @param idPath the id path
+   * @param node the node
+   * @return the dbx entry
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
+   */
   protected DbxEntry restoreSubtree(DropboxAPI api, String idPath, Node node) throws CloudDriveException,
                                                                               RepositoryException {
     return fetchSubtree(api, idPath, node, false, null, null);
   }
 
+  /**
+   * Fetch subtree.
+   *
+   * @param api the api
+   * @param idPath the id path
+   * @param node the node
+   * @param useHash the use hash
+   * @param iterators the iterators
+   * @param changes the changes
+   * @return the dbx entry
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
+   */
   protected DbxEntry fetchSubtree(DropboxAPI api,
                                   String idPath,
                                   Node node,
@@ -2274,6 +2482,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return null;
   }
 
+  /**
+   * Folder hash.
+   *
+   * @param node the node
+   * @return the string
+   * @throws RepositoryException the repository exception
+   */
   protected String folderHash(Node node) throws RepositoryException {
     String hash;
     if (fileAPI.isFolder(node)) {
@@ -2291,6 +2506,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     return hash;
   }
 
+  /**
+   * Clean expired moved.
+   */
   protected void cleanExpiredMoved() {
     for (Iterator<MovedFile> fiter = moved.values().iterator(); fiter.hasNext();) {
       MovedFile file = fiter.next();
@@ -2314,10 +2532,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * current session.<br>
    * NOTE: this method doesn't check if it is a cloud file and doesn't respect JCR namespaces and will check
    * against the whole name of the file.
-   * 
+   *
    * @param fileNode {@link Node}
    * @return {@link Node} the same as given or renamed to lower-case name.
-   * @throws RepositoryException
+   * @throws RepositoryException the repository exception
    */
   protected Node normalizeName(Node fileNode) throws RepositoryException {
     String jcrName = fileNode.getName();

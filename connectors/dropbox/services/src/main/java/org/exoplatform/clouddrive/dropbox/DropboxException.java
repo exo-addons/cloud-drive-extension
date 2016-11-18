@@ -27,22 +27,28 @@ import org.exoplatform.clouddrive.CloudProviderException;
 public class DropboxException extends CloudProviderException {
 
   /**
-   * @param message
+   * Instantiates a new dropbox exception.
+   *
+   * @param message the message
    */
   public DropboxException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new dropbox exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public DropboxException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param cause
+   * Instantiates a new dropbox exception.
+   *
+   * @param cause the cause
    */
   public DropboxException(Throwable cause) {
     super(cause);

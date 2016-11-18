@@ -72,6 +72,7 @@ import java.util.regex.Pattern;
  */
 public class BoxAPI {
 
+  /** The Constant LOG. */
   protected static final Log             LOG                         = ExoLogger.getLogger(BoxAPI.class);
 
   /**
@@ -147,12 +148,16 @@ public class BoxAPI {
   public static final String             BOX_EMBED_URL               = "https://%sapp.box.com/embed_widget/000000000000/%s?"
       + "view=list&sort=date&theme=gray&show_parent_path=no&show_item_feed_actions=no&session_expired=true";
 
+  /** The Constant BOX_EMBED_URL_SSO. */
   public static final String             BOX_EMBED_URL_SSO           = "https://app.box.com/login/auto_initiate_sso?enterprise_id=%s&redirect_url=%s";
 
+  /** The Constant BOX_URL_CUSTOM_PATTERN. */
   public static final Pattern            BOX_URL_CUSTOM_PATTERN      = Pattern.compile("^https://([\\p{ASCII}]*){1}?\\.app\\.box\\.com/.*\\z");
 
+  /** The Constant BOX_URL_MAKE_CUSTOM_PATTERN. */
   public static final Pattern            BOX_URL_MAKE_CUSTOM_PATTERN = Pattern.compile("^(https)://(app\\.box\\.com/.*)\\z");
 
+  /** The Constant STREAM_POSITION_NOW. */
   public static final long               STREAM_POSITION_NOW         = -1;
 
   /**
@@ -160,6 +165,7 @@ public class BoxAPI {
    */
   public static final String             FOLDER_TYPE                 = "folder";
 
+  /** The Constant BOX_EVENTS. */
   public static final Set<BoxEvent.Type> BOX_EVENTS                  = new HashSet<BoxEvent.Type>();
 
   static {
@@ -179,11 +185,20 @@ public class BoxAPI {
       "path_collection", "created_at", "modified_at", "created_by", "modified_by", "owned_by", "shared_link", "parent",
       "item_status", "item_collection" };
 
+  /** The Constant USER_FIELDS. */
   public static final String[] USER_FIELDS = { "type", "id", "name", "login", "created_at", "modified_at", "role",
       "language", "timezone", "status", "avatar_url", "enterprise" };
 
+  /**
+   * The Class StoredToken.
+   */
   class StoredToken extends UserToken implements BoxAPIConnectionListener {
 
+    /**
+     * Store.
+     *
+     * @throws CloudDriveException the cloud drive exception
+     */
     void store() throws CloudDriveException {
       this.store(api.getAccessToken(), api.getRefreshToken(), api.getExpires());
     }
@@ -215,10 +230,19 @@ public class BoxAPI {
    * Iterator methods can throw {@link BoxException} in case of remote or communication errors.
    */
   class ItemsIterator extends ChunkIterator<BoxItem.Info> {
+    
+    /** The parent. */
     final BoxFolder parent;
 
+    /** The total. */
     long            offset = 0, total = 0;
 
+    /**
+     * Instantiates a new items iterator.
+     *
+     * @param folderId the folder id
+     * @throws CloudDriveException the cloud drive exception
+     */
     ItemsIterator(String folderId) throws CloudDriveException {
       this.parent = new BoxFolder(api, folderId);
 
@@ -226,6 +250,9 @@ public class BoxAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<BoxItem.Info> nextChunk() throws CloudDriveException {
       try {
         // TODO cleanup
@@ -267,10 +294,18 @@ public class BoxAPI {
       }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected boolean hasNextChunk() {
       return total > offset;
     }
 
+    /**
+     * Gets the parent.
+     *
+     * @return the parent
+     */
     BoxFolder.Info getParent() {
       return parent.getInfo(ITEM_FIELDS);
     }
@@ -288,10 +323,18 @@ public class BoxAPI {
      */
     final Set<String> eventIds = new HashSet<String>();
 
+    /** The stream position. */
     Long              streamPosition;
 
+    /** The chunk size. */
     Integer           offset   = 0, chunkSize = 0;
 
+    /**
+     * Instantiates a new events iterator.
+     *
+     * @param streamPosition the stream position
+     * @throws CloudDriveException the cloud drive exception
+     */
     EventsIterator(long streamPosition) throws CloudDriveException {
       this.streamPosition = streamPosition <= STREAM_POSITION_NOW ? STREAM_POSITION_NOW : streamPosition;
 
@@ -299,6 +342,9 @@ public class BoxAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<BoxEvent> nextChunk() throws CloudDriveException {
       try {
         StringBuilder url = new StringBuilder();
@@ -347,18 +393,39 @@ public class BoxAPI {
       return chunkSize > 0;
     }
 
+    /**
+     * Gets the next stream position.
+     *
+     * @return the next stream position
+     */
     long getNextStreamPosition() {
       return streamPosition;
     }
   }
 
+  /**
+   * The Class ChangesLink.
+   */
   public static class ChangesLink {
+    
+    /** The type. */
     final String type;
 
+    /** The url. */
     final String url;
 
+    /** The created. */
     final long   maxRetries, retryTimeout, ttl, outdatedTimeout, created;
 
+    /**
+     * Instantiates a new changes link.
+     *
+     * @param type the type
+     * @param url the url
+     * @param ttl the ttl
+     * @param maxRetries the max retries
+     * @param retryTimeout the retry timeout
+     */
     ChangesLink(String type, String url, long ttl, long maxRetries, long retryTimeout) {
       this.type = type;
       this.url = url;
@@ -372,6 +439,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the type.
+     *
      * @return the type
      */
     public String getType() {
@@ -379,6 +448,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the url.
+     *
      * @return the url
      */
     public String getUrl() {
@@ -386,6 +457,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the ttl.
+     *
      * @return the ttl
      */
     public long getTtl() {
@@ -393,6 +466,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the max retries.
+     *
      * @return the maxRetries
      */
     public long getMaxRetries() {
@@ -400,6 +475,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the retry timeout.
+     *
      * @return the retryTimeout
      */
     public long getRetryTimeout() {
@@ -407,6 +484,8 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the outdated timeout.
+     *
      * @return the outdatedTimeout
      */
     public long getOutdatedTimeout() {
@@ -414,31 +493,43 @@ public class BoxAPI {
     }
 
     /**
+     * Gets the created.
+     *
      * @return the created
      */
     public long getCreated() {
       return created;
     }
 
+    /**
+     * Checks if is outdated.
+     *
+     * @return true, if is outdated
+     */
     public boolean isOutdated() {
       return (System.currentTimeMillis() - created) > outdatedTimeout;
     }
   }
 
+  /** The api. */
   private final BoxAPIConnection api;
 
+  /** The token. */
   private final StoredToken      token;
 
+  /** The changes link. */
   private ChangesLink            changesLink;
 
+  /** The custom domain. */
   private String                 enterpriseId, enterpriseName, customDomain;
 
   /**
    * Create Box API from OAuth2 authentication code.
-   * 
+   *
    * @param clientId {@link String} OAuth2 client_id for Box API
    * @param clientSecret {@link String}
    * @param authCode {@link String}
+   * @param redirectUri the redirect uri
    * @throws BoxException if authentication failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
@@ -492,9 +583,9 @@ public class BoxAPI {
 
   /**
    * Update OAuth2 token to a new one.
-   * 
+   *
    * @param newToken {@link StoredToken}
-   * @throws CloudDriveException
+   * @throws CloudDriveException the cloud drive exception
    */
   void updateToken(UserToken newToken) throws CloudDriveException {
     this.token.merge(newToken); // TODO not sure this is a required step
@@ -514,10 +605,10 @@ public class BoxAPI {
 
   /**
    * Currently connected Box user.
-   * 
+   *
    * @return {@link Info}
-   * @throws BoxException
-   * @throws RefreshAccessException
+   * @throws BoxException the box exception
+   * @throws RefreshAccessException the refresh access exception
    */
   BoxUser.Info getCurrentUser() throws BoxException, RefreshAccessException {
     try {
@@ -532,10 +623,10 @@ public class BoxAPI {
 
   /**
    * The Box root folder.
-   * 
+   *
    * @return {@link BoxFolder}
-   * @throws BoxException
-   * @throws RefreshAccessException
+   * @throws BoxException the box exception
+   * @throws RefreshAccessException the refresh access exception
    */
   BoxFolder getRootFolder() throws BoxException, RefreshAccessException {
     try {
@@ -547,10 +638,24 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Gets the folder items.
+   *
+   * @param folderId the folder id
+   * @return the folder items
+   * @throws CloudDriveException the cloud drive exception
+   */
   ItemsIterator getFolderItems(String folderId) throws CloudDriveException {
     return new ItemsIterator(folderId);
   }
 
+  /**
+   * Parses the date.
+   *
+   * @param dateString the date string
+   * @return the calendar
+   * @throws ParseException the parse exception
+   */
   Calendar parseDate(String dateString) throws ParseException {
     Calendar calendar = Calendar.getInstance();
     Date d = BoxDateFormat.parse(dateString);
@@ -558,6 +663,12 @@ public class BoxAPI {
     return calendar;
   }
 
+  /**
+   * Format date.
+   *
+   * @param date the date
+   * @return the string
+   */
   String formatDate(Calendar date) {
     return BoxDateFormat.format(date.getTime());
   }
@@ -658,6 +769,13 @@ public class BoxAPI {
     return getLink(item);
   }
 
+  /**
+   * Gets the changes link.
+   *
+   * @return the changes link
+   * @throws BoxException the box exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   ChangesLink getChangesLink() throws BoxException, RefreshAccessException {
     if (changesLink == null || changesLink.isOutdated()) {
       updateChangesLink();
@@ -670,9 +788,9 @@ public class BoxAPI {
    * Update link to the drive's long-polling changes notification service. This kind of service optional and
    * may not be supported. If long-polling changes notification not supported then this method will do
    * nothing.
-   * 
-   * @throws BoxException
-   * @throws RefreshAccessException
+   *
+   * @throws BoxException the box exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void updateChangesLink() throws BoxException, RefreshAccessException {
     try {
@@ -729,10 +847,30 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Gets the events.
+   *
+   * @param streamPosition the stream position
+   * @return the events
+   * @throws CloudDriveException the cloud drive exception
+   */
   EventsIterator getEvents(long streamPosition) throws CloudDriveException {
     return new EventsIterator(streamPosition);
   }
 
+  /**
+   * Creates the file.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param created the created
+   * @param data the data
+   * @return the box file. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   BoxFile.Info createFile(String parentId, String name, Calendar created, InputStream data) throws BoxException,
                                                                                             NotFoundException,
                                                                                             RefreshAccessException,
@@ -767,6 +905,18 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Creates the folder.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param created the created
+   * @return the box folder. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   BoxFolder.Info createFolder(String parentId, String name, Calendar created) throws BoxException,
                                                                               NotFoundException,
                                                                               RefreshAccessException,
@@ -793,11 +943,11 @@ public class BoxAPI {
   /**
    * Delete a cloud file by given fileId. Depending on Box enterprise settings for this user, the file will
    * either be actually deleted from Box or moved to the Trash.
-   * 
+   *
    * @param id {@link String}
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void deleteFile(String id) throws BoxException, NotFoundException, RefreshAccessException {
     try {
@@ -823,11 +973,11 @@ public class BoxAPI {
   /**
    * Delete a cloud folder by given folderId. Depending on Box enterprise settings for this user, the folder
    * will either be actually deleted from Box or moved to the Trash.
-   * 
+   *
    * @param id {@link String}
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void deleteFolder(String id) throws BoxException, NotFoundException, RefreshAccessException {
     try {
@@ -855,13 +1005,13 @@ public class BoxAPI {
    * either be actually deleted from Box or moved to the Trash. If the file was actually deleted on Box, this
    * method will throw {@link FileTrashRemovedException}, and the caller code should delete the file locally
    * also.
-   * 
+   *
    * @param id {@link String}
    * @return {@link BoxFile.Info} of the file successfully moved to Box Trash
-   * @throws BoxException
+   * @throws BoxException the box exception
    * @throws FileTrashRemovedException if file was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   BoxFile.Info trashFile(String id) throws BoxException,
                                     FileTrashRemovedException,
@@ -904,13 +1054,13 @@ public class BoxAPI {
    * will either be actually deleted from Box or moved to the Trash. If the folder was actually deleted in
    * Box, this method will return {@link FileTrashRemovedException}, and the caller code should delete the
    * folder locally also.
-   * 
+   *
    * @param id {@link String}
    * @return {@link BoxFolder.Info} of the folder successfully moved to Box Trash
-   * @throws BoxException
+   * @throws BoxException the box exception
    * @throws FileTrashRemovedException if folder was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   BoxFolder.Info trashFolder(String id) throws BoxException,
                                         FileTrashRemovedException,
@@ -948,6 +1098,17 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Untrash file.
+   *
+   * @param id the id
+   * @param name the name
+   * @return the box file. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   BoxFile.Info untrashFile(String id, String name) throws BoxException,
                                                    NotFoundException,
                                                    RefreshAccessException,
@@ -978,6 +1139,17 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Untrash folder.
+   *
+   * @param id the id
+   * @param name the name
+   * @return the box folder. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   BoxFolder.Info untrashFolder(String id, String name) throws BoxException,
                                                        NotFoundException,
                                                        RefreshAccessException,
@@ -1012,17 +1184,16 @@ public class BoxAPI {
    * Update file name or/and parent. If file was actually updated (name or/and
    * parent changed) this method return updated file object or <code>null</code> if file already exists
    * with such name and parent.
-   * 
-   * 
+   *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
    * @return {@link BoxFile.Info} of actually changed file or <code>null</code> if file already exists with
    *         such name and parent.
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   BoxFile.Info updateFile(String parentId, String id, String name) throws BoxException,
                                                                    NotFoundException,
@@ -1076,6 +1247,17 @@ public class BoxAPI {
     return existing;
   }
 
+  /**
+   * Update file content.
+   *
+   * @param id the id
+   * @param modified the modified
+   * @param data the data
+   * @return the box file. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   BoxFile.Info updateFileContent(String id, Calendar modified, InputStream data) throws BoxException,
                                                                                  NotFoundException,
                                                                                  RefreshAccessException {
@@ -1105,17 +1287,17 @@ public class BoxAPI {
    * Update folder name or/and parent. If folder was actually updated (name or/and
    * parent changed) this method return updated folder object or <code>null</code> if folder already exists
    * with such name and parent.
-   * 
+   *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
    * @return {@link BoxFolder.Info} of actually changed folder or <code>null</code> if folder already exists
    *         with
    *         such name and parent.
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   BoxFolder.Info updateFolder(String parentId, String id, String name) throws BoxException,
                                                                        NotFoundException,
@@ -1170,17 +1352,15 @@ public class BoxAPI {
 
   /**
    * Copy file to a new one. If file was successfully copied this method return new file object.
-   * 
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
-   * @param modified {@link Calendar}
    * @return {@link BoxFile.Info} of actually copied file.
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   BoxFile.Info copyFile(String id, String parentId, String name) throws BoxException,
                                                                  NotFoundException,
@@ -1210,15 +1390,15 @@ public class BoxAPI {
 
   /**
    * Copy folder to a new one. If folder was successfully copied this method return new folder object.
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
    * @return {@link BoxFolder.Info} of actually copied folder.
-   * @throws BoxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   BoxFolder.Info copyFolder(String id, String parentId, String name) throws BoxException,
                                                                      NotFoundException,
@@ -1246,6 +1426,15 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Read file.
+   *
+   * @param id the id
+   * @return the box file. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   BoxFile.Info readFile(String id) throws BoxException, NotFoundException, RefreshAccessException {
     try {
       BoxFile file = new BoxFile(api, id);
@@ -1262,6 +1451,15 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Read folder.
+   *
+   * @param id the id
+   * @return the box folder. info
+   * @throws BoxException the box exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   BoxFolder.Info readFolder(String id) throws BoxException, NotFoundException, RefreshAccessException {
     try {
       BoxFolder folder = new BoxFolder(api, id);
@@ -1308,6 +1506,12 @@ public class BoxAPI {
 
   // ********* internal *********
 
+  /**
+   * Gets the error message.
+   *
+   * @param e the e
+   * @return the error message
+   */
   private String getErrorMessage(BoxAPIException e) {
     if (e.getResponseCode() >= 400) {
       StringBuilder message = new StringBuilder();
@@ -1351,7 +1555,8 @@ public class BoxAPI {
 
   /**
    * Check if need new access token from user (refresh token already expired).
-   * 
+   *
+   * @param e the e
    * @throws RefreshAccessException if client failed to refresh the access token and need new new token
    */
   private void checkTokenState(BoxAPIException e) throws RefreshAccessException {
@@ -1363,6 +1568,13 @@ public class BoxAPI {
     }
   }
 
+  /**
+   * Inits the user.
+   *
+   * @throws BoxException the box exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws NotFoundException the not found exception
+   */
   private void initUser() throws BoxException, RefreshAccessException, NotFoundException {
     BoxUser.Info user = getCurrentUser();
 

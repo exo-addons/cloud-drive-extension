@@ -25,28 +25,32 @@ import org.exoplatform.clouddrive.CloudProviderException;
  */
 public class BoxException extends CloudProviderException {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 4990101883452322615L;
 
   /**
-   * @param message
+   * Instantiates a new box exception.
+   *
+   * @param message the message
    */
   public BoxException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new box exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public BoxException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param cause
+   * Instantiates a new box exception.
+   *
+   * @param cause the cause
    */
   public BoxException(Throwable cause) {
     super(cause);

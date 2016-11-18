@@ -54,8 +54,11 @@ public class TemplateConnector extends CloudDriveConnector {
    * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
    */
   class API {
+    
+    /** The access token. */
     String code, refreshToken, accessToken;
 
+    /** The expiration time. */
     long   expirationTime;
 
     /**
@@ -71,10 +74,10 @@ public class TemplateConnector extends CloudDriveConnector {
 
     /**
      * Authenticate to the API with locally stored tokens.
-     * 
-     * @param refreshToken
-     * @param accessToken
-     * @param expirationTime
+     *
+     * @param refreshToken the refresh token
+     * @param accessToken the access token
+     * @param expirationTime the expiration time
      * @return this API
      */
     API load(String refreshToken, String accessToken, long expirationTime) {
@@ -102,6 +105,16 @@ public class TemplateConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * Instantiates a new template connector.
+   *
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param params the params
+   * @throws ConfigurationException the configuration exception
+   */
   public TemplateConnector(RepositoryService jcrService,
                            SessionProviderService sessionProviders,
                            NodeFinder finder,
@@ -119,6 +132,9 @@ public class TemplateConnector extends CloudDriveConnector {
     return (TemplateProvider) super.getProvider();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudProvider createProvider() {
     String redirectURL = redirectLink();
@@ -156,6 +172,9 @@ public class TemplateConnector extends CloudDriveConnector {
     return new TemplateProvider(getProviderId(), getProviderName(), authURL.toString(), redirectURL.toString(), jcrService);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudUser authenticate(Map<String, String> params) throws CloudDriveException {
     String code = params.get(OAUTH2_CODE);
@@ -172,6 +191,9 @@ public class TemplateConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive createDrive(CloudUser user, Node driveNode) throws CloudDriveException, RepositoryException {
     if (user instanceof TemplateUser) {
@@ -183,6 +205,9 @@ public class TemplateConnector extends CloudDriveConnector {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);

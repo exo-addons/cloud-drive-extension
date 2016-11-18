@@ -59,20 +59,28 @@ import java.util.List;
  */
 public class DropboxAPI {
 
+  /** The Constant ROOT_URL. */
   public static final String ROOT_URL               = "https://www.dropbox.com/home";
 
+  /** The Constant ROOT_PATH. */
   public static final String ROOT_PATH              = "/";
 
+  /** The Constant DELTA_LONGPOLL_TIMEOUT. */
   public static final int    DELTA_LONGPOLL_TIMEOUT = 60;
 
+  /** The Constant DELTA_LONGPOLL_URL. */
   public static final String DELTA_LONGPOLL_URL     = "https://api-notify.dropbox.com/1/longpoll_delta";
 
+  /** The Constant CONTENT_BASE_URL. */
   public static final String CONTENT_BASE_URL       = "https://api-content.dropbox.com/1/";
 
+  /** The Constant CONTENT_PREVIEW_URL. */
   public static final String CONTENT_PREVIEW_URL    = CONTENT_BASE_URL + "previews/auto";
 
+  /** The Constant CONTENT_THUMBNAIL_URL. */
   public static final String CONTENT_THUMBNAIL_URL  = CONTENT_BASE_URL + "thumbnails/auto";
 
+  /** The Constant LOG. */
   protected static final Log LOG                    = ExoLogger.getLogger(DropboxAPI.class);
 
   /**
@@ -82,9 +90,9 @@ public class DropboxAPI {
 
     /**
      * Save OAuth2 token from Dropbox API.
-     * 
-     * @param accessToken
-     * @throws CloudDriveException
+     *
+     * @param accessToken the access token
+     * @throws CloudDriveException the cloud drive exception
      */
     void store(String accessToken) throws CloudDriveException {
       this.store(accessToken, null /* refreshToken */, -1/* expirationTime */);
@@ -97,10 +105,14 @@ public class DropboxAPI {
    * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
    */
   class FileMetadata extends ChunkIterator<DbxEntry> {
+    
+    /** The id path. */
     final String idPath;
 
+    /** The changed. */
     boolean      changed;
 
+    /** The hash. */
     String       hash;
 
     /**
@@ -108,6 +120,16 @@ public class DropboxAPI {
      */
     DbxEntry     target;
 
+    /**
+     * Instantiates a new file metadata.
+     *
+     * @param idPath the id path
+     * @param hash the hash
+     * @throws TooManyFilesException the too many files exception
+     * @throws NotFoundException the not found exception
+     * @throws DropboxException the dropbox exception
+     * @throws RefreshAccessException the refresh access exception
+     */
     FileMetadata(String idPath, String hash)
         throws TooManyFilesException, NotFoundException, DropboxException, RefreshAccessException {
       this.idPath = idPath;
@@ -118,6 +140,9 @@ public class DropboxAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<DbxEntry> nextChunk() throws TooManyFilesException,
                                              NotFoundException,
                                              DropboxException,
@@ -185,6 +210,9 @@ public class DropboxAPI {
       }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected boolean hasNextChunk() {
       // FYI Dropbox has no paging for metadata, but has a limit (will be catch in nextChunk() as 406 status)
       return false;
@@ -213,6 +241,13 @@ public class DropboxAPI {
      */
     boolean reset   = false;
 
+    /**
+     * Instantiates a new delta changes.
+     *
+     * @param cursor the cursor
+     * @throws DropboxException the dropbox exception
+     * @throws RefreshAccessException the refresh access exception
+     */
     DeltaChanges(String cursor) throws DropboxException, RefreshAccessException {
       this.cursor = cursor;
 
@@ -220,6 +255,9 @@ public class DropboxAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<Entry<DbxEntry>> nextChunk() throws DropboxException, RefreshAccessException {
       try {
         // implement actual logic here
@@ -259,10 +297,20 @@ public class DropboxAPI {
       return hasMore;
     }
 
+    /**
+     * Gets the cursor to fetch deltas.
+     *
+     * @return the cursor to fetch deltas
+     */
     String getCursor() {
       return cursor;
     }
 
+    /**
+     * Checks for reset.
+     *
+     * @return true, if successful
+     */
     boolean hasReset() {
       return reset;
     }
@@ -274,6 +322,13 @@ public class DropboxAPI {
    * Code grabbed from here http://stackoverflow.com/questions/724043/http-url-address-encoding-in-java.
    */
   class PathEncoder {
+    
+    /**
+     * Encode.
+     *
+     * @param input the input
+     * @return the string
+     */
     String encode(String input) {
       StringBuilder resultStr = new StringBuilder();
       for (char ch : input.toCharArray()) {
@@ -288,10 +343,22 @@ public class DropboxAPI {
       return resultStr.toString();
     }
 
+    /**
+     * To hex.
+     *
+     * @param ch the ch
+     * @return the char
+     */
     private char toHex(int ch) {
       return (char) (ch < 10 ? '0' + ch : 'A' + ch - 10);
     }
 
+    /**
+     * Checks if is unsafe.
+     *
+     * @param ch the ch
+     * @return true, if is unsafe
+     */
     private boolean isUnsafe(char ch) {
       if (ch > 128 || ch < 0) {
         return true;
@@ -301,10 +368,13 @@ public class DropboxAPI {
     }
   }
 
+  /** The client. */
   private DbxClient   client;
 
+  /** The token. */
   private StoredToken token;
 
+  /** The path encoder. */
   private PathEncoder pathEncoder = new PathEncoder();
 
   /**
@@ -348,9 +418,9 @@ public class DropboxAPI {
 
   /**
    * Update OAuth2 token to a new one.
-   * 
+   *
    * @param newToken {@link StoredToken}
-   * @throws CloudDriveException
+   * @throws CloudDriveException the cloud drive exception
    */
   void updateToken(UserToken newToken) throws CloudDriveException {
     this.token.merge(newToken);
@@ -367,10 +437,10 @@ public class DropboxAPI {
 
   /**
    * Currently connected cloud user.
-   * 
+   *
    * @return DbxAccountInfo
-   * @throws DropboxException
-   * @throws RefreshAccessException
+   * @throws DropboxException the dropbox exception
+   * @throws RefreshAccessException the refresh access exception
    */
   DbxAccountInfo getCurrentUser() throws DropboxException, RefreshAccessException {
     try {
@@ -380,6 +450,16 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Gets the with children.
+   *
+   * @param idPath the id path
+   * @param hash the hash
+   * @return the with children
+   * @throws TooManyFilesException the too many files exception
+   * @throws DropboxException the dropbox exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   FileMetadata getWithChildren(String idPath, String hash) throws TooManyFilesException,
                                                            DropboxException,
                                                            RefreshAccessException {
@@ -394,6 +474,15 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Gets the.
+   *
+   * @param idPath the id path
+   * @return the dbx entry
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   DbxEntry get(String idPath) throws DropboxException, NotFoundException, RefreshAccessException {
     try {
       // TODO use DbxClient.getMetadataIfChanged() using stored locally hash for folder
@@ -426,6 +515,15 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Gets the content.
+   *
+   * @param idPath the id path
+   * @return the content
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   Downloader getContent(String idPath) throws DropboxException, NotFoundException, RefreshAccessException {
     try {
       // DbxEntry md = client.getFile(idPath, null, output);
@@ -460,9 +558,9 @@ public class DropboxAPI {
 
   /**
    * Link (URL) to a file for opening by its owner on Dropbox site.
-   * 
-   * @param parentPath
-   * @param name
+   *
+   * @param parentPath the parent path
+   * @param name the name
    * @return String with the file URL.
    */
   String getUserFileLink(String parentPath, String name) {
@@ -480,8 +578,8 @@ public class DropboxAPI {
 
   /**
    * Link (URL) to a folder for opening by its owner on Dropbox site.
-   * 
-   * @param folder {@link String}
+   *
+   * @param path the path
    * @return String with the file URL.
    */
   String getUserFolderLink(String path) {
@@ -498,11 +596,11 @@ public class DropboxAPI {
 
   /**
    * Temporary link (URL with expiration in few hours) to a file content for streaming/downloading.
-   * 
+   *
    * @param dbxPath {@link String}
    * @return DbxUrlWithExpiration with the file embed URL.
-   * @throws RefreshAccessException
-   * @throws DropboxException
+   * @throws RefreshAccessException the refresh access exception
+   * @throws DropboxException the dropbox exception
    */
   DbxUrlWithExpiration getDirectLink(String dbxPath) throws RefreshAccessException, DropboxException {
     if (ROOT_PATH.equals(dbxPath)) {
@@ -543,11 +641,11 @@ public class DropboxAPI {
   /**
    * Create shared link to a file or folder' "preview page" on Dropbox. See more on
    * <a href="https://www.dropbox.com/help/167">https://www.dropbox.com/help/167</a><br>
-   * 
+   *
    * @param dbxPath {@link String}
    * @return DbxUrlWithExpiration with the shared link of file or folder "preview page".
-   * @throws RefreshAccessException
-   * @throws DropboxException
+   * @throws RefreshAccessException the refresh access exception
+   * @throws DropboxException the dropbox exception
    */
   DbxUrlWithExpiration getSharedLink(String dbxPath) throws RefreshAccessException, DropboxException {
     if (ROOT_PATH.equals(dbxPath)) {
@@ -612,11 +710,12 @@ public class DropboxAPI {
 
   /**
    * Link (URL) to thumbnail of a file.
-   * 
+   *
    * @param dbxPath {@link String}
+   * @param size the size
    * @return Downloader with the file thumbnail.
-   * @throws DropboxException
-   * @throws RefreshAccessException
+   * @throws DropboxException the dropbox exception
+   * @throws RefreshAccessException the refresh access exception
    */
   Downloader getThumbnail(String dbxPath, DbxThumbnailSize size) throws DropboxException, RefreshAccessException {
     if (ROOT_PATH.equals(dbxPath)) {
@@ -655,10 +754,31 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Gets the deltas.
+   *
+   * @param cursor the cursor
+   * @return the deltas
+   * @throws DropboxException the dropbox exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   DeltaChanges getDeltas(String cursor) throws DropboxException, RefreshAccessException {
     return new DeltaChanges(cursor);
   }
 
+  /**
+   * Upload file.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param data the data
+   * @param updateRev the update rev
+   * @return the dbx entry. file
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   DbxEntry.File uploadFile(String parentId, String name, InputStream data, String updateRev) throws DropboxException,
                                                                                              NotFoundException,
                                                                                              RefreshAccessException,
@@ -710,6 +830,17 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Creates the folder.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @return the dbx entry. folder
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   DbxEntry.Folder createFolder(String parentId, String name) throws DropboxException,
                                                              NotFoundException,
                                                              RefreshAccessException,
@@ -755,12 +886,12 @@ public class DropboxAPI {
 
   /**
    * Delete a Dropbox file or folder at given path (ID path lower-case).
-   * 
-   * @param idPath
-   * @throws DropboxException
-   * @throws NotFoundException
-   * @throws TooManyFilesException
-   * @throws RefreshAccessException
+   *
+   * @param idPath the id path
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws TooManyFilesException the too many files exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void delete(String idPath) throws DropboxException, NotFoundException, TooManyFilesException, RefreshAccessException {
     try {
@@ -806,6 +937,16 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Restore file.
+   *
+   * @param idPath the id path
+   * @param rev the rev
+   * @return the dbx entry. file
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   DbxEntry.File restoreFile(String idPath, String rev) throws DropboxException, NotFoundException, RefreshAccessException {
     try {
       DbxEntry.File file = client.restoreFile(idPath, rev);
@@ -845,6 +986,16 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Restore folder.
+   *
+   * @param idPath the id path
+   * @param rev the rev
+   * @return the dbx entry. folder
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   @Deprecated // NOT USED AND WILL NOT WORK THIS WAY
   DbxEntry.Folder restoreFolder(String idPath, String rev) throws DropboxException,
                                                            NotFoundException,
@@ -903,6 +1054,18 @@ public class DropboxAPI {
     }
   }
 
+  /**
+   * Move.
+   *
+   * @param fromPath the from path
+   * @param toPath the to path
+   * @return the dbx entry
+   * @throws DropboxException the dropbox exception
+   * @throws TooManyFilesException the too many files exception
+   * @throws ConflictException the conflict exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   DbxEntry move(String fromPath, String toPath) throws DropboxException,
                                                 TooManyFilesException,
                                                 ConflictException,
@@ -960,15 +1123,15 @@ public class DropboxAPI {
 
   /**
    * Copy file to a new one. If file was successfully copied this method return new file object.
-   * 
-   * @param fromPath
-   * @param toPath
+   *
+   * @param fromPath the from path
+   * @param toPath the to path
    * @return {@link DbxEntry} of actually copied file.
-   * @throws DropboxException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
-   * @throws TooManyFilesException
+   * @throws DropboxException the dropbox exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws TooManyFilesException the too many files exception
    */
   DbxEntry copy(String fromPath, String toPath) throws DropboxException,
                                                 NotFoundException,
@@ -1028,6 +1191,13 @@ public class DropboxAPI {
 
   // ********* internal *********
 
+  /**
+   * Inits the user.
+   *
+   * @throws DropboxException the dropbox exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws NotFoundException the not found exception
+   */
   private void initUser() throws DropboxException, RefreshAccessException, NotFoundException {
     // TODO do we have really something to init for the user?
     // DbxAccountInfo user = getCurrentUser();
@@ -1035,6 +1205,13 @@ public class DropboxAPI {
     // this.userDisplayName = user.displayName;
   }
 
+  /**
+   * File path.
+   *
+   * @param parentId the parent id
+   * @param title the title
+   * @return the string
+   */
   String filePath(String parentId, String title) {
     StringBuilder path = new StringBuilder(parentId);
     if (!ROOT_PATH.equals(parentId)) {

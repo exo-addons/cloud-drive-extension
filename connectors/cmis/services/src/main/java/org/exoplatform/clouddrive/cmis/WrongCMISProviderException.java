@@ -31,21 +31,23 @@ package org.exoplatform.clouddrive.cmis;
  */
 public class WrongCMISProviderException extends CMISException {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = 1L;
 
   /**
-   * @param message
+   * Instantiates a new wrong CMIS provider exception.
+   *
+   * @param message the message
    */
   public WrongCMISProviderException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new wrong CMIS provider exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public WrongCMISProviderException(String message, Throwable cause) {
     super(message, cause);

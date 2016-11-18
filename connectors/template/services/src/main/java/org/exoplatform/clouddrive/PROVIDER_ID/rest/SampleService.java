@@ -56,23 +56,28 @@ import javax.ws.rs.core.UriInfo;
 @Produces(MediaType.APPLICATION_JSON)
 public class SampleService implements ResourceContainer {
 
+  /** The Constant LOG. */
   protected static final Log             LOG = ExoLogger.getLogger(SampleService.class);
 
+  /** The features. */
   protected final CloudDriveFeatures     features;
 
+  /** The cloud drives. */
   protected final CloudDriveService      cloudDrives;
 
+  /** The jcr service. */
   protected final RepositoryService      jcrService;
 
+  /** The session providers. */
   protected final SessionProviderService sessionProviders;
 
   /**
    * Constructor.
-   * 
-   * @param cloudDrives
-   * @param features
-   * @param jcrService
-   * @param sessionProviders
+   *
+   * @param cloudDrives the cloud drives
+   * @param features the features
+   * @param jcrService the jcr service
+   * @param sessionProviders the session providers
    */
   public SampleService(CloudDriveService cloudDrives,
                          CloudDriveFeatures features,
@@ -89,12 +94,11 @@ public class SampleService implements ResourceContainer {
    * Return comments on a file existing on cloud side.<br>
    * 
    * TODO Comments it is a sample feature for a sample only. Create methods for actual features of the drive.
-   * 
-   * @param uriInfo
-   * @param workspace
-   * @param path
-   * @param providerId
-   * @return
+   *
+   * @param uriInfo the uri info
+   * @param workspace the workspace
+   * @param path the path
+   * @return the file comments
    */
   @GET
   @Path("/comments/")

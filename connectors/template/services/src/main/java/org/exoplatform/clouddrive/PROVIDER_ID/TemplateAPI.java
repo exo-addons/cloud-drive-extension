@@ -42,6 +42,7 @@ import java.util.Map;
  */
 public class TemplateAPI {
 
+  /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(TemplateAPI.class);
 
   /**
@@ -51,9 +52,9 @@ public class TemplateAPI {
 
     /**
      * Sample method to call when have OAuth2 token from Cloud API.
-     * 
-     * @param apiToken
-     * @throws CloudDriveException
+     *
+     * @param apiToken the api token
+     * @throws CloudDriveException the cloud drive exception
      */
     void store(Object apiToken) throws CloudDriveException {
       // this.store(apiToken.getAccessToken(), apiToken.getRefreshToken(), apiToken.getExpiresIn());
@@ -61,8 +62,8 @@ public class TemplateAPI {
 
     /**
      * Sample method to return authentication data.
-     * 
-     * @return
+     *
+     * @return the auth data
      */
     Map<String, Object> getAuthData() {
       Map<String, Object> data = new HashMap<String, Object>();
@@ -82,6 +83,8 @@ public class TemplateAPI {
    * TODO replace type Object to an actual type used by Cloud API for drive items.<br>
    */
   class ItemsIterator extends ChunkIterator<Object> {
+    
+    /** The folder id. */
     final String folderId;
 
     /**
@@ -90,6 +93,12 @@ public class TemplateAPI {
      */
     Object       parent;
 
+    /**
+     * Instantiates a new items iterator.
+     *
+     * @param folderId the folder id
+     * @throws CloudDriveException the cloud drive exception
+     */
     ItemsIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
 
@@ -97,6 +106,9 @@ public class TemplateAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<Object> nextChunk() throws CloudDriveException {
       try {
         // TODO find parent if it is required for file calls...
@@ -124,6 +136,9 @@ public class TemplateAPI {
       }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected boolean hasNextChunk() {
       // TODO implement actual logic for large folders fetching
       return false;
@@ -137,11 +152,16 @@ public class TemplateAPI {
    */
   class EventsIterator extends ChunkIterator<Object> {
 
-    /**
-     * TODO optional position to fetch events
-     */
+    /** TODO optional position to fetch events. */
     long position;
 
+    /**
+     * Instantiates a new events iterator.
+     *
+     * @param position the position
+     * @throws TemplateException the template exception
+     * @throws RefreshAccessException the refresh access exception
+     */
     EventsIterator(long position) throws TemplateException, RefreshAccessException {
       this.position = position;
 
@@ -149,6 +169,9 @@ public class TemplateAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<Object> nextChunk() throws TemplateException, RefreshAccessException {
       try {
         // TODO implement actual logic here
@@ -178,6 +201,11 @@ public class TemplateAPI {
       return false;
     }
 
+    /**
+     * Gets the change id.
+     *
+     * @return the change id
+     */
     long getChangeId() {
       // TODO find real next event position to read from the cloud provider,
       // if not available then apply local incremental ID which will let guess the position for sycn
@@ -189,12 +217,23 @@ public class TemplateAPI {
    * Sample drive state POJO.
    */
   public static class DriveState {
+    
+    /** The type. */
     final String type;
 
+    /** The url. */
     final String url;
 
+    /** The created. */
     final long   retryTimeout, created;
 
+    /**
+     * Instantiates a new drive state.
+     *
+     * @param type the type
+     * @param url the url
+     * @param retryTimeout the retry timeout
+     */
     DriveState(String type, String url, long retryTimeout) {
       this.type = type;
       this.url = url;
@@ -203,6 +242,8 @@ public class TemplateAPI {
     }
 
     /**
+     * Gets the type.
+     *
      * @return the type
      */
     public String getType() {
@@ -210,6 +251,8 @@ public class TemplateAPI {
     }
 
     /**
+     * Gets the url.
+     *
      * @return the url
      */
     public String getUrl() {
@@ -217,6 +260,8 @@ public class TemplateAPI {
     }
 
     /**
+     * Gets the retry timeout.
+     *
      * @return the retryTimeout
      */
     public long getRetryTimeout() {
@@ -224,29 +269,40 @@ public class TemplateAPI {
     }
 
     /**
+     * Gets the created.
+     *
      * @return the created
      */
     public long getCreated() {
       return created;
     }
 
+    /**
+     * Checks if is outdated.
+     *
+     * @return true, if is outdated
+     */
     public boolean isOutdated() {
       return (System.currentTimeMillis() - created) > retryTimeout;
     }
   }
 
+  /** The token. */
   private StoredToken token;
 
+  /** The state. */
   private DriveState  state;
 
+  /** The custom domain. */
   private String      enterpriseId, enterpriseName, customDomain;
 
   /**
    * Create Template API from OAuth2 authentication code.
-   * 
+   *
    * @param key {@link String} API key the same also as OAuth2 client_id
    * @param clientSecret {@link String}
    * @param authCode {@link String}
+   * @param redirectUri the redirect uri
    * @throws TemplateException if authentication failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
@@ -290,9 +346,9 @@ public class TemplateAPI {
 
   /**
    * Update OAuth2 token to a new one.
-   * 
+   *
    * @param newToken {@link StoredToken}
-   * @throws CloudDriveException
+   * @throws CloudDriveException the cloud drive exception
    */
   void updateToken(UserToken newToken) throws CloudDriveException {
     this.token.merge(newToken);
@@ -312,10 +368,10 @@ public class TemplateAPI {
 
   /**
    * Currently connected cloud user.
-   * 
-   * @return
-   * @throws TemplateException
-   * @throws RefreshAccessException
+   *
+   * @return the current user
+   * @throws TemplateException the template exception
+   * @throws RefreshAccessException the refresh access exception
    */
   Object getCurrentUser() throws TemplateException, RefreshAccessException {
     try {
@@ -336,9 +392,9 @@ public class TemplateAPI {
 
   /**
    * The drive root folder.
-   * 
+   *
    * @return {@link Object}
-   * @throws TemplateException
+   * @throws TemplateException the template exception
    */
   Object getRootFolder() throws TemplateException {
     try {
@@ -357,6 +413,13 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Gets the folder items.
+   *
+   * @param folderId the folder id
+   * @return the folder items
+   * @throws CloudDriveException the cloud drive exception
+   */
   ItemsIterator getFolderItems(String folderId) throws CloudDriveException {
     return new ItemsIterator(folderId);
   }
@@ -381,6 +444,13 @@ public class TemplateAPI {
     return "http://..."; // TODO return actual link for an item
   }
 
+  /**
+   * Gets the state.
+   *
+   * @return the state
+   * @throws TemplateException the template exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   DriveState getState() throws TemplateException, RefreshAccessException {
     if (state == null || state.isOutdated()) {
       updateState();
@@ -391,7 +461,9 @@ public class TemplateAPI {
 
   /**
    * Update the drive state.
-   * 
+   *
+   * @throws TemplateException the template exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void updateState() throws TemplateException, RefreshAccessException {
     try {
@@ -410,10 +482,31 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Gets the events.
+   *
+   * @param streamPosition the stream position
+   * @return the events
+   * @throws TemplateException the template exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   EventsIterator getEvents(long streamPosition) throws TemplateException, RefreshAccessException {
     return new EventsIterator(streamPosition);
   }
 
+  /**
+   * Creates the file.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param created the created
+   * @param data the data
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   Object createFile(String parentId, String name, Calendar created, InputStream data) throws TemplateException,
                                                                                      NotFoundException,
                                                                                      RefreshAccessException,
@@ -434,6 +527,18 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Creates the folder.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param created the created
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   Object createFolder(String parentId, String name, Calendar created) throws TemplateException,
                                                                      NotFoundException,
                                                                      RefreshAccessException,
@@ -456,11 +561,11 @@ public class TemplateAPI {
 
   /**
    * Delete a cloud file by given fileId.
-   * 
+   *
    * @param id {@link String}
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void deleteFile(String id) throws TemplateException, NotFoundException, RefreshAccessException {
     try {
@@ -480,11 +585,11 @@ public class TemplateAPI {
 
   /**
    * Delete a cloud folder by given folderId.
-   * 
+   *
    * @param id {@link String}
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   void deleteFolder(String id) throws TemplateException, NotFoundException, RefreshAccessException {
     try {
@@ -504,13 +609,13 @@ public class TemplateAPI {
 
   /**
    * Trash a cloud file by given fileId.
-   * 
+   *
    * @param id {@link String}
    * @return {@link Object} of the file successfully moved to Trash in cloud side
-   * @throws TemplateException
+   * @throws TemplateException the template exception
    * @throws FileTrashRemovedException if file was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   Object trashFile(String id) throws TemplateException,
                              FileTrashRemovedException,
@@ -534,13 +639,13 @@ public class TemplateAPI {
 
   /**
    * Trash a cloud folder by given folderId.
-   * 
+   *
    * @param id {@link String}
    * @return {@link Object} of the folder successfully moved to Trash in cloud side
-   * @throws TemplateException
+   * @throws TemplateException the template exception
    * @throws FileTrashRemovedException if folder was permanently removed.
-   * @throws NotFoundException
-   * @throws RefreshAccessException
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
    */
   Object trashFolder(String id) throws TemplateException,
                                FileTrashRemovedException,
@@ -562,6 +667,17 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Untrash file.
+   *
+   * @param id the id
+   * @param name the name
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   Object untrashFile(String id, String name) throws TemplateException,
                                             NotFoundException,
                                             RefreshAccessException,
@@ -582,6 +698,17 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Untrash folder.
+   *
+   * @param id the id
+   * @param name the name
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
+   */
   Object untrashFolder(String id, String name) throws TemplateException,
                                               NotFoundException,
                                               RefreshAccessException,
@@ -604,17 +731,17 @@ public class TemplateAPI {
 
   /**
    * Update file name or/and parent and set given modified date.
-   * 
+   *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
    * @return {@link Object} of actually changed file or <code>null</code> if file already exists with
    *         such name and parent.
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   Object updateFile(String parentId, String id, String name, Calendar modified) throws TemplateException,
                                                                                NotFoundException,
@@ -637,6 +764,19 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Update file content.
+   *
+   * @param parentId the parent id
+   * @param id the id
+   * @param name the name
+   * @param modified the modified
+   * @param data the data
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   Object updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws TemplateException,
                                                                                                         NotFoundException,
                                                                                                         RefreshAccessException {
@@ -660,17 +800,17 @@ public class TemplateAPI {
    * Update folder name or/and parent and set given modified date. If folder was actually updated (name or/and
    * parent changed) this method return updated folder object or <code>null</code> if folder already exists
    * with such name and parent.
-   * 
+   *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
    * @return {@link Object} of actually changed folder or <code>null</code> if folder already exists with
    *         such name and parent.
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   Object updateFolder(String parentId, String id, String name, Calendar modified) throws TemplateException,
                                                                                  NotFoundException,
@@ -694,17 +834,15 @@ public class TemplateAPI {
 
   /**
    * Copy file to a new one. If file was successfully copied this method return new file object.
-   * 
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
-   * @param modified {@link Calendar}
    * @return {@link Object} of actually copied file.
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   Object copyFile(String id, String parentId, String name) throws TemplateException,
                                                           NotFoundException,
@@ -728,15 +866,15 @@ public class TemplateAPI {
 
   /**
    * Copy folder to a new one. If folder was successfully copied this method return new folder object.
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
    * @return {@link Object} of actually copied folder.
-   * @throws TemplateException
-   * @throws NotFoundException
-   * @throws RefreshAccessException
-   * @throws ConflictException
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws ConflictException the conflict exception
    */
   Object copyFolder(String id, String parentId, String name) throws TemplateException,
                                                             NotFoundException,
@@ -758,6 +896,15 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Read file.
+   *
+   * @param id the id
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   Object readFile(String id) throws TemplateException, NotFoundException, RefreshAccessException {
     try {
       // TODO request the cloud API and read the file...
@@ -775,6 +922,15 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Read folder.
+   *
+   * @param id the id
+   * @return the object
+   * @throws TemplateException the template exception
+   * @throws NotFoundException the not found exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   Object readFolder(String id) throws TemplateException, NotFoundException, RefreshAccessException {
     try {
       // TODO request the cloud API and read the folder...
@@ -807,6 +963,13 @@ public class TemplateAPI {
     }
   }
 
+  /**
+   * Inits the user.
+   *
+   * @throws TemplateException the template exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws NotFoundException the not found exception
+   */
   private void initUser() throws TemplateException, RefreshAccessException, NotFoundException {
     // TODO additional and optional ops to init current user and its enterprise or group from cloud services
   }

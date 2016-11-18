@@ -34,15 +34,19 @@ import org.exoplatform.clouddrive.CloudDriveException;
 public class BoxInsconsistentException extends CloudDriveException {
 
   /**
-   * @param message
+   * Instantiates a new box insconsistent exception.
+   *
+   * @param message the message
    */
   public BoxInsconsistentException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new box insconsistent exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public BoxInsconsistentException(String message, Throwable cause) {
     super(message, cause);

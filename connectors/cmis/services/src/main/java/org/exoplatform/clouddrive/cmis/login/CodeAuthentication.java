@@ -46,19 +46,36 @@ public class CodeAuthentication {
    */
   public static final long   IDENTITY_LIFETIME = 1000 * 60;
 
+  /** The Constant LOG. */
   protected static final Log LOG               = ExoLogger.getLogger(CodeAuthentication.class);
 
+  /**
+   * The Class Identity.
+   */
   public class Identity {
+    
+    /** The user. */
     final String user;
 
+    /** The password. */
     final String password;
 
+    /** The service URL. */
     final String serviceURL;
 
+    /** The service context. */
     String       serviceContext;
 
+    /** The created. */
     final long   created;
 
+    /**
+     * Instantiates a new identity.
+     *
+     * @param serviceURL the service URL
+     * @param user the user
+     * @param password the password
+     */
     Identity(String serviceURL, String user, String password) {
       super();
       this.serviceURL = serviceURL;
@@ -67,10 +84,20 @@ public class CodeAuthentication {
       this.created = System.currentTimeMillis();
     }
 
+    /**
+     * Sets the context.
+     *
+     * @param serviceContext the new context
+     */
     void setContext(String serviceContext) {
       this.serviceContext = serviceContext;
     }
 
+    /**
+     * Gets the code source.
+     *
+     * @return the code source
+     */
     Object getCodeSource() {
       StringBuilder src = new StringBuilder();
       src.append(user);
@@ -96,6 +123,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Gets the user.
+     *
      * @return the user
      */
     public String getUser() {
@@ -103,6 +132,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Gets the password.
+     *
      * @return the password
      */
     public String getPassword() {
@@ -110,6 +141,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Gets the service context.
+     *
      * @return the serviceContext
      */
     public String getServiceContext() {
@@ -117,6 +150,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Sets the service context.
+     *
      * @param serviceContext the serviceContext to set
      */
     public void setServiceContext(String serviceContext) {
@@ -124,6 +159,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Gets the service URL.
+     *
      * @return the serviceURL
      */
     public String getServiceURL() {
@@ -131,6 +168,8 @@ public class CodeAuthentication {
     }
 
     /**
+     * Gets the created.
+     *
      * @return the created
      */
     public long getCreated() {
@@ -155,10 +194,13 @@ public class CodeAuthentication {
     }
   }
 
+  /** The random. */
   private final Random                              random    = new Random();
 
+  /** The id generator. */
   private final IDGeneratorService                  idGenerator;
 
+  /** The jcr service. */
   private final RepositoryService                   jcrService;
 
   /**
@@ -173,7 +215,10 @@ public class CodeAuthentication {
   private final ConcurrentHashMap<String, Identity> exchanged = new ConcurrentHashMap<String, Identity>();
 
   /**
-   * 
+   * Instantiates a new code authentication.
+   *
+   * @param idGenerator the id generator
+   * @param jcrService the jcr service
    */
   public CodeAuthentication(IDGeneratorService idGenerator, RepositoryService jcrService) {
     this.idGenerator = idGenerator;
@@ -184,12 +229,12 @@ public class CodeAuthentication {
    * Create user identity for given user name, password and a service URL. This identity will be stored
    * internally and an authentication code will be returned to the caller. Later this code can be exchanged on
    * the identity in {@link #exchangeCode(String)}.
-   * 
+   *
    * @param serviceURL {@link String}
-   * @param user  {@link String}
-   * @param password  {@link String}
+   * @param user {@link String}
+   * @param password {@link String}
+   * @return {@link String}
    * @see #exchangeCode(String)
-   * @return  {@link String}
    */
   public String authenticate(String serviceURL, String user, String password) {
     Identity id = new Identity(serviceURL, user, password);
@@ -213,6 +258,12 @@ public class CodeAuthentication {
     return code;
   }
 
+  /**
+   * Checks for code.
+   *
+   * @param code the code
+   * @return true, if successful
+   */
   @Deprecated
   public boolean hasCode(String code) {
     Identity id = codes.get(code);
@@ -228,12 +279,13 @@ public class CodeAuthentication {
    * initialized as for its context. Identity context is optional and can be initialized by
    * {@link #setCodeContext(String, String)} method once, after that call identity will be fully removed from
    * the authenticator.<br>
-   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be thrown.
-   * 
+   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be
+   * thrown.
+   *
    * @param code {@link String}
    * @return {@link Identity} of an user
-   * @see #setCodeContext(String, String)
    * @throws AuthenticationException if code doesn't match any user
+   * @see #setCodeContext(String, String)
    */
   public Identity exchangeCode(String code) throws AuthenticationException {
     Identity id = codes.remove(code);
@@ -247,12 +299,13 @@ public class CodeAuthentication {
   /**
    * Set identity context for a code. The code may be already exchanged by {@link #exchangeCode(String)},
    * after this it will be fully removed from the authenticator.<br>
-   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be thrown.
-   * 
+   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be
+   * thrown.
+   *
    * @param code {@link String}
    * @param context {@link String}
+   * @throws AuthenticationException the authentication exception
    * @see #exchangeCode(String)
-   * @throws AuthenticationException
    */
   public void setCodeContext(String code, String context) throws AuthenticationException {
     Identity id = codes.get(code);
@@ -268,6 +321,12 @@ public class CodeAuthentication {
     }
   }
 
+  /**
+   * Checks for code context.
+   *
+   * @param code the code
+   * @return true, if successful
+   */
   @Deprecated
   public boolean hasCodeContext(String code) {
     Identity id = codes.get(code);

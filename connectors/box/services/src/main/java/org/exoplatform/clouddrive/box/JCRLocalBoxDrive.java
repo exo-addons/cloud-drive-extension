@@ -88,8 +88,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    */
   protected class Connect extends ConnectCommand {
 
+    /** The api. */
     protected final BoxAPI api;
 
+    /**
+     * Instantiates a new connect.
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
+     */
     protected Connect() throws RepositoryException, DriveRemovedException {
       this.api = getUser().api();
     }
@@ -114,6 +121,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       driveNode.setProperty("box:streamHistory", ""); // empty history
     }
 
+    /**
+     * Fetch childs.
+     *
+     * @param fileId the file id
+     * @param parent the parent
+     * @return the box folder. info
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected BoxFolder.Info fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
       ItemsIterator items = api.getFolderItems(fileId);
       iterators.add(items);
@@ -149,9 +165,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     /**
      * Create command for Box synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected FullSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -195,6 +211,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       }
     }
 
+    /**
+     * Sync childs.
+     *
+     * @param folderId the folder id
+     * @param parent the parent
+     * @return the box folder. info
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected BoxFolder.Info syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
 
       ItemsIterator items = api.getFolderItems(folderId);
@@ -235,6 +260,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     /**
      * Execute full sync from current thread.
+     *
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
      */
     protected void execLocal() throws CloudDriveException, RepositoryException {
       // XXX we need this to be able run it from EventsSync.syncFiles()
@@ -267,6 +295,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
   }
 
+  /**
+   * The Class FileAPI.
+   */
   protected class FileAPI extends AbstractFileAPI {
 
     /**
@@ -274,6 +305,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     protected final BoxAPI api;
 
+    /**
+     * Instantiates a new file API.
+     */
     FileAPI() {
       this.api = getUser().api();
     }
@@ -866,10 +900,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     protected EventsIterator                       events;
 
+    /** The next event. */
     protected BoxEvent                             nextEvent;
 
+    /** The last postponed. */
     protected BoxEvent                             lastPostponed;
 
+    /** The postponed number. */
     protected int                                  prevPostponedNumber, postponedNumber;
 
     /**
@@ -882,15 +919,17 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
      */
     protected int                                  readCounter    = 0;
 
+    /** The saved stream position. */
     protected Long                                 savedStreamPosition;
 
+    /** The local stream position. */
     protected Long                                 localStreamPosition;
 
     /**
      * Create command for Box synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected EventsSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -1204,6 +1243,15 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       }
     }
 
+    /**
+     * Fetch childs.
+     *
+     * @param fileId the file id
+     * @param parent the parent
+     * @return the box folder
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected BoxFolder fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
       ItemsIterator items = api.getFolderItems(fileId);
       iterators.add(items);
@@ -1219,6 +1267,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return items.parent;
     }
 
+    /**
+     * Read event.
+     *
+     * @return the box event
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected BoxEvent readEvent() throws CloudDriveException {
       while (events.hasNext()) {
         BoxEvent next = events.next();
@@ -1234,6 +1288,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return null;
     }
 
+    /**
+     * Checks for next event.
+     *
+     * @return true, if successful
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected boolean hasNextEvent() throws CloudDriveException {
       // condition of next: if Box events not yet full read or we have postponed and their number decreases
       // from cycle to cycle over the whole queue.
@@ -1248,6 +1308,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return readCounter > 1 && postponed.size() > 0 && (lastPostponed != null ? prevPostponedNumber > postponedNumber : true);
     }
 
+    /**
+     * Next event.
+     *
+     * @return the box event
+     * @throws NoSuchElementException the no such element exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected BoxEvent nextEvent() throws NoSuchElementException, CloudDriveException {
       BoxEvent event = null;
       if (nextEvent != null) {
@@ -1281,10 +1348,20 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       throw new NoSuchElementException("No more events.");
     }
 
+    /**
+     * Postpone.
+     *
+     * @param event the event
+     */
     protected void postpone(BoxEvent event) {
       postponed.add(event);
     }
 
+    /**
+     * Checks for postponed.
+     *
+     * @return true, if successful
+     */
     protected boolean hasPostponed() {
       if (postponed.size() > 0) {
         if (LOG.isDebugEnabled()) {
@@ -1302,14 +1379,32 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       return postponed.size() > 0;
     }
 
+    /**
+     * Undeleted.
+     *
+     * @param itemId the item id
+     * @return the box item. info
+     */
     protected BoxItem.Info undeleted(String itemId) {
       return undeleted.get(itemId);
     }
 
+    /**
+     * Undelete.
+     *
+     * @param item the item
+     */
     protected void undelete(BoxItem.Info item) {
       undeleted.put(item.getID(), item);
     }
 
+    /**
+     * Apply.
+     *
+     * @param local the local
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
         applied.put(local.getId(), local);
@@ -1320,10 +1415,25 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       }
     }
 
+    /**
+     * Applied.
+     *
+     * @param itemId the item id
+     * @return the JCR local cloud file
+     */
     protected JCRLocalCloudFile applied(String itemId) {
       return applied.get(itemId);
     }
 
+    /**
+     * Removes the.
+     *
+     * @param itemId the item id
+     * @param itemPath the item path
+     * @return the JCR local cloud file
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected JCRLocalCloudFile remove(String itemId, String itemPath) throws RepositoryException, CloudDriveException {
       appliedCounter++;
       if (itemPath != null) {
@@ -1334,10 +1444,19 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
   }
 
+  /**
+   * The Class BoxState.
+   */
   public class BoxState implements FilesState {
 
+    /** The link. */
     final ChangesLink link;
 
+    /**
+     * Instantiates a new box state.
+     *
+     * @param link the link
+     */
     protected BoxState(ChangesLink link) {
       this.link = link;
     }
@@ -1367,6 +1486,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the type.
+     *
      * @return the type
      */
     public String getType() {
@@ -1374,6 +1495,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the url.
+     *
      * @return the url
      */
     public String getUrl() {
@@ -1381,6 +1504,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the ttl.
+     *
      * @return the ttl
      */
     public long getTtl() {
@@ -1388,6 +1513,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the max retries.
+     *
      * @return the maxRetries
      */
     public long getMaxRetries() {
@@ -1395,6 +1522,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the retry timeout.
+     *
      * @return the retryTimeout
      */
     public long getRetryTimeout() {
@@ -1402,6 +1531,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the outdated timeout.
+     *
      * @return the outdatedTimeout
      */
     public long getOutdatedTimeout() {
@@ -1409,23 +1540,34 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     }
 
     /**
+     * Gets the created.
+     *
      * @return the created
      */
     public long getCreated() {
       return link.getCreated();
     }
 
+    /**
+     * Checks if is outdated.
+     *
+     * @return true, if is outdated
+     */
     public boolean isOutdated() {
       return link.isOutdated();
     }
   }
 
   /**
-   * @param user
-   * @param driveNode
-   * @param sessionProviders
-   * @throws CloudDriveException
-   * @throws RepositoryException
+   * Instantiates a new JCR local box drive.
+   *
+   * @param user the user
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
    */
   protected JCRLocalBoxDrive(BoxUser user,
                              Node driveNode,
@@ -1436,6 +1578,18 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     getUser().api().getToken().addListener(this);
   }
 
+  /**
+   * Instantiates a new JCR local box drive.
+   *
+   * @param apiBuilder the api builder
+   * @param provider the provider
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected JCRLocalBoxDrive(API apiBuilder,
                              BoxProvider provider,
                              Node driveNode,
@@ -1458,14 +1612,14 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
   /**
    * Load user from the drive Node.
-   * 
+   *
    * @param apiBuilder {@link API} API builder
    * @param provider {@link BoxProvider}
    * @param driveNode {@link Node} root of the drive
    * @return {@link BoxUser}
-   * @throws RepositoryException
-   * @throws BoxException
-   * @throws CloudDriveException
+   * @throws RepositoryException the repository exception
+   * @throws BoxException the box exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected static BoxUser loadUser(API apiBuilder, BoxProvider provider, Node driveNode) throws RepositoryException,
                                                                                           BoxException,
@@ -1491,7 +1645,6 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
   /**
    * {@inheritDoc}
    * 
-   * @throws BoxException
    */
   @Override
   public void onUserTokenRefresh(UserToken token) throws CloudDriveException {
@@ -1615,12 +1768,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
   /**
    * Initialize Box's common specifics of files and folders.
-   * 
+   *
    * @param localNode {@link Node}
    * @param item {@link BoxItem.Info}
    * @return boolean <code>true</code> if Box file was changed comparing to previous state, <code>false</code>
-   * @throws RepositoryException
-   * @throws BoxException
+   * @throws RepositoryException the repository exception
+   * @throws BoxException the box exception
    */
   protected boolean initBoxItem(Node localNode, BoxItem.Info item) throws RepositoryException, BoxException {
     boolean changed = false;
@@ -1662,6 +1815,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     return changed;
   }
 
+  /**
+   * Find mimetype.
+   *
+   * @param fileName the file name
+   * @return the string
+   */
   protected String findMimetype(String fileName) {
     String name = fileName.toUpperCase().toLowerCase();
     String ext = name.substring(name.lastIndexOf(".") + 1);
@@ -1790,6 +1949,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     return file;
   }
 
+  /**
+   * Not in range.
+   *
+   * @param path the path
+   * @param range the range
+   * @return true, if successful
+   */
   protected boolean notInRange(String path, Collection<String> range) {
     for (String p : range) {
       if (path.startsWith(p)) {
@@ -1799,6 +1965,13 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     return true;
   }
 
+  /**
+   * Gets the sequence id.
+   *
+   * @param item the item
+   * @return the sequence id
+   * @throws BoxFormatException the box format exception
+   */
   protected Long getSequenceId(BoxItem.Info item) throws BoxFormatException {
     // TODO do we need use Etag in conjunction with sequence_id? they mean almost the same in Box API.
     try {

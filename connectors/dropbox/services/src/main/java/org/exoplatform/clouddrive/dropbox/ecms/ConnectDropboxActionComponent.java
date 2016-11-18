@@ -38,10 +38,23 @@ public class ConnectDropboxActionComponent extends BaseConnectActionComponent {
    * */
   protected static final String PROVIDER_ID = "dropbox";
 
+  /**
+   * The listener interface for receiving connectDropboxAction events.
+   * The class that is interested in processing a connectDropboxAction
+   * event implements this interface, and the object created
+   * with that class is registered with a component using the
+   * component's <code>addConnectDropboxActionListener</code> method. When
+   * the connectDropboxAction event occurs, that object's appropriate
+   * method is invoked.
+   *
+   */
   public static class ConnectDropboxActionListener
                                                       extends
                                                       UIActionBarActionListener<ConnectDropboxActionComponent> {
 
+    /**
+     * {@inheritDoc}
+     */
     public void processEvent(Event<ConnectDropboxActionComponent> event) throws Exception {
     }
   }

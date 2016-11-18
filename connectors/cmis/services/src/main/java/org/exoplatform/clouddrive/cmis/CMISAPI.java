@@ -103,6 +103,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class CMISAPI {
 
+  /** The Constant LOG. */
   protected static final Log LOG                   = ExoLogger.getLogger(CMISAPI.class);
 
   /**
@@ -115,8 +116,10 @@ public class CMISAPI {
    */
   public static final int    FOLDER_PAGE_SIZE      = 10240;
 
+  /** The Constant TOKEN_DATATIME_FORMAT. */
   public static final String TOKEN_DATATIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
+  /** The Constant EMPTY_TOKEN. */
   public static final String EMPTY_TOKEN           = "".intern();
 
   /**
@@ -133,6 +136,7 @@ public class CMISAPI {
    */
   protected class ChildrenIterator extends ChunkIterator<CmisObject> {
 
+    /** The folder id. */
     protected final String             folderId;
 
     /**
@@ -145,6 +149,12 @@ public class CMISAPI {
      */
     protected ItemIterable<CmisObject> children;
 
+    /**
+     * Instantiates a new children iterator.
+     *
+     * @param parent the parent
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected ChildrenIterator(Folder parent) throws CloudDriveException {
       this.folderId = parent.getId();
       this.parent = parent;
@@ -153,6 +163,12 @@ public class CMISAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * Instantiates a new children iterator.
+     *
+     * @param folderId the folder id
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected ChildrenIterator(String folderId) throws CloudDriveException {
       this.folderId = folderId;
 
@@ -160,6 +176,9 @@ public class CMISAPI {
       this.iter = nextChunk();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<CmisObject> nextChunk() throws CloudDriveException {
       try {
         if (parent == null) {
@@ -197,6 +216,9 @@ public class CMISAPI {
       }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected boolean hasNextChunk() {
       // pagination via chunks not actual here - it is done by OpenCMIS in parent.getChildren() and its
       // CollectionIterator
@@ -212,16 +234,28 @@ public class CMISAPI {
    */
   protected class ChangesIterator extends ChunkIterator<ChangeEvent> {
 
+    /** The latest chunk token. */
     protected ChangeToken       changeToken, lastFetchedToken, latestChunkToken;
 
+    /** The changes. */
     protected List<ChangeEvent> changes;
 
+    /** The first run. */
     protected boolean           firstRun     = true;
 
+    /** The has more items. */
     protected boolean           hasMoreItems = true;
 
+    /** The clean next. */
     protected boolean           cleanNext    = true;
 
+    /**
+     * Instantiates a new changes iterator.
+     *
+     * @param startChangeToken the start change token
+     * @throws CMISException the CMIS exception
+     * @throws CloudDriveAccessException the cloud drive access exception
+     */
     protected ChangesIterator(ChangeToken startChangeToken) throws CMISException, CloudDriveAccessException {
       this.changeToken = startChangeToken;
       this.lastFetchedToken = latestChunkToken = emptyToken();
@@ -232,6 +266,9 @@ public class CMISAPI {
       this.firstRun = false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected Iterator<ChangeEvent> nextChunk() throws CMISException, CloudDriveAccessException {
       if (!changeToken.isEmpty()) {
         try {
@@ -364,11 +401,22 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * The Class ChangeToken.
+   */
   protected class ChangeToken {
+    
+    /** The token. */
     protected final String token;
 
+    /** The order. */
     protected final Long   order;
 
+    /**
+     * Instantiates a new change token.
+     *
+     * @param token the token
+     */
     protected ChangeToken(String token) {
       if (token == null) {
         this.token = EMPTY_TOKEN;
@@ -447,6 +495,12 @@ public class CMISAPI {
       return getString();
     }
 
+    /**
+     * Compare to.
+     *
+     * @param other the other
+     * @return the int
+     */
     protected int compareTo(ChangeToken other) {
       if (order != null && other.order != null) {
         return order.compareTo(other.order);
@@ -457,16 +511,27 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * The Class TimeChangeToken.
+   */
   protected class TimeChangeToken extends ChangeToken {
 
+    /** The time. */
     protected final GregorianCalendar time;
 
+    /**
+     * Instantiates a new time change token.
+     *
+     * @param time the time
+     */
     protected TimeChangeToken(GregorianCalendar time) {
       super(String.valueOf(time.getTimeInMillis()));
       this.time = time;
     }
 
     /**
+     * Gets the time.
+     *
      * @return the time
      */
     protected GregorianCalendar getTime() {
@@ -501,19 +566,20 @@ public class CMISAPI {
    */
   protected class Context extends OperationContextImpl {
 
+    /** The Constant serialVersionUID. */
     private static final long serialVersionUID = 1L;
 
     /**
-     * Constructor of CMIS context;
-     * 
-     * @param filter
-     * @param includeAcls
-     * @param includeAllowableActions
-     * @param includePolicies
-     * @param includeRelationships
-     * @param renditionFilter
-     * @param orderBy
-     * @param maxItemsPerPage
+     * Constructor of CMIS context;.
+     *
+     * @param filter the filter
+     * @param includeAcls the include acls
+     * @param includeAllowableActions the include allowable actions
+     * @param includePolicies the include policies
+     * @param includeRelationships the include relationships
+     * @param renditionFilter the rendition filter
+     * @param orderBy the order by
+     * @param maxItemsPerPage the max items per page
      */
     protected Context(String filter,
                       boolean includeAcls,
@@ -644,17 +710,19 @@ public class CMISAPI {
    */
   protected String                         repositoryId;
 
-  /**
-   * Current CMIS repository name;
-   */
+  /** Current CMIS repository name;. */
   protected String                         repositoryName;
 
+  /** The product name. */
   protected String                         productName;
 
+  /** The product version. */
   protected String                         productVersion;
 
+  /** The vendor name. */
   protected String                         vendorName;
 
+  /** The custom domain. */
   protected String                         enterpriseId, enterpriseName, customDomain;
 
   /**
@@ -669,12 +737,12 @@ public class CMISAPI {
 
   /**
    * Create API from user credentials.
-   * 
+   *
    * @param serviceURL {@link String} CMIS service URL (AtimPub binding)
    * @param user {@link String} CMIS service username
    * @param password {@link String} CMIS service user password
-   * @throws CMISException
-   * @throws CloudDriveException
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected CMISAPI(String serviceURL, String user, String password) throws CMISException, CloudDriveException {
 
@@ -710,9 +778,8 @@ public class CMISAPI {
 
   /**
    * Update user credentials.
-   * 
+   *
    * @param parameters {@link Map} of connection parameters
-   * @throws CloudDriveException
    */
   protected void updateUser(Map<String, String> parameters) {
     try {
@@ -724,6 +791,8 @@ public class CMISAPI {
   }
 
   /**
+   * Gets the paramaters.
+   *
    * @return CMIS session parameters.
    */
   protected Map<String, String> getParamaters() {
@@ -737,10 +806,8 @@ public class CMISAPI {
 
   /**
    * Currently connected cloud user name.
-   * 
+   *
    * @return String
-   * @throws CMISException
-   * @throws RefreshAccessException
    */
   protected String getUser() {
     try {
@@ -753,10 +820,8 @@ public class CMISAPI {
 
   /**
    * Password of currently connected cloud user.
-   * 
+   *
    * @return String
-   * @throws CMISException
-   * @throws RefreshAccessException
    */
   protected String getPassword() {
     try {
@@ -769,10 +834,8 @@ public class CMISAPI {
 
   /**
    * CMIS service's AtomPub URL.
-   * 
+   *
    * @return String
-   * @throws CMISException
-   * @throws RefreshAccessException
    */
   protected String getServiceURL() {
     try {
@@ -785,10 +848,10 @@ public class CMISAPI {
 
   /**
    * Init current CMIS repository for late use.
-   * 
+   *
    * @param repositoryId {@link String} repository name
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected void initRepository(String repositoryId) throws CMISException, RefreshAccessException {
     this.repositoryId = repositoryId;
@@ -808,11 +871,18 @@ public class CMISAPI {
     return repositoryId;
   }
 
+  /**
+   * Gets the current CMIS repository name;.
+   *
+   * @return the current CMIS repository name;
+   */
   public String getRepositoryName() {
     return repositoryName != null ? repositoryName : repositoryId;
   }
 
   /**
+   * Gets the product name.
+   *
    * @return the productName
    */
   public String getProductName() {
@@ -820,6 +890,8 @@ public class CMISAPI {
   }
 
   /**
+   * Gets the product version.
+   *
    * @return the productVersion
    */
   public String getProductVersion() {
@@ -827,12 +899,19 @@ public class CMISAPI {
   }
 
   /**
+   * Gets the vendor name.
+   *
    * @return the vendorName
    */
   public String getVendorName() {
     return vendorName;
   }
 
+  /**
+   * Gets the user title.
+   *
+   * @return the user title
+   */
   public String getUserTitle() {
     // By default CMIS cannot provide something else than an username
     // Vendor specific APIes may override this method to return proper value
@@ -841,10 +920,10 @@ public class CMISAPI {
 
   /**
    * Available repositories for current user.
-   * 
+   *
    * @return list of {@link Repository} objects
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected List<Repository> getRepositories() throws CMISException, RefreshAccessException {
     return Collections.unmodifiableList(repositories());
@@ -852,11 +931,11 @@ public class CMISAPI {
 
   /**
    * The drive root folder.
-   * 
+   *
    * @return {@link Folder}
-   * @throws CMISException
-   * @throws RefreshAccessException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Folder getRootFolder() throws CMISException, RefreshAccessException, UnauthorizedException {
     try {
@@ -892,13 +971,13 @@ public class CMISAPI {
 
   /**
    * Return CMIS object from the repository.
-   * 
+   *
    * @param objectId {@link String}
    * @return {@link CmisObject}
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws CloudDriveAccessException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected CmisObject getObject(String objectId) throws CMISException,
                                                   NotFoundException,
@@ -940,6 +1019,14 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * Read document version or PWC.
+   *
+   * @param id the id
+   * @return the document
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws UnauthorizedException the unauthorized exception
+   */
   protected Document readDocumentVersionOrPWC(String id) throws CloudDriveAccessException, UnauthorizedException {
     try {
       return getLatestDocumentVersionOrPWC(id);
@@ -959,13 +1046,13 @@ public class CMISAPI {
   /**
    * Return latest versions of CMIS document in repository. If document is checked out by current user and the
    * private working copy (PWC) available it will be returned.
-   * 
+   *
    * @param id {@link String}
    * @return {@link Document}
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws CloudDriveAccessException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Document getLatestDocumentVersionOrPWC(String id) throws CMISException,
                                                               NotFoundException,
@@ -1015,13 +1102,13 @@ public class CMISAPI {
 
   /**
    * Return all versions of CMIS document in repository.
-   * 
+   *
    * @param document {@link Document}
    * @return list of {@link Document} versions
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws CloudDriveAccessException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected List<Document> getAllVersion(Document document) throws CMISException,
                                                             NotFoundException,
@@ -1053,12 +1140,12 @@ public class CMISAPI {
   /**
    * Return the parent folder(s) for the specified object. If it is not fileable object then empty result will
    * be returned. A single parent will be always for a folder.
-   * 
+   *
    * @param obj {@link CmisObject}
    * @return collection of {@link Folder} parents
-   * @throws CMISException
-   * @throws CloudDriveAccessException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Collection<Folder> getParents(CmisObject obj) throws CMISException,
                                                           CloudDriveAccessException,
@@ -1087,25 +1174,47 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * Gets the folder items.
+   *
+   * @param folderId the folder id
+   * @return the folder items
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected ChildrenIterator getFolderItems(String folderId) throws CloudDriveException {
     return new ChildrenIterator(folderId);
   }
   
+  /**
+   * Gets the folder items.
+   *
+   * @param folder the folder
+   * @return the folder items
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected ChildrenIterator getFolderItems(Folder folder) throws CloudDriveException {
     return new ChildrenIterator(folder);
   }
 
+  /**
+   * Gets the changes.
+   *
+   * @param changeToken the change token
+   * @return the changes
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   */
   protected ChangesIterator getChanges(ChangeToken changeToken) throws CMISException, CloudDriveAccessException {
     return new ChangesIterator(changeToken);
   }
 
   /**
    * Link (URl) to a file for opening on provider site (UI).
-   * 
-   * @param item {@link CmisObject}
+   *
+   * @param file the file
    * @return String with the file URL.
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected String getLink(CmisObject file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
@@ -1119,11 +1228,11 @@ public class CMISAPI {
 
   /**
    * Link (URl) to a folder for downloading from provider site.
-   * 
-   * @param item {@link Document}
+   *
+   * @param file the file
    * @return String with the file URL.
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected String getLink(Folder file) throws CMISException, RefreshAccessException {
     LinkAccess link = (LinkAccess) session().getBinding().getObjectService();
@@ -1131,6 +1240,21 @@ public class CMISAPI {
     return linkSelfEntry;
   }
 
+  /**
+   * Creates the document.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @param mimeType the mime type
+   * @param data the data
+   * @return the document
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
+   */
   protected Document createDocument(String parentId, String name, String mimeType, InputStream data) throws CMISException,
                                                                                                      NotFoundException,
                                                                                                      ConflictException,
@@ -1222,6 +1346,19 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * Creates the folder.
+   *
+   * @param parentId the parent id
+   * @param name the name
+   * @return the folder
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
+   */
   protected Folder createFolder(String parentId, String name) throws CMISException,
                                                               NotFoundException,
                                                               ConflictException,
@@ -1275,14 +1412,14 @@ public class CMISAPI {
 
   /**
    * Delete a cloud file by given fileId.
-   * 
+   *
    * @param id {@link String}
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected void deleteDocument(String id) throws CMISException,
                                            NotFoundException,
@@ -1323,14 +1460,14 @@ public class CMISAPI {
 
   /**
    * Delete a cloud folder by given folderId.
-   * 
+   *
    * @param id {@link String}
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected void deleteFolder(String id) throws CMISException,
                                          NotFoundException,
@@ -1375,19 +1512,19 @@ public class CMISAPI {
 
   /**
    * Update document name (if differs with remote) and its content stream.
-   * 
+   *
    * @param id {@link String}
    * @param name {@link String}
    * @param data {@link InputStream} content stream
    * @param mimeType {@link String} mime-type of the content stream
    * @param local {@link LocalFile} access to local file for move operation support
    * @return {@link Document} of actually changed document
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Document updateContent(String id,
                                    String name,
@@ -1508,22 +1645,19 @@ public class CMISAPI {
 
   /**
    * Update CMIS object name and parent (if object was moved locally).
-   * 
+   *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
-   * @param data {@link InputStream} content stream or <code>null</code> if content should not be updated
-   * @param mimeType {@link String} mime-type of the content stream or <code>null</code> if content not
-   *          provided
    * @param local {@link LocalFile} access to local file for move operation support
    * @return {@link CmisObject} of actually changed object or <code>null</code> if it already exists with
    *         such name and parent.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected CmisObject updateObject(String parentId, String id, String name, LocalFile local) throws CMISException,
                                                                                               NotFoundException,
@@ -1715,19 +1849,17 @@ public class CMISAPI {
 
   /**
    * Copy document to a new one. If file was successfully copied this method return new document object.
-   * 
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
-   * @param modified {@link Calendar}
    * @return {@link Document} of actually copied file.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   @Deprecated
   protected Document copyDocument(String id, String parentId, String name) throws CMISException,
@@ -1769,18 +1901,17 @@ public class CMISAPI {
   /**
    * Copy document to a new one using CMIS objects. If file was successfully copied this method return new
    * document object.
-   * 
+   *
    * @param source {@link Document}
    * @param parent {@link Folder}
    * @param name {@link String}
-   * @param modified {@link Calendar}
    * @return {@link Document} of actually copied file.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Document copyDocument(Document source, Folder parent, String name) throws CMISException,
                                                                                NotFoundException,
@@ -1862,18 +1993,17 @@ public class CMISAPI {
    * and create new folder
    * with sub-folders from it. This may cause not full copy of a folder in general
    * case (permissions or other metadata may not be copied).
-   * 
+   *
    * @param id {@link String}
    * @param parentId {@link String}
    * @param name {@link String}
    * @return {@link Folder} of actually copied folder.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
-   * 
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    * @see #copyFolder(Folder, Folder, String)
    */
   @Deprecated
@@ -1919,17 +2049,17 @@ public class CMISAPI {
    * folder object. <br>
    * Notable that CMIS doesn't support folder copy and this method will create only a copy of the source
    * folder object without copying its sub-files - they must be copied one by one by the caller.
-   * 
-   * @param id {@link String}
-   * @param parentId {@link String}
+   *
+   * @param source the source
+   * @param parent the parent
    * @param name {@link String}
    * @return {@link Folder} of actually copied folder.
-   * @throws CMISException
-   * @throws NotFoundException
-   * @throws ConflictException
-   * @throws CloudDriveAccessException
-   * @throws ConstraintException
-   * @throws UnauthorizedException
+   * @throws CMISException the CMIS exception
+   * @throws NotFoundException the not found exception
+   * @throws ConflictException the conflict exception
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws ConstraintException the constraint exception
+   * @throws UnauthorizedException the unauthorized exception
    */
   protected Folder copyFolder(Folder source, Folder parent, String name) throws CMISException,
                                                                          NotFoundException,
@@ -1971,6 +2101,13 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * Gets the repository info.
+   *
+   * @return the repository info
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
+   */
   protected RepositoryInfo getRepositoryInfo() throws CMISException, RefreshAccessException {
     try {
       return session(true).getRepositoryInfo();
@@ -1983,6 +2120,12 @@ public class CMISAPI {
     }
   }
 
+  /**
+   * Checks if is folder.
+   *
+   * @param object the object
+   * @return true, if is folder
+   */
   protected boolean isFolder(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_FOLDER)) {
       return true;
@@ -1990,6 +2133,12 @@ public class CMISAPI {
     return false;
   }
 
+  /**
+   * Checks if is document.
+   *
+   * @param object the object
+   * @return true, if is document
+   */
   protected boolean isDocument(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_DOCUMENT)) {
       return true;
@@ -1997,6 +2146,12 @@ public class CMISAPI {
     return false;
   }
 
+  /**
+   * Checks if is relationship.
+   *
+   * @param object the object
+   * @return true, if is relationship
+   */
   protected boolean isRelationship(CmisObject object) {
     if (object.getBaseTypeId().equals(BaseTypeId.CMIS_RELATIONSHIP)) {
       return true;
@@ -2004,6 +2159,12 @@ public class CMISAPI {
     return false;
   }
 
+  /**
+   * Checks if is fileable.
+   *
+   * @param object the object
+   * @return true, if is fileable
+   */
   protected boolean isFileable(CmisObject object) {
     if (object instanceof FileableCmisObject) {
       return true;
@@ -2045,9 +2206,9 @@ public class CMISAPI {
 
   /**
    * Create CMIS binding instance (low-level API but with fine grained control).<br>
-   * 
+   *
    * @return {@link CmisBinding}
-   * @throws CMISException
+   * @throws CMISException the CMIS exception
    */
   protected CmisBinding binding() throws CMISException {
     CmisBindingFactory factory = CmisBindingFactory.newInstance();
@@ -2062,10 +2223,10 @@ public class CMISAPI {
 
   /**
    * Create CMIS session.
-   * 
+   *
    * @return {@link Session}
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected Session session() throws CMISException, RefreshAccessException {
     return session(false);
@@ -2073,12 +2234,12 @@ public class CMISAPI {
 
   /**
    * Create CMIS session.
-   * 
+   *
    * @param forceNew boolean if <code>true</code> then session will be recreated, otherwise will try use
    *          cached in thread-local variable.
    * @return {@link Session}
-   * @throws CMISException
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   protected Session session(boolean forceNew) throws CMISException, RefreshAccessException {
     Session session = this.session.get();
@@ -2165,6 +2326,13 @@ public class CMISAPI {
     throw new CMISException("CMIS repository not found: " + repositoryId);
   }
 
+  /**
+   * Read token.
+   *
+   * @param event the event
+   * @return the change token
+   * @throws CMISException the CMIS exception
+   */
   protected ChangeToken readToken(ChangeEvent event) throws CMISException {
     List<?> tl = event.getProperties().get("ChangeToken");
     if (tl != null && tl.size() > 0) {
@@ -2183,18 +2351,44 @@ public class CMISAPI {
         + event.getChangeType());
   }
 
+  /**
+   * Read token.
+   *
+   * @param tokenString the token string
+   * @return the change token
+   * @throws CMISException the CMIS exception
+   */
   protected ChangeToken readToken(String tokenString) throws CMISException {
     return new ChangeToken(tokenString);
   }
 
+  /**
+   * Empty token.
+   *
+   * @return the change token
+   */
   protected ChangeToken emptyToken() {
     return emptyToken;
   }
 
+  /**
+   * Checks if is versionable.
+   *
+   * @param type the type
+   * @return true, if is versionable
+   */
   protected boolean isVersionable(ObjectType type) {
     return type instanceof DocumentType ? ((DocumentType) type).isVersionable() : false;
   }
 
+  /**
+   * Checks if is syncable change.
+   *
+   * @param change the change
+   * @return true, if is syncable change
+   * @throws RefreshAccessException the refresh access exception
+   * @throws CMISException the CMIS exception
+   */
   protected boolean isSyncableChange(ChangeEvent change) throws RefreshAccessException, CMISException {
     boolean res = true;
     List<?> objTypeIdList = change.getProperties().get(PropertyIds.OBJECT_TYPE_ID);
@@ -2224,7 +2418,8 @@ public class CMISAPI {
 
   /**
    * Should perform CMIS check-in after renaming of already checked-in document.
-   * 
+   *
+   * @param doc the doc
    * @return boolean
    */
   protected boolean shouldCheckinRename(Document doc) {
@@ -2233,6 +2428,12 @@ public class CMISAPI {
     return true;
   }
 
+  /**
+   * Format token time.
+   *
+   * @param date the date
+   * @return the string
+   */
   public static String formatTokenTime(Date date) {
     DateFormat format = new SimpleDateFormat(TOKEN_DATATIME_FORMAT);
     return format.format(date);

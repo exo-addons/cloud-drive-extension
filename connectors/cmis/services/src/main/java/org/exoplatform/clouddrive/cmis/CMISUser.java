@@ -37,6 +37,7 @@ import javax.jcr.RepositoryException;
  */
 public class CMISUser extends CloudUser {
 
+  /** The api. */
   protected final CMISAPI api;
 
   /**
@@ -124,10 +125,10 @@ public class CMISUser extends CloudUser {
 
   /**
    * Available CMIS repositories for this user.
-   * 
+   *
    * @return List of repositories.
-   * @throws CloudDriveAccessException
-   * @throws CMISException
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws CMISException the CMIS exception
    */
   public List<Repository> getRepositories() throws CloudDriveAccessException, CMISException {
     return api().getRepositories();
@@ -135,9 +136,10 @@ public class CMISUser extends CloudUser {
 
   /**
    * Set current CMIS repository ID for operations of this user.
-   * 
+   *
    * @param repositoryId {@link String}
-   * @throws RefreshAccessException
+   * @throws CMISException the CMIS exception
+   * @throws RefreshAccessException the refresh access exception
    */
   public void setRepositoryId(String repositoryId) throws CMISException, RefreshAccessException {
     api().initRepository(repositoryId);

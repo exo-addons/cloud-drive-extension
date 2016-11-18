@@ -37,14 +37,23 @@ import javax.jcr.RepositoryException;
  */
 public class CMISProvider extends CloudProvider {
 
+  /**
+   * The Class AtomPub.
+   */
   public static class AtomPub {
+    
+    /** The name. */
     String name;
 
+    /** The url. */
     String url;
 
+    /** The hash code. */
     int    hashCode;
 
     /**
+     * Sets the name.
+     *
      * @param name the name to set
      */
     public void setName(String name) {
@@ -53,6 +62,8 @@ public class CMISProvider extends CloudProvider {
     }
 
     /**
+     * Sets the url.
+     *
      * @param url the url to set
      */
     public void setUrl(String url) {
@@ -61,6 +72,8 @@ public class CMISProvider extends CloudProvider {
     }
 
     /**
+     * Gets the name.
+     *
      * @return the name
      */
     public String getName() {
@@ -68,6 +81,8 @@ public class CMISProvider extends CloudProvider {
     }
 
     /**
+     * Gets the url.
+     *
      * @return the url
      */
     public String getUrl() {
@@ -114,20 +129,25 @@ public class CMISProvider extends CloudProvider {
     }
   }
 
+  /** The Constant LOG. */
   protected static final Log        LOG        = ExoLogger.getLogger(CMISProvider.class);
 
+  /** The auth URL. */
   protected final String            authURL;
 
+  /** The jcr service. */
   protected final RepositoryService jcrService;
 
+  /** The predefined. */
   protected Set<AtomPub>            predefined = new LinkedHashSet<AtomPub>();
 
   /**
-   * @param id
-   * @param name
-   * @param authURL
-   * @param redirectURL
-   * @param jcrService
+   * Instantiates a new CMIS provider.
+   *
+   * @param id the id
+   * @param name the name
+   * @param authURL the auth URL
+   * @param jcrService the jcr service
    */
   public CMISProvider(String id, String name, String authURL, RepositoryService jcrService) {
     super(id, name);
@@ -161,10 +181,20 @@ public class CMISProvider extends CloudProvider {
     return true;
   }
 
+  /**
+   * Gets the predefined atompub services.
+   *
+   * @return the predefined atompub services
+   */
   public Set<AtomPub> getPredefinedAtompubServices() {
     return Collections.unmodifiableSet(predefined);
   }
 
+  /**
+   * Inits the predefined.
+   *
+   * @param predefined the predefined
+   */
   protected void initPredefined(PredefinedServices predefined) {
     String propKey = "clouddrive." + getId() + ".predefined";
     String predefinedPropOverride = System.getProperty(propKey + ".override", "true");

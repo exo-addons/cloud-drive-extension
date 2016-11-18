@@ -33,16 +33,20 @@ import com.eclipsesource.json.JsonObject;
 public class ExoBoxEvent extends BoxEvent {
 
   /**
-   * @param api
-   * @param json
+   * Instantiates a new exo box event.
+   *
+   * @param api the api
+   * @param json the json
    */
   public ExoBoxEvent(BoxAPIConnection api, String json) {
     super(api, json);
   }
 
   /**
-   * @param api
-   * @param jsonObject
+   * Instantiates a new exo box event.
+   *
+   * @param api the api
+   * @param jsonObject the json object
    */
   public ExoBoxEvent(BoxAPIConnection api, JsonObject jsonObject) {
     super(api, jsonObject);

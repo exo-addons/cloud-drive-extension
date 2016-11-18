@@ -31,6 +31,7 @@ import javax.jcr.RepositoryException;
  */
 public class TemplateUser extends CloudUser {
 
+  /** The api. */
   protected final TemplateAPI api;
 
   /**

@@ -30,18 +30,23 @@ import javax.jcr.RepositoryException;
  */
 public class TemplateProvider extends CloudProvider {
 
+  /** The auth URL. */
   protected final String            authURL;
 
+  /** The redirect URL. */
   protected final String            redirectURL;
 
+  /** The jcr service. */
   protected final RepositoryService jcrService;
 
   /**
-   * @param id
-   * @param name
-   * @param authURL
-   * @param redirectURL
-   * @param jcrService
+   * Instantiates a new template provider.
+   *
+   * @param id the id
+   * @param name the name
+   * @param authURL the auth URL
+   * @param redirectURL the redirect URL
+   * @param jcrService the jcr service
    */
   public TemplateProvider(String id,
                           String name,
@@ -72,6 +77,8 @@ public class TemplateProvider extends CloudProvider {
   }
 
   /**
+   * Gets the redirect URL.
+   *
    * @return the redirectURL
    */
   public String getRedirectURL() {

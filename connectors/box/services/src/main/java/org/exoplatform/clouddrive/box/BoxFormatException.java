@@ -33,15 +33,19 @@ import org.exoplatform.clouddrive.CloudDriveException;
 public class BoxFormatException extends CloudDriveException {
 
   /**
-   * @param message
+   * Instantiates a new box format exception.
+   *
+   * @param message the message
    */
   public BoxFormatException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new box format exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public BoxFormatException(String message, Throwable cause) {
     super(message, cause);

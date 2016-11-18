@@ -29,22 +29,28 @@ import org.exoplatform.clouddrive.CloudProviderException;
 public class TemplateException extends CloudProviderException {
 
   /**
-   * @param message
+   * Instantiates a new template exception.
+   *
+   * @param message the message
    */
   public TemplateException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new template exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public TemplateException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param cause
+   * Instantiates a new template exception.
+   *
+   * @param cause the cause
    */
   public TemplateException(Throwable cause) {
     super(cause);

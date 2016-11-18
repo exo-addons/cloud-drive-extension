@@ -35,22 +35,28 @@ import org.exoplatform.clouddrive.NotAcceptableException;
 public class TooManyFilesException extends NotAcceptableException {
 
   /**
-   * @param message
+   * Instantiates a new too many files exception.
+   *
+   * @param message the message
    */
   public TooManyFilesException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new too many files exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public TooManyFilesException(String message, Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * @param cause
+   * Instantiates a new too many files exception.
+   *
+   * @param cause the cause
    */
   public TooManyFilesException(Throwable cause) {
     super(cause);

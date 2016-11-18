@@ -20,35 +20,36 @@
 package org.exoplatform.clouddrive.cmis.login;
 
 /**
- * Created by The eXo Platform SAS
- * 
+ * Created by The eXo Platform SAS.
+ *
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: AuthenticationException.java 00000 Aug 28, 2014 pnedonosko $
- * 
  */
 public class AuthenticationException extends Exception {
 
-  /**
-   * 
-   */
+  /** The Constant serialVersionUID. */
   private static final long serialVersionUID = -3332063474498339156L;
 
   /**
-   * 
+   * Instantiates a new authentication exception.
    */
   public AuthenticationException() {
   }
 
   /**
-   * @param message
+   * Instantiates a new authentication exception.
+   *
+   * @param message the message
    */
   public AuthenticationException(String message) {
     super(message);
   }
 
   /**
-   * @param message
-   * @param cause
+   * Instantiates a new authentication exception.
+   *
+   * @param message the message
+   * @param cause the cause
    */
   public AuthenticationException(String message, Throwable cause) {
     super(message, cause);

@@ -38,7 +38,6 @@ import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.NotFoundException;
-import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.SyncNotSupportedException;
 import org.exoplatform.clouddrive.UnauthorizedException;
 import org.exoplatform.clouddrive.cmis.CMISAPI.ChangeToken;
@@ -54,7 +53,6 @@ import org.exoplatform.clouddrive.viewer.ContentReader;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.gatein.common.util.Base64;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -87,13 +85,14 @@ import javax.jcr.RepositoryException;
 public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
   /**
-   * Period to perform {@link FullSync} as a next sync request. See implementation of
-   * {@link #getSyncCommand()}.
+   * Period to perform {@link Sync} as a next sync request. See implementation of {@link #getSyncCommand()}.
    */
   public static final long      FULL_SYNC_PERIOD      = 24 * 60 * 60 * 1000;         // 24hrs
 
+  /** The Constant PREVIOUS_LOCAL_NAME. */
   protected static final String PREVIOUS_LOCAL_NAME   = "cmiscd:previousLocalName";
 
+  /** The Constant PREVIOUS_LOCAL_PARENT. */
   protected static final String PREVIOUS_LOCAL_PARENT = "cmiscd:previousLocalParent";
 
   /**
@@ -101,8 +100,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    */
   protected class Connect extends ConnectCommand {
 
+    /** The api. */
     protected final CMISAPI api;
 
+    /**
+     * Instantiates a new connect.
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
+     */
     protected Connect() throws RepositoryException, DriveRemovedException {
       this.api = getUser().api();
     }
@@ -134,6 +140,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       }
     }
 
+    /**
+     * Fetch childs.
+     *
+     * @param fileId the file id
+     * @param parent the parent
+     * @return the folder
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected Folder fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
       ChildrenIterator items = api.getFolderItems(fileId);
       iterators.add(items);
@@ -178,11 +193,23 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        */
       protected ChangesIterator changes;
 
+      /**
+       * Gets the last change token.
+       *
+       * @return the last change token
+       */
       protected ChangeToken getLastChangeToken() {
         ChangeToken lastToken = changes.getLastChangeToken();
         return lastToken != null ? lastToken : api.emptyToken();
       }
 
+      /**
+       * Sync files.
+       *
+       * @param fromChangeToken the from change token
+       * @throws CloudDriveException the cloud drive exception
+       * @throws RepositoryException the repository exception
+       */
       protected void syncFiles(ChangeToken fromChangeToken) throws CloudDriveException, RepositoryException {
         changes = api.getChanges(fromChangeToken);
         iterators.add(changes);
@@ -315,11 +342,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
       /**
        * Remove file's node.
-       * 
+       *
        * @param fileId {@link String}
        * @param parentIds set of Ids of parents (folders)
-       * @throws RepositoryException
-       * @throws CloudDriveException
+       * @throws RepositoryException the repository exception
+       * @throws CloudDriveException the cloud drive exception
        */
       protected void deleteFile(String fileId, Set<String> parentIds) throws RepositoryException, CloudDriveException {
         List<Node> existing = nodes.get(fileId);
@@ -367,13 +394,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
       /**
        * Create or update file's node.
-       * 
+       *
        * @param file {@link CmisObject}
        * @param parentIds set of Ids of parents (folders)
-       * @throws CloudDriveException
-       * @throws IOException
-       * @throws RepositoryException
-       * @throws InterruptedException
+       * @param isFolder the is folder
+       * @throws CloudDriveException the cloud drive exception
+       * @throws RepositoryException the repository exception
        */
       protected void updateFile(CmisObject file, Set<String> parentIds, boolean isFolder) throws CloudDriveException,
                                                                                           RepositoryException {
@@ -457,37 +483,69 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     protected class TraversingAlgorithm {
 
+      /**
+       * The Class CMISItem.
+       */
       protected class CMISItem {
+
+        /** The object. */
         protected final CmisObject object;
 
+        /** The parent id. */
         protected final String     parentId;
 
+        /** The postponed. */
         private boolean            postponed;
 
+        /**
+         * Instantiates a new CMIS item.
+         *
+         * @param object the object
+         * @param parentId the parent id
+         */
         protected CMISItem(CmisObject object, String parentId) {
           super();
           this.object = object;
           this.parentId = parentId;
         }
 
+        /**
+         * Postpone.
+         */
         void postpone() {
           postponed = true;
         }
 
+        /**
+         * Checks if is postponed.
+         *
+         * @return true, if is postponed
+         */
         boolean isPostponed() {
           return postponed;
         }
       }
 
+      /**
+       * The Class FolderReader.
+       */
       protected class FolderReader implements Callable<Folder> {
+
+        /** The folder id. */
         protected final String folderId;
 
+        /**
+         * Instantiates a new folder reader.
+         *
+         * @param folderId the folder id
+         */
         protected FolderReader(String folderId) {
           super();
           this.folderId = folderId;
         }
 
         /**
+         * {@inheritDoc}
          */
         @Override
         public Folder call() throws Exception {
@@ -513,12 +571,23 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         }
       }
 
+      /** The all local. */
       protected final Map<String, List<Node>> allLocal = new HashMap<String, List<Node>>();
 
+      /** The all items. */
       protected final Queue<CMISItem>         allItems = new ConcurrentLinkedQueue<CMISItem>();
 
+      /** The readers. */
       protected final Queue<Future<Folder>>   readers  = new ConcurrentLinkedQueue<Future<Folder>>();
 
+      /**
+       * Read items.
+       *
+       * @param folderId the folder id
+       * @return the future
+       * @throws RepositoryException the repository exception
+       * @throws CloudDriveException the cloud drive exception
+       */
       protected Future<Folder> readItems(String folderId) throws RepositoryException, CloudDriveException {
 
         // start read items in another thread
@@ -527,6 +596,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         return reader;
       }
 
+      /**
+       * Sync files.
+       *
+       * @throws RepositoryException the repository exception
+       * @throws CloudDriveException the cloud drive exception
+       * @throws InterruptedException the interrupted exception
+       */
       protected void syncFiles() throws RepositoryException, CloudDriveException, InterruptedException {
         // real all local nodes of this drive
         readLocalNodes();
@@ -568,6 +644,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         readers.clear();
       }
 
+      /**
+       * Checks if is read done.
+       *
+       * @return true, if is read done
+       */
       protected boolean isReadDone() {
         for (Iterator<Future<Folder>> riter = readers.iterator(); riter.hasNext();) {
           Future<Folder> r = riter.next();
@@ -580,6 +661,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         return true;
       }
 
+      /**
+       * Sync childs.
+       *
+       * @param folderId the folder id
+       * @return the folder
+       * @throws RepositoryException the repository exception
+       * @throws CloudDriveException the cloud drive exception
+       * @throws InterruptedException the interrupted exception
+       */
       protected Folder syncChilds(final String folderId) throws RepositoryException,
                                                          CloudDriveException,
                                                          InterruptedException {
@@ -669,10 +759,15 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     protected final CMISAPI       api;
 
+    /** The pre sync error. */
     protected CloudDriveException preSyncError = null;
 
+    /** The changes log. */
     protected ChangesAlgorithm    changesLog;
 
+    /**
+     * Instantiates a new sync.
+     */
     protected Sync() {
       super();
       this.api = getUser().api();
@@ -786,11 +881,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * Check if the file was renamed locally from given name. Such check actual when we receive remote changes
      * happened before a local rename of the file.
-     * 
-     * @param fileNode
-     * @param changeName
-     * @return
-     * @throws RepositoryException
+     *
+     * @param fileNode the file node
+     * @param changeName the change name
+     * @return true, if successful
+     * @throws RepositoryException the repository exception
      */
     protected boolean wasRenamed(Node fileNode, String changeName) throws RepositoryException {
       if (fileNode.hasProperty(PREVIOUS_LOCAL_NAME)) {
@@ -807,10 +902,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * Remove a fact of local rename of the file from given name. This method should be called when syncing
      * from remote to local.
-     * 
-     * @param fileNode
-     * @param fileName
-     * @throws RepositoryException
+     *
+     * @param fileNode the file node
+     * @param fileName the file name
+     * @throws RepositoryException the repository exception
      */
     protected void cleanRenamed(Node fileNode, String fileName) throws RepositoryException {
       if (fileNode.hasProperty(PREVIOUS_LOCAL_NAME)) {
@@ -829,11 +924,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * Check if the file was moved locally from given parent. Such check actual when we receive remote changes
      * happened before a local move of the file.
-     * 
-     * @param fileNode
-     * @param changeParentId
-     * @return
-     * @throws RepositoryException
+     *
+     * @param fileNode the file node
+     * @param changeParentId the change parent id
+     * @return true, if successful
+     * @throws RepositoryException the repository exception
      */
     @Deprecated // TODO not used actually
     protected boolean wasMoved(Node fileNode, String changeParentId) throws RepositoryException {
@@ -851,10 +946,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * Remove a fact of local move of the file from given parent. This method should be called when syncing
      * from remote to local.
-     * 
-     * @param fileNode
-     * @param parentId
-     * @throws RepositoryException
+     *
+     * @param fileNode the file node
+     * @param parentId the parent id
+     * @throws RepositoryException the repository exception
      */
     @Deprecated // TODO no sense to use it
     protected void cleanMoved(Node fileNode, String parentId) throws RepositoryException {
@@ -872,13 +967,17 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     }
   }
 
+  /**
+   * The Interface LocalFile.
+   */
   public interface LocalFile {
+
     /**
      * Find an Id of remote parent not containing in locals of the file referenced by this file Id.
-     * 
+     *
      * @param remoteParents {@link Set} of strings with Ids of remote parents
      * @return String an Id or <code>null</code> if remote parent not found
-     * @throws CMISException
+     * @throws CMISException the CMIS exception
      */
     String findRemoteParent(Set<String> remoteParents) throws CMISException;
 
@@ -920,11 +1019,23 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    */
   protected class FileAPI extends AbstractFileAPI {
 
+    /**
+     * The Class ContextLocalFile.
+     */
     protected class ContextLocalFile implements LocalFile {
+
+      /** The file id. */
       protected final String fileId;
 
+      /** The file node. */
       protected final Node   fileNode;
 
+      /**
+       * Instantiates a new context local file.
+       *
+       * @param fileId the file id
+       * @param fileNode the file node
+       */
       protected ContextLocalFile(String fileId, Node fileNode) {
         this.fileId = fileId;
         this.fileNode = fileNode;
@@ -1011,10 +1122,20 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      */
     protected final CMISAPI api;
 
+    /**
+     * Instantiates a new file API.
+     */
     protected FileAPI() {
       this.api = getUser().api();
     }
 
+    /**
+     * Context.
+     *
+     * @param fileId the file id
+     * @param fileNode the file node
+     * @return the local file
+     */
     protected LocalFile context(String fileId, Node fileNode) {
       return new ContextLocalFile(fileId, fileNode);
     }
@@ -1035,8 +1156,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * Value of locally stored cmiscd:versionSeriesCheckedOutId or {@link PathNotFoundException} if property
      * cannot be found.
-     * 
-     * @param fileNode {@link Node}
+     *
+     * @param node the node
      * @return String with value of cmiscd:versionSeriesCheckedOutId
      * @throws PathNotFoundException if cmiscd:versionSeriesCheckedOutId not found
      * @throws RepositoryException on storage error
@@ -1379,6 +1500,16 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       // getTitle(destFileNode));
     }
 
+    /**
+     * Copy file.
+     *
+     * @param srcFile the src file
+     * @param destParent the dest parent
+     * @param destFileNode the dest file node
+     * @return the cloud file
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected CloudFile copyFile(Document srcFile, Folder destParent, Node destFileNode) throws CloudDriveException,
                                                                                          RepositoryException {
       Document file = api.copyDocument(srcFile, destParent, getTitle(destFileNode));
@@ -1461,6 +1592,16 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       // getTitle(destFolderNode));
     }
 
+    /**
+     * Copy folder.
+     *
+     * @param srcFolder the src folder
+     * @param destParent the dest parent
+     * @param destFolderNode the dest folder node
+     * @return the cloud file
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected CloudFile copyFolder(Folder srcFolder, Folder destParent, Node destFolderNode) throws CloudDriveException,
                                                                                              RepositoryException {
 
@@ -1584,6 +1725,16 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       return false;
     }
 
+    /**
+     * Restore.
+     *
+     * @param obj the obj
+     * @param parent the parent
+     * @return the JCR local cloud file
+     * @throws NotFoundException the not found exception
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     private JCRLocalCloudFile restore(CmisObject obj, Node parent) throws NotFoundException,
                                                                    CloudDriveException,
                                                                    RepositoryException {
@@ -1599,6 +1750,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       return localItem;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public JCRLocalCloudFile restore(String id, String path) throws NotFoundException,
                                                              CloudDriveException,
                                                              RepositoryException {
@@ -1660,16 +1814,30 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     }
   }
 
+  /**
+   * The Class DocumentContent.
+   */
   protected class DocumentContent implements ContentReader {
 
+    /** The content. */
     protected final ContentStream content;
 
+    /** The type. */
     protected final String        type;
 
+    /** The length. */
     protected final long          length;
 
+    /** The file name. */
     protected final String        fileName;
 
+    /**
+     * Instantiates a new document content.
+     *
+     * @param content the content
+     * @param type the type
+     * @param fileName the file name
+     */
     protected DocumentContent(ContentStream content, String type, String fileName) {
       this.content = content;
       this.length = content.getLength();
@@ -1710,6 +1878,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     }
   }
 
+  /** The change id sequencer. */
   protected final AtomicLong changeIdSequencer = new AtomicLong(0);
 
   /**
@@ -1718,43 +1887,62 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   protected final String     exoURL;
 
   /**
-   * @param user
-   * @param driveNode
-   * @param sessionProviders
-   * @throws CloudDriveException
-   * @throws RepositoryException
+   * Instantiates a new JCR local CMIS drive.
+   *
+   * @param user the user
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param exoURL the exo URL
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
    */
   protected JCRLocalCMISDrive(CMISUser user,
                               Node driveNode,
                               SessionProviderService sessionProviders,
                               NodeFinder finder,
                               ExtendedMimeTypeResolver mimeTypes,
-                              String exoURL) throws CloudDriveException, RepositoryException {
+                              String exoURL)
+      throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder, mimeTypes);
     this.exoURL = exoURL;
     CMISAPI api = user.api();
     saveAccess(driveNode, api.getPassword(), api.getServiceURL(), api.getRepositoryId());
   }
 
+  /**
+   * Instantiates a new JCR local CMIS drive.
+   *
+   * @param apiBuilder the api builder
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @param exoURL the exo URL
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected JCRLocalCMISDrive(API apiBuilder,
                               Node driveNode,
                               SessionProviderService sessionProviders,
                               NodeFinder finder,
                               ExtendedMimeTypeResolver mimeTypes,
-                              String exoURL) throws RepositoryException, CloudDriveException {
+                              String exoURL)
+      throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     this.exoURL = exoURL;
   }
 
   /**
    * Load user from the drive Node.
-   * 
+   *
    * @param apiBuilder {@link API} API builder
    * @param driveNode {@link Node} root of the drive
    * @return {@link CMISUser}
-   * @throws RepositoryException
-   * @throws CMISException
-   * @throws CloudDriveException
+   * @throws RepositoryException the repository exception
+   * @throws CMISException the CMIS exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected static CMISUser loadUser(API apiBuilder, Node driveNode) throws RepositoryException,
                                                                      CMISException,
@@ -1779,12 +1967,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   /**
    * Save user credentials in local drive. For use in new drive creation and for
    * {@link #updateAccess(CloudUser)}.
-   * 
+   *
    * @param driveNode {@link String}
    * @param password {@link String}
    * @param serviceURL {@link String} optional if it's access update
    * @param repositoryId {@link String} optional if it's access update
-   * @throws CloudDriveException
+   * @throws CloudDriveException the cloud drive exception
    */
   protected void saveAccess(Node driveNode,
                             String password,
@@ -1834,8 +2022,6 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
   /**
    * {@inheritDoc}
-   * 
-   * @throws RefreshAccessException
    */
   @Override
   protected SyncCommand getSyncCommand() throws DriveRemovedException, SyncNotSupportedException, RepositoryException {
@@ -1915,11 +2101,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
   /**
    * Initialize CMIS specifics of files and folders.
-   * 
+   *
    * @param node {@link Node}
    * @param item {@link CmisObject}
-   * @throws RepositoryException
-   * @throws CMISException
+   * @throws RepositoryException the repository exception
+   * @throws CMISException the CMIS exception
    */
   protected void initCMISItem(Node node, CmisObject item) throws RepositoryException, CMISException {
 
@@ -2007,11 +2193,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   /**
    * Initialize CMIS Change Token of a file.<br>
    * Override this method to apply vendor specific logic (id type etc).
-   * 
+   *
    * @param localNode {@link Node}
    * @param changeToken {@link String}
-   * @throws RepositoryException
-   * @throws CMISException
+   * @throws RepositoryException the repository exception
+   * @throws CMISException the CMIS exception
    */
   protected void setChangeToken(Node localNode, String changeToken) throws RepositoryException, CMISException {
     localNode.setProperty("cmiscd:changeToken", changeToken);
@@ -2020,11 +2206,11 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
   /**
    * Read CMIS change token of a file.<br>
    * Override this method to apply vendor specific logic (id type etc).
-   * 
+   *
    * @param localNode {@link Node}
    * @return {@link String}
-   * @throws RepositoryException
-   * @throws CMISException
+   * @throws RepositoryException the repository exception
+   * @throws CMISException the CMIS exception
    */
   protected String getChangeToken(Node localNode) throws RepositoryException, CMISException {
     return localNode.getProperty("cmiscd:changeToken").getString();
@@ -2115,17 +2301,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         initFolder(node, id, name, type, link, createdBy, modifiedBy, created, modified);
         initCMISItem(node, item);
       }
-      file = new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   node,
-                                   true);
+      file =
+           new JCRLocalCloudFile(node.getPath(), id, name, link, type, modifiedBy, createdBy, created, modified, node, true);
     } else {
       link = api.getLink(item);
       thumbnailLink = link;
@@ -2301,15 +2478,14 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
   /**
    * Find a node(s) representing a CMIS object with given ID.
-   * 
+   *
    * @param id {@link String}
    * @param file {@link CmisObject} remote file object
    * @param nodes list of existing locally files' nodes in the cloud drive
    * @return list of nodes representing CMIS file with given ID
-   * @throws CloudDriveAccessException
-   * @throws NotFoundException
-   * @throws CMISException
-   * @throws UnauthorizedException
+   * @throws CloudDriveAccessException the cloud drive access exception
+   * @throws CMISException the CMIS exception
+   * @throws UnauthorizedException the unauthorized exception
    * @see #readNodes(Node, Map, boolean)
    */
   protected List<Node> findDocumentNode(String id, CmisObject file, Map<String, List<Node>> nodes)
@@ -2353,6 +2529,9 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     return existing;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   public ContentReader getFileContent(String fileId) throws CloudDriveException,
                                                      NotFoundException,
                                                      CloudDriveAccessException,

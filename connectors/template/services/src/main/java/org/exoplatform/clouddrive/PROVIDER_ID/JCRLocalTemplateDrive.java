@@ -67,8 +67,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    */
   protected class Connect extends ConnectCommand {
 
+    /** The api. */
     protected final TemplateAPI api;
 
+    /**
+     * Instantiates a new connect.
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
+     */
     protected Connect() throws RepositoryException, DriveRemovedException {
       this.api = getUser().api();
     }
@@ -93,6 +100,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       driveNode.setProperty("YOUR_PROVIDE_ID:streamHistory", "");
     }
 
+    /**
+     * Fetch childs.
+     *
+     * @param fileId the file id
+     * @param localFile the local file
+     * @return the object
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected Object fetchChilds(String fileId, Node localFile) throws CloudDriveException, RepositoryException {
       ItemsIterator items = api.getFolderItems(fileId);
       iterators.add(items);
@@ -129,9 +145,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
     /**
      * Create command for Template synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected FullSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -173,6 +189,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       setChangeId(syncChangeId);
     }
 
+    /**
+     * Sync childs.
+     *
+     * @param folderId the folder id
+     * @param parent the parent
+     * @return the object
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected Object syncChilds(String folderId, Node parent) throws RepositoryException, CloudDriveException {
       ItemsIterator items = api.getFolderItems(folderId);
       iterators.add(items);
@@ -213,6 +238,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
     /**
      * Execute full sync from current thread.
+     *
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
      */
     protected void execLocal() throws CloudDriveException, RepositoryException {
       // XXX we need this to be able run it from EventsSync.syncFiles()
@@ -254,6 +282,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     protected final TemplateAPI api;
 
+    /**
+     * Instantiates a new file API.
+     */
     FileAPI() {
       this.api = getUser().api();
     }
@@ -739,13 +770,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     protected EventsIterator    events;
 
+    /** The next event. */
     protected Object            nextEvent;
 
     /**
      * Create command for Template synchronization.
-     * 
-     * @throws RepositoryException
-     * @throws DriveRemovedException
+     *
+     * @throws RepositoryException the repository exception
+     * @throws DriveRemovedException the drive removed exception
      */
     protected EventsSync() throws RepositoryException, DriveRemovedException {
       super();
@@ -826,6 +858,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       }
     }
 
+    /**
+     * Fetch childs.
+     *
+     * @param fileId the file id
+     * @param parent the parent
+     * @return the object
+     * @throws CloudDriveException the cloud drive exception
+     * @throws RepositoryException the repository exception
+     */
     protected Object fetchChilds(String fileId, Node parent) throws CloudDriveException, RepositoryException {
       ItemsIterator items = api.getFolderItems(fileId);
       iterators.add(items);
@@ -843,6 +884,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       return items.parent;
     }
 
+    /**
+     * Apply.
+     *
+     * @param local the local
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
       if (local.isChanged()) {
         removeRemoved(local.getPath());
@@ -850,6 +898,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       }
     }
 
+    /**
+     * Removes the.
+     *
+     * @param itemId the item id
+     * @param itemPath the item path
+     * @throws RepositoryException the repository exception
+     * @throws CloudDriveException the cloud drive exception
+     */
     protected void remove(String itemId, String itemPath) throws RepositoryException, CloudDriveException {
       if (itemPath != null) {
         addRemoved(itemPath);
@@ -866,11 +922,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   }
 
   /**
-   * @param user
-   * @param driveNode
-   * @param sessionProviders
-   * @throws CloudDriveException
-   * @throws RepositoryException
+   * Instantiates a new JCR local template drive.
+   *
+   * @param user the user
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws CloudDriveException the cloud drive exception
+   * @throws RepositoryException the repository exception
    */
   protected JCRLocalTemplateDrive(TemplateUser user,
                                   Node driveNode,
@@ -881,6 +941,18 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     getUser().api().getToken().addListener(this);
   }
 
+  /**
+   * Instantiates a new JCR local template drive.
+   *
+   * @param apiBuilder the api builder
+   * @param provider the provider
+   * @param driveNode the drive node
+   * @param sessionProviders the session providers
+   * @param finder the finder
+   * @param mimeTypes the mime types
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
   protected JCRLocalTemplateDrive(API apiBuilder,
                                   TemplateProvider provider,
                                   Node driveNode,
@@ -903,14 +975,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
   /**
    * Load user from the drive Node.
-   * 
+   *
    * @param apiBuilder {@link API} API builder
    * @param provider {@link TemplateProvider}
    * @param driveNode {@link Node} root of the drive
    * @return {@link TemplateUser}
-   * @throws RepositoryException
-   * @throws TemplateException
-   * @throws CloudDriveException
+   * @throws RepositoryException the repository exception
+   * @throws TemplateException the template exception
+   * @throws CloudDriveException the cloud drive exception
    */
   protected static TemplateUser loadUser(API apiBuilder,
                                          TemplateProvider provider,
@@ -936,7 +1008,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   /**
    * {@inheritDoc}
    * 
-   * @throws TemplateException
    */
   @Override
   public void onUserTokenRefresh(UserToken token) throws CloudDriveException {
@@ -1049,11 +1120,11 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
   /**
    * Initialize cloud's common specifics of files and folders.
-   * 
+   *
    * @param localNode {@link Node}
    * @param item {@link Object}
-   * @throws RepositoryException
-   * @throws TemplateException
+   * @throws RepositoryException the repository exception
+   * @throws TemplateException the template exception
    */
   protected void initCloudItem(Node localNode, Object item) throws RepositoryException, TemplateException {
     // TODO init localNode with a data of cloud item
@@ -1198,6 +1269,13 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     return super.previewLink(fileNode);
   }
 
+  /**
+   * Not in range.
+   *
+   * @param path the path
+   * @param range the range
+   * @return true, if successful
+   */
   protected boolean notInRange(String path, Collection<String> range) {
     for (String p : range) {
       if (path.startsWith(p)) {

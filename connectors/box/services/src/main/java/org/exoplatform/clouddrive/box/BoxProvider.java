@@ -35,21 +35,27 @@ import javax.jcr.RepositoryException;
  */
 public class BoxProvider extends CloudProvider {
 
+  /** The auth URL. */
   protected final String            authURL;
 
+  /** The redirect URL. */
   protected final String            redirectURL;
 
+  /** The login SSO. */
   protected final boolean           loginSSO;
 
+  /** The jcr service. */
   protected final RepositoryService jcrService;
 
   /**
-   * @param id
-   * @param name
-   * @param authURL
-   * @param redirectURL
-   * @param loginSSO
-   * @param jcrService
+   * Instantiates a new box provider.
+   *
+   * @param id the id
+   * @param name the name
+   * @param authURL the auth URL
+   * @param redirectURL the redirect URL
+   * @param loginSSO the login SSO
+   * @param jcrService the jcr service
    */
   public BoxProvider(String id,
                      String name,
@@ -82,6 +88,8 @@ public class BoxProvider extends CloudProvider {
   }
 
   /**
+   * Gets the redirect URL.
+   *
    * @return the redirectURL
    */
   public String getRedirectURL() {
@@ -89,6 +97,8 @@ public class BoxProvider extends CloudProvider {
   }
 
   /**
+   * Checks if is login SSO.
+   *
    * @return the loginSSO
    */
   public boolean isLoginSSO() {
