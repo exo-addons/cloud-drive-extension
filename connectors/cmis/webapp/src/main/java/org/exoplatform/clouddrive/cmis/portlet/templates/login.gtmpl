@@ -20,7 +20,7 @@
 					<div class="control-group">
 						<label class="control-label" for="service-url">&{CMISLoginController.serviceUrl}</label>
 						<div class="controls input-append">
-							<input type="text" name="service-url" value="" placeholder="&{CMISLoginController.serviceUrlHint}" class="form-control" />
+							<input type="text" name="service-url" value="" placeholder="&{CMISLoginController.serviceUrlHint}" class="form-control" autocorrect="off" autocapitalize="none"/>
 							<div class="btn-group">
 								<button class="btn dropdown-toggle" data-toggle="dropdown">
 									<span class="caret"></span>
@@ -49,7 +49,7 @@
 					<div class="control-group">
 						<label class="control-label" for="user">&{CMISLoginController.username}</label>
 						<div class="controls">
-							<input type="text" name="user" value="" placeholder="&{CMISLoginController.usernameHint}" class="form-control" />
+							<input type="text" name="user" value="" placeholder="&{CMISLoginController.usernameHint}" class="form-control" autocorrect="off" autocapitalize="none" />
 						</div>
 						<div class="login-error-container">
 							<label class="control-label error login-error" style="display: none;" for="user"></label>
