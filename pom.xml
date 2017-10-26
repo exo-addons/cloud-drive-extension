@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>addons-parent-pom</artifactId>
-    <version>5</version>
+    <version>6</version>
   </parent>
   <artifactId>exo-clouddrive-parent</artifactId>
   <version>1.4.x-SNAPSHOT</version>
@@ -33,9 +33,10 @@
   <description>eXo Cloud Drive extension project reactor</description>
 
   <scm>
-    <connection>https://github.com/exo-addons/cloud-drive-extension/</connection>
-    <developerConnection>https://github.com/exo-addons/cloud-drive-extension/</developerConnection>
-    <url>https://github.com/exo-addons/cloud-drive-extension/</url>
+    <connection>scm:git:git://github.com/exo-addons/cloud-drive-extension.git</connection>
+    <developerConnection>scm:git:git@github.com:exo-addons/cloud-drive-extension.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/exo-addons/cloud-drive-extension</url>
   </scm>
 
   <properties>
@@ -45,7 +46,7 @@
     <maven.compiler.target>1.7</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.3.1-M07</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.3.1</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.21.0</com.google.api.client.version>
@@ -63,7 +64,7 @@
     <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.16.7-M01</org.exoplatform.jcr-services.version>
+    <org.exoplatform.jcr-services.version>1.16.7</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.0.8</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>0.7-groovy-2.0</spock.version>
@@ -102,12 +103,6 @@
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
-      <!-- dependency>
-        <groupId>org.exoplatform.addons</groupId>
-        <artifactId>exo-clouddrive-config</artifactId>
-        <version>${project.version}</version>
-        <type>jar</type>
-      </dependency -->
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-webapp</artifactId>
@@ -255,7 +250,6 @@
   </dependencyManagement>
   
   <modules>
-    <!-- module>config</module -->
     <module>services</module>
     <module>webapp</module>
     <module>connectors</module>
