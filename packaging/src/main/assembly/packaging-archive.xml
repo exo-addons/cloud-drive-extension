@@ -20,7 +20,7 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-webapp:war</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive.war</outputFileNameMapping>
        <scope>provided</scope>
@@ -29,7 +29,7 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-gdrive-webapp:war</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-gdrive-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive-gdrive.war</outputFileNameMapping>
        <scope>provided</scope>
@@ -38,7 +38,7 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-box-webapp:war</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-box-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive-box.war</outputFileNameMapping>
        <scope>provided</scope>
@@ -47,7 +47,7 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-dropbox-webapp:war</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-dropbox-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive-dropbox.war</outputFileNameMapping>
        <scope>provided</scope>
@@ -56,7 +56,7 @@
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-cmis-webapp:war</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-cmis-webapp:war</include>
        </includes>
        <outputFileNameMapping>cloud-drive-cmis.war</outputFileNameMapping>
        <scope>provided</scope>
@@ -67,7 +67,7 @@
        <outputDirectory>lib</outputDirectory>
        <useTransitiveDependencies>true</useTransitiveDependencies>
        <includes>
-         <include>org.exoplatform.addons:exo-clouddrive-*:jar</include>
+         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-*:jar</include>
          <!-- include>com.google.*:*:jar</include -->
          <include>com.box:*:jar</include>
          <include>com.eclipsesource.minimal-json:*:jar</include>
