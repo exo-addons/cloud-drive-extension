@@ -1669,6 +1669,41 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       jcrListener.enable();
     }
   }
+  
+  /**
+   * {@inheritDoc}
+   * 
+   */
+  @Override
+  public void onUserTokenRemove() throws CloudDriveException {
+    try {
+      jcrListener.disable();
+      Node driveNode = rootNode();
+      try {
+        if (driveNode.hasProperty("box:oauth2AccessToken")) {
+          driveNode.getProperty("box:oauth2AccessToken").remove();          
+        }
+        if (driveNode.hasProperty("box:oauth2RefreshToken")) {
+          driveNode.getProperty("box:oauth2RefreshToken").remove();          
+        }
+        if (driveNode.hasProperty("box:oauth2TokenExpirationTime")) {
+          driveNode.getProperty("box:oauth2TokenExpirationTime").remove();          
+        }
+
+        driveNode.save();
+      } catch (RepositoryException e) {
+        rollback(driveNode);
+        throw new CloudDriveException("Error removing access key: " + e.getMessage(), e);
+      }
+    } catch (DriveRemovedException e) {
+      throw new CloudDriveException("Error openning drive node: " + e.getMessage(), e);
+    } catch (RepositoryException e) {
+      throw new CloudDriveException("Error reading drive node: " + e.getMessage(), e);
+    } finally {
+      jcrListener.enable();
+    }
+  }
+
 
   /**
    * {@inheritDoc}
