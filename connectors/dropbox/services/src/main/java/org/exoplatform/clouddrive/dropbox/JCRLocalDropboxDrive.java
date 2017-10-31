@@ -489,7 +489,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                        name,
                                        link,
                                        null,
-                                       previewLink(fileNode),
+                                       previewLink(null, fileNode),
                                        thumbnailLink,
                                        type,
                                        mimeTypes.getMimeTypeMode(type, name),
@@ -602,7 +602,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                        name,
                                        link,
                                        null,
-                                       previewLink(destFileNode),
+                                       previewLink(null, destFileNode),
                                        thumbnailLink,
                                        type,
                                        mimeTypes.getMimeTypeMode(type, name),
@@ -765,7 +765,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                      name,
                                      link,
                                      null,
-                                     previewLink(fileNode),
+                                     previewLink(null, fileNode),
                                      thumbnailLink,
                                      type,
                                      mimeTypes.getMimeTypeMode(type, name),
@@ -1036,7 +1036,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                    title,
                                    link,
                                    null,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    mimeTypes.getMimeTypeMode(type, name),
@@ -2200,7 +2200,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                         title,
                                         link(node),
                                         null,
-                                        previewLink(node),
+                                        previewLink(null, node),
                                         thumbnailLink,
                                         type,
                                         typeMode,
@@ -2336,7 +2336,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(Node fileNode) throws RepositoryException {
+  protected String previewLink(String type, Node fileNode) throws RepositoryException {
     String idPath = fileAPI.getId(fileNode);
     // Direct link expires on Dropbox, respect this fact
     String directLink;

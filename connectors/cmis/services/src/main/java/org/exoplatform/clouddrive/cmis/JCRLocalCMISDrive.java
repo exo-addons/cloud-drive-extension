@@ -1227,7 +1227,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    mimeTypes.getMimeTypeMode(type, name),
@@ -1342,7 +1342,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                        id,
                                        name,
                                        link,
-                                       previewLink(fileNode),
+                                       previewLink(null, fileNode),
                                        thumbnailLink,
                                        type,
                                        mimeTypes.getMimeTypeMode(type, name),
@@ -1452,7 +1452,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    mimeTypes.getMimeTypeMode(type, name),
@@ -1543,7 +1543,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   previewLink(destFileNode),
+                                   previewLink(null, destFileNode),
                                    thumbnailLink,
                                    type,
                                    mimeTypes.getMimeTypeMode(type, name),
@@ -2325,7 +2325,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                                    id,
                                    name,
                                    link,
-                                   previewLink(node),
+                                   previewLink(null, node),
                                    thumbnailLink,
                                    type,
                                    typeMode,
@@ -2345,7 +2345,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(Node fileNode) throws RepositoryException {
+  protected String previewLink(String type, Node fileNode) throws RepositoryException {
     return ContentService.contentLink(rootWorkspace, fileNode.getPath(), fileAPI.getId(fileNode));
   }
 
