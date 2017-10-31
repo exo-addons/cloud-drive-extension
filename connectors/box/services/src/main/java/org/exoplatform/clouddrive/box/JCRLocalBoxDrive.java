@@ -378,7 +378,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -491,7 +491,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -591,7 +591,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -643,7 +643,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(destFileNode),
+                                   previewLink(null, destFileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -775,7 +775,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      id,
                                      name,
                                      link,
-                                     previewLink(fileNode),
+                                     previewLink(null, fileNode),
                                      thumbnailLink,
                                      type,
                                      null,
@@ -2025,9 +2025,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(Node fileNode) throws RepositoryException {
+  protected String previewLink(String type, Node fileNode) throws RepositoryException {
     BoxUser user = getUser();
-    String link = super.previewLink(fileNode);
+    String link = super.previewLink(type, fileNode);
     if (link != null && user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
       // append encoded link to access URL
       try {
