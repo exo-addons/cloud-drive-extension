@@ -23,10 +23,11 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.exoplatform.addons</groupId>
+    <groupId>org.exoplatform.addons.clouddrive</groupId>
     <artifactId>exo-clouddrive-PROVIDER_ID</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
+  
   <!-- Replace PROVIDER_ID with actual value -->
   <artifactId>exo-clouddrive-PROVIDER_ID-webapp</artifactId>
   <packaging>war</packaging>
@@ -35,7 +36,7 @@
   
   <dependencies>
     <!-- dependency>
-      <groupId>org.exoplatform.addons</groupId>
+      <groupId>org.exoplatform.addons.clouddrive</groupId>
       <artifactId>exo-clouddrive-PROVIDER_ID-services</artifactId>
       <scope>provided</scope>
       <type>jar</type>

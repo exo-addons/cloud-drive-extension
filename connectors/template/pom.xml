@@ -23,9 +23,9 @@ Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.exoplatform.addons</groupId>
+    <groupId>org.exoplatform.addons.clouddrive</groupId>
     <artifactId>exo-clouddrive-connectors</artifactId>
-    <version>1.5.x-SNAPSHOT</version>
+    <version>1.6.x-SNAPSHOT</version>
   </parent>
 
   <!-- Replace PROVIDER_ID with your provider ID -->  
@@ -42,13 +42,13 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-services-core</artifactId>
-        <version>1.4.0</version>
+        <version>1.5.0</version>
         <type>jar</type>
       </dependency>
       <dependency>
         <groupId>org.exoplatform.addons</groupId>
         <artifactId>exo-clouddrive-services-ecms</artifactId>
-        <version>1.4.0</version>
+        <version>1.5.0</version>
         <type>jar</type>
       </dependency>
       <!-- dependency>

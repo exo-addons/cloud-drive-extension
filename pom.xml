@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2016 eXo Platform SAS.
+    Copyright (C) 2017 eXo Platform SAS.
     
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
@@ -24,10 +24,12 @@
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>addons-parent-pom</artifactId>
-    <version>7-RC01</version>
+    <version>8-M01</version>
   </parent>
-  <artifactId>exo-clouddrive-parent</artifactId>
-  <version>1.5.x-SNAPSHOT</version>
+
+  <groupId>org.exoplatform.addons.clouddrive</groupId>
+  <artifactId>exo-clouddrive</artifactId>
+  <version>1.6.x-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>eXo Cloud Drive :: Parent</name>
   <description>eXo Cloud Drive extension project reactor</description>
@@ -46,7 +48,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.4.0-RC01</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>5.0.0-M27</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.22.0</com.google.api.client.version>
@@ -57,14 +59,13 @@
     <!-- Box API -->
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
     
-    <!-- Dropbox SDK -->
+    <!-- Dropbox SDK: TODO - v1 deprecated -->
     <com.dropbox.core.version>1.8.2</com.dropbox.core.version>
     
     <!-- Apache Chemistry (OpencCMIS) API -->
     <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.17.0-M11</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.4.7</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>1.0-groovy-2.4</spock.version>
@@ -92,67 +93,67 @@
       </dependency>
       <!-- Cloud Drive extension -->
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-services-core</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-services-ecms</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-gdrive-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-gdrive-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-box-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-box-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-dropbox-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-dropbox-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-cmis-services</artifactId>
         <version>${project.version}</version>
         <type>jar</type>
       </dependency>
       <dependency>
-        <groupId>org.exoplatform.addons</groupId>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
         <artifactId>exo-clouddrive-cmis-webapp</artifactId>
         <version>${project.version}</version>
         <type>war</type>
@@ -198,10 +199,17 @@
       <!-- for tests -->
       <dependency>
         <groupId>org.exoplatform</groupId>
-        <artifactId>exo-jcr-services</artifactId>
-        <version>${org.exoplatform.jcr-services.version}</version>
+        <artifactId>exo-services</artifactId>
+        <version>${org.exoplatform.platform.version}</version>
         <type>jar</type>
       	<scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.commons</groupId>
+        <artifactId>commons-testing</artifactId>
+        <version>${org.exoplatform.platform.version}</version>
+        <type>jar</type>
+        <scope>test</scope>
       </dependency>
       <!-- We cannot declare groovy here, it will override eXo's version -->
       <!-- dependency>

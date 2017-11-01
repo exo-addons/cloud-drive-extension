@@ -34,9 +34,9 @@
   
   <!-- Javascript for Cloud Drive support of CMIS -->
   <module>
-    <name>jqueryUI</name>
+    <name>cloudDriveCMISJqueryUI</name>
     <script>
-      <path>/js/jquery-ui.min.js</path>
+      <path>/js/jquery-ui.js</path>
     </script>
     <depends>
       <module>jquery</module>
@@ -45,11 +45,11 @@
   </module>
 
   <module>
-    <name>jqueryValidate</name>
+    <name>cloudDriveCMISJqueryValidate</name>
     <script>
       <adapter>
         (function(jQuery) {
-        <include>/js/jquery.validate.min.js</include>
+        <include>/js/jquery.validate.js</include>
         })($);
       </adapter>
     </script>
@@ -68,10 +68,10 @@
         <module>jquery</module>
       </depends>
       <depends>
-        <module>jqueryUI</module>
+        <module>cloudDriveCMISJqueryUI</module>
       </depends>
       <depends>
-        <module>jqueryValidate</module>
+        <module>cloudDriveCMISJqueryValidate</module>
       </depends>
       <depends>
         <module>juzu-ajax</module>

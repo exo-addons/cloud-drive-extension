@@ -378,7 +378,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -491,7 +491,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -591,7 +591,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(fileNode),
+                                   previewLink(null, fileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -643,7 +643,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                    id,
                                    name,
                                    link,
-                                   previewLink(destFileNode),
+                                   previewLink(null, destFileNode),
                                    thumbnailLink,
                                    type,
                                    null,
@@ -775,7 +775,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                                      id,
                                      name,
                                      link,
-                                     previewLink(fileNode),
+                                     previewLink(null, fileNode),
                                      thumbnailLink,
                                      type,
                                      null,
@@ -1669,6 +1669,41 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       jcrListener.enable();
     }
   }
+  
+  /**
+   * {@inheritDoc}
+   * 
+   */
+  @Override
+  public void onUserTokenRemove() throws CloudDriveException {
+    try {
+      jcrListener.disable();
+      Node driveNode = rootNode();
+      try {
+        if (driveNode.hasProperty("box:oauth2AccessToken")) {
+          driveNode.getProperty("box:oauth2AccessToken").remove();          
+        }
+        if (driveNode.hasProperty("box:oauth2RefreshToken")) {
+          driveNode.getProperty("box:oauth2RefreshToken").remove();          
+        }
+        if (driveNode.hasProperty("box:oauth2TokenExpirationTime")) {
+          driveNode.getProperty("box:oauth2TokenExpirationTime").remove();          
+        }
+
+        driveNode.save();
+      } catch (RepositoryException e) {
+        rollback(driveNode);
+        throw new CloudDriveException("Error removing access key: " + e.getMessage(), e);
+      }
+    } catch (DriveRemovedException e) {
+      throw new CloudDriveException("Error openning drive node: " + e.getMessage(), e);
+    } catch (RepositoryException e) {
+      throw new CloudDriveException("Error reading drive node: " + e.getMessage(), e);
+    } finally {
+      jcrListener.enable();
+    }
+  }
+
 
   /**
    * {@inheritDoc}
@@ -1990,9 +2025,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
    * {@inheritDoc}
    */
   @Override
-  protected String previewLink(Node fileNode) throws RepositoryException {
+  protected String previewLink(String type, Node fileNode) throws RepositoryException {
     BoxUser user = getUser();
-    String link = super.previewLink(fileNode);
+    String link = super.previewLink(type, fileNode);
     if (link != null && user.getProvider().isLoginSSO() && user.getEnterpriseId() != null) {
       // append encoded link to access URL
       try {
