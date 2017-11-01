@@ -29,7 +29,7 @@
 
   <groupId>org.exoplatform.addons.clouddrive</groupId>
   <artifactId>exo-clouddrive</artifactId>
-  <version>1.6.x-SNAPSHOT</version>
+  <version>1.6.0-M01</version>
   <packaging>pom</packaging>
   <name>eXo Cloud Drive :: Parent</name>
   <description>eXo Cloud Drive extension project reactor</description>
@@ -37,7 +37,7 @@
   <scm>
     <connection>scm:git:git://github.com:exo-addons/cloud-drive-extension.git</connection>
     <developerConnection>scm:git:git@github.com:exo-addons/cloud-drive-extension.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>1.6.0-M01</tag>
     <url>https://github.com/exo-addons/cloud-drive-extension/</url>
   </scm>
 
