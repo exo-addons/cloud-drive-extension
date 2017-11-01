@@ -7,5 +7,15 @@
 
 .uiIcon64x64CloudDrive-box:before {
 	left: -50px;
-    top: 1px;
+    top: -4px;
+}
+
+/*
+ * Responsive styles
+ */
+@media (min-width: 481px) and (max-width: 1024px) {
+	.uiIcon64x64CloudDrive-box:before {
+		left: -57px;
+    	top: -8px;
+	}
 }
