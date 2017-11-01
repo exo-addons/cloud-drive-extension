@@ -74,6 +74,8 @@
 
 /*************************** NodeType Icons for Box documents ***********************/
 
+/* TODO for PLF5 we need uiBgd64x64* classes for activity stream icons (shared cloud files) */
+
 .uiIcon16x16applicationx-exoboxwebdoc:before {
 	content: url("icons/box-webdoc-16x16.png");
 }
