@@ -125,6 +125,7 @@
                   <goal>single</goal>
                 </goals>
                 <configuration>
+                  <appendAssemblyId>false</appendAssemblyId>
                   <descriptors>
                     <descriptor>src/main/assembly/packaging-archive.xml</descriptor>
                   </descriptors>

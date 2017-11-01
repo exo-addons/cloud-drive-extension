@@ -1,0 +1,11 @@
+/* Enterprise Skin styles */
+
+.uiIcon16x16CloudDrive-box:before {
+	left: -17px;
+    top: 2px;
+}
+
+.uiIcon64x64CloudDrive-box:before {
+	left: -50px;
+    top: 1px;
+}
