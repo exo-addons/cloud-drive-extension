@@ -46,13 +46,13 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>4.4.3</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>4.4.4</org.exoplatform.platform.version>
 
     <!-- Google API -->
-    <com.google.api.client.version>1.22.0</com.google.api.client.version>
-    <com.google.http.client.jackson2.version>1.22.0</com.google.http.client.jackson2.version>
-    <com.google.api.services.drive.version>v2-rev244-1.22.0</com.google.api.services.drive.version>
-    <com.google.api.services.oauth2.version>v2-rev122-1.22.0</com.google.api.services.oauth2.version>
+    <com.google.api.client.version>1.23.0</com.google.api.client.version>
+    <com.google.http.client.jackson2.version>1.23.0</com.google.http.client.jackson2.version>
+    <com.google.api.services.drive.version>v2-rev296-1.23.0</com.google.api.services.drive.version>
+    <com.google.api.services.oauth2.version>v2-rev133-1.23.0</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
@@ -61,10 +61,10 @@
     <com.dropbox.core.version>1.8.2</com.dropbox.core.version>
     
     <!-- Apache Chemistry (OpencCMIS) API -->
-    <org.apache.chemistry.opencmis.version>0.13.0</org.apache.chemistry.opencmis.version>
+    <org.apache.chemistry.opencmis.version>1.1.0</org.apache.chemistry.opencmis.version>
 
     <!-- for tests -->
-    <org.exoplatform.jcr-services.version>1.17.3</org.exoplatform.jcr-services.version>
+    <org.exoplatform.jcr-services.version>1.17.4</org.exoplatform.jcr-services.version>
     <test.groovy.version>2.4.7</test.groovy.version>
     <!-- spock.version>1.0-groovy-2.0-SNAPSHOT</spock.version -->
     <spock.version>1.0-groovy-2.4</spock.version>
