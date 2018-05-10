@@ -59,8 +59,8 @@
     <!-- Box API -->
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
     
-    <!-- Dropbox SDK: TODO - v1 deprecated -->
-    <com.dropbox.core.version>1.8.2</com.dropbox.core.version>
+    <!-- Dropbox SDK -->
+    <com.dropbox.core.version>3.0.7</com.dropbox.core.version>
     
     <!-- Apache Chemistry (OpencCMIS) API -->
     <org.apache.chemistry.opencmis.version>1.1.0</org.apache.chemistry.opencmis.version>
