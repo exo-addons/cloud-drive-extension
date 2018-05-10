@@ -32,6 +32,7 @@ import org.exoplatform.clouddrive.NotAcceptableException;
  * @version $Id: TooManyFilesException.java 00000 Jul 21, 2015 pnedonosko $
  * 
  */
+@Deprecated
 public class TooManyFilesException extends NotAcceptableException {
 
   /**

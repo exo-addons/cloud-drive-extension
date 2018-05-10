@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2016 eXo Platform SAS.
+ * Copyright (C) 2003-2018 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -32,10 +32,7 @@ import javax.jcr.RepositoryException;
 public class DropboxProvider extends CloudProvider {
 
   /** The auth bilder. */
-  protected final API            authBilder;
-
-  /** The redirect URL. */
-  protected final String            redirectURL;
+  protected final API            authFactory;
 
   /** The jcr service. */
   protected final RepositoryService jcrService;
@@ -45,14 +42,12 @@ public class DropboxProvider extends CloudProvider {
    *
    * @param id the id
    * @param name the name
-   * @param authBilder the auth bilder
-   * @param redirectURL the redirect URL
+   * @param authFactory the API factory
    * @param jcrService the jcr service
    */
-  public DropboxProvider(String id, String name, API authBilder, String redirectURL, RepositoryService jcrService) {
+  public DropboxProvider(String id, String name, API authFactory, RepositoryService jcrService) {
     super(id, name);
-    this.authBilder = authBilder;
-    this.redirectURL = redirectURL;
+    this.authFactory = authFactory;
     this.jcrService = jcrService;
   }
 
@@ -71,17 +66,8 @@ public class DropboxProvider extends CloudProvider {
     } else {
       authState = AUTH_NOSTATE;
     }
-    String authURL = authBilder.authLink(authState);
+    String authURL = authFactory.authLink(authState);
     return authURL;
-  }
-
-  /**
-   * Gets the redirect URL.
-   *
-   * @return the redirectURL
-   */
-  public String getRedirectURL() {
-    return redirectURL;
   }
 
   /**

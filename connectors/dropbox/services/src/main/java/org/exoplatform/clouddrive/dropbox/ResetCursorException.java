@@ -1,5 +1,6 @@
+
 /*
- * Copyright (C) 2003-2016 eXo Platform SAS.
+ * Copyright (C) 2003-2018 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -18,44 +19,37 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
-import org.exoplatform.clouddrive.CloudProviderException;
-
 /**
- * Indicates a problem on provider side or communication problem.<br>
+ * Indicates that the cursor has been invalidated. Call list_folder to obtain a new cursor. 
+ * 
+ * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
+ * @version $Id: ResetCursorException.java 00000 Apr 10, 2018 pnedonosko $
  * 
  */
-public class DropboxException extends CloudProviderException {
+public class ResetCursorException extends DropboxException {
 
   /**
    * 
    */
-  private static final long serialVersionUID = 5047832186331989372L;
+  private static final long serialVersionUID = -82844068177844027L;
 
   /**
-   * Instantiates a new dropbox exception.
+   * Instantiates a new reset cursor exception.
    *
    * @param message the message
    */
-  public DropboxException(String message) {
+  public ResetCursorException(String message) {
     super(message);
   }
 
   /**
-   * Instantiates a new dropbox exception.
+   * Instantiates a new reset cursor exception.
    *
    * @param message the message
    * @param cause the cause
    */
-  public DropboxException(String message, Throwable cause) {
+  public ResetCursorException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * Instantiates a new dropbox exception.
-   *
-   * @param cause the cause
-   */
-  public DropboxException(Throwable cause) {
-    super(cause);
-  }
 }
