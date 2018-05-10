@@ -203,8 +203,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         for (Node n : nls) {
           String npath = n.getPath();
           if (notInRange(npath, getRemoved())) {
-            removeLinks(n); // explicitly remove file links outside the drive
-            n.remove();
+            // remove file links outside the drive, then the node itself
+            removeNode(n);
             addRemoved(npath);
           }
         }
@@ -242,8 +242,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             Node enode = eiter.next();
             String epath = enode.getPath();
             if (!epath.equals(path) && notInRange(epath, getRemoved())) {
-              removeLinks(enode); // explicitly remove file links outside the drive
-              enode.remove();
+              // remove file links outside the drive, then the node itself
+              removeNode(enode);
               addRemoved(epath);
               eiter.remove();
             }
@@ -1110,9 +1110,9 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                 if (LOG.isDebugEnabled()) {
                   LOG.debug(">> File removal " + id + " " + name);
                 }
-                removeLinks(node); // explicitly remove file links outside the drive
                 String path = node.getPath();
-                node.remove();
+                // remove file links outside the drive, then the node itself
+                removeNode(node);
                 remove(id, path);
               } else {
                 // wait for a target node appearance in following events
@@ -1175,7 +1175,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                       apply(local);
                     } catch (NotFoundException e) {
                       // this node not found...
-                      local.getNode().remove();
+                      removeNode(local.getNode());
                       remove(id, local.getPath());
                       if (LOG.isDebugEnabled()) {
                         LOG.debug("Copied node already removed in cloud - remove it locally. " + e.getMessage());

@@ -178,8 +178,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         for (Node n : nls) {
           String npath = n.getPath();
           if (notInRange(npath, getRemoved())) {
-            removeLinks(n); // explicitly remove file links outside the drive
-            n.remove();
+            // remove file links outside the drive, then the node itself
+            removeNode(n);
             addRemoved(npath);
           }
         }
@@ -219,8 +219,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
               String path = localItem.getPath();
               String epath = enode.getPath();
               if (!epath.equals(path) && notInRange(epath, getRemoved())) {
-                removeLinks(enode); // explicitly remove file links outside the drive
-                enode.remove();
+                // remove file links outside the drive, then the node itself
+                removeNode(enode);
                 addRemoved(epath);
                 eiter.remove();
               }
@@ -821,9 +821,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         } else if (eventType.equals("ITEM_TRASH")) {
           Node node = readNode(parent, name, id);
           // TODO if node can be not found or Null - care about it
-          removeLinks(node); // explicitly remove file links outside the drive
           String path = node.getPath();
-          node.remove();
+          // remove file links outside the drive, then the node itself
+          removeNode(node);
           remove(id, path);
         } else if (eventType.equals("ITEM_UNDELETE_VIA_TRASH")) {
           apply(updateItem(api, item, parent, null));

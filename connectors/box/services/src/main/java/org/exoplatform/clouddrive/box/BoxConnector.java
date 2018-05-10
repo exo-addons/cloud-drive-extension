@@ -223,9 +223,9 @@ public class BoxConnector extends CloudDriveConnector {
       }
     } else {
       try {
-        oauthURL.append(URLEncoder.encode(redirectURL.toString(), "UTF-8"));
+        oauthURL.append(URLEncoder.encode(redirectURL, "UTF-8"));
       } catch (UnsupportedEncodingException e) {
-        LOG.warn("Cannot encode redirect URL " + redirectURL.toString() + ":" + e);
+        LOG.warn("Cannot encode redirect URL " + redirectURL + ":" + e);
         oauthURL.append(redirectURL);
       }
       authURL.append(oauthURL);
@@ -234,7 +234,7 @@ public class BoxConnector extends CloudDriveConnector {
     return new BoxProvider(getProviderId(),
                            getProviderName(),
                            authURL.toString(),
-                           redirectURL.toString(),
+                           redirectURL,
                            loginSSO,
                            jcrService);
   }

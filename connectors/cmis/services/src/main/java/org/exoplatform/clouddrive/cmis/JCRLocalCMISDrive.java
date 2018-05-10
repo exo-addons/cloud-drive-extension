@@ -317,9 +317,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
                 // XXX nasty workround for Nuxeo versioning on file/folder creation (it sends all versions
                 // in events even for cmis:folder) - move to dedicated extension
-                if (api.getVendorName().indexOf("Nuxeo") >= 0 && previousItem != null
-                    && remoteName.equals(previousItem.getName()) && previousEvent != null
-                    && ChangeType.CREATED.equals(previousEvent.getChangeType()) && ChangeType.CREATED.equals(changeType)
+                if (api.getVendorName().indexOf("Nuxeo") >= 0 && previousItem != null && remoteName.equals(previousItem.getName())
+                    && previousEvent != null && ChangeType.CREATED.equals(previousEvent.getChangeType()) && ChangeType.CREATED.equals(changeType)
                     && previousParentIds != null && parentIds.containsAll(previousParentIds)) {
                   // same name object on the same parents was created by previous event - we assume this
                   // current as a 'version' of that previous and skip for the moment
@@ -376,8 +375,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                     }
                   } // else will be removed below
                 }
-                removeLinks(en); // explicitly remove file links outside the drive
-                en.remove(); // remove node
+                // explicitly remove file links outside the drive and remove node 
+                removeNode(en);
                 addRemoved(enpath); // add path to removed
                 enliter.remove(); // remove from existing list
               } // else this file filed on this parent in CMIS repo - keep it locally also
@@ -401,8 +400,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * @throws CloudDriveException the cloud drive exception
        * @throws RepositoryException the repository exception
        */
-      protected void updateFile(CmisObject file, Set<String> parentIds, boolean isFolder) throws CloudDriveException,
-                                                                                          RepositoryException {
+      protected void updateFile(CmisObject file, Set<String> parentIds, boolean isFolder) throws CloudDriveException, RepositoryException {
         String id = file.getId();
         String name = file.getName();
         List<Node> existing = findDocumentNode(id, file, nodes);
@@ -468,7 +466,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             if (!synced.contains(n)) {
               niter.remove();
               String path = n.getPath();
-              n.remove();
+              removeNode(n);
               addRemoved(path);
             }
           }
@@ -618,8 +616,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         // remove local nodes of files not existing remotely, except of root
         nodes.remove(root.getId());
         boolean notInterrupted = true;
-        for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext()
-            && (notInterrupted = !Thread.currentThread().isInterrupted());) {
+        for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext() && (notInterrupted = !Thread.currentThread().isInterrupted());) {
           List<Node> nls = niter.next();
           next: for (Node n : nls) {
             String npath = n.getPath();
@@ -628,8 +625,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                 continue next;
               }
             }
-            removeLinks(n); // explicitly remove file links outside the drive
-            n.remove();
+            // remove file links outside the drive, then the node itself
+            removeNode(n);
             addRemoved(npath);
           }
         }
@@ -670,9 +667,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
        * @throws CloudDriveException the cloud drive exception
        * @throws InterruptedException the interrupted exception
        */
-      protected Folder syncChilds(final String folderId) throws RepositoryException,
-                                                         CloudDriveException,
-                                                         InterruptedException {
+      protected Folder syncChilds(final String folderId) throws RepositoryException, CloudDriveException, InterruptedException {
 
         // start read items in another thread
         Future<Folder> reader = readItems(folderId);
@@ -716,8 +711,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
             } else {
               // need wait for parent creation
               if (item.isPostponed()) {
-                throw new CloudDriveException("Inconsistency error: parent cannot be found for remote file "
-                    + obj.getName());
+                throw new CloudDriveException("Inconsistency error: parent cannot be found for remote file " + obj.getName());
               } else {
                 allItems.add(item);
                 item.postpone();
@@ -787,15 +781,13 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         // rollback all changes done by pre-sync
         rollback(driveNode);
         // We log the error and try fix the drive consistency by full sync (below).
-        LOG.warn("Synchronization error: failed to apply local changes to CMIS repository. "
-            + "Full sync will be initiated for " + title(), e);
+        LOG.warn("Synchronization error: failed to apply local changes to CMIS repository. " + "Full sync will be initiated for " + title(), e);
       } catch (NotFoundException e) {
         this.preSyncError = e;
         // rollback all changes done by pre-sync
         rollback(driveNode);
         // We log the error and try fix the drive consistency by full sync (below).
-        LOG.warn("Synchronization error: local changes inconsistent with CMIS repository. "
-            + "Full sync will be initiated for " + title(), e);
+        LOG.warn("Synchronization error: local changes inconsistent with CMIS repository. " + "Full sync will be initiated for " + title(), e);
       }
     }
 
@@ -827,8 +819,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
               changesLog.syncFiles(localChangeToken);
               lastChangeToken = changesLog.getLastChangeToken();
             } else {
-              LOG.info("CMIS Change Log capability not supported by repository " + repoInfo.getName() + " ("
-                  + repoInfo.getVendorName() + " " + repoInfo.getProductName() + " " + repoInfo.getProductVersion()
+              LOG.info("CMIS Change Log capability not supported by repository " + repoInfo.getName() + " (" + repoInfo.getVendorName() + " "
+                  + repoInfo.getProductName() + " " + repoInfo.getProductVersion()
                   + "). Full synchronization will be used instead of the more efficient based on Change Log. "
                   + "Check if it is possible to enable Change Log for your repository.");
             }
@@ -1170,11 +1162,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
-    public CloudFile createFile(Node fileNode,
-                                Calendar created,
-                                Calendar modified,
-                                String mimeType,
-                                InputStream content) throws CloudDriveException, RepositoryException {
+    public CloudFile createFile(Node fileNode, Calendar created, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
+                                                                                                                          RepositoryException {
 
       String parentId = getParentId(fileNode);
       String title = getTitle(fileNode);
@@ -1287,17 +1276,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  created); // created as modified here
       initCMISItem(folderNode, folder);
 
-      return new JCRLocalCloudFile(folderNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   created,
-                                   folderNode,
-                                   true);
+      return new JCRLocalCloudFile(folderNode.getPath(), id, name, link, type, modifiedBy, createdBy, created, created, folderNode, true);
     }
 
     /**
@@ -1393,17 +1372,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
           String folderPath = folderNode.getPath();
 
-          return new JCRLocalCloudFile(folderPath,
-                                       id,
-                                       name,
-                                       link,
-                                       type,
-                                       modifiedBy,
-                                       createdBy,
-                                       created,
-                                       modified,
-                                       folderNode,
-                                       true);
+          return new JCRLocalCloudFile(folderPath, id, name, link, type, modifiedBy, createdBy, created, modified, folderNode, true);
         } else {
           throw new CMISException("Object not a folder: " + id + ", " + obj.getName());
         }
@@ -1415,10 +1384,8 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * {@inheritDoc}
      */
     @Override
-    public CloudFile updateFileContent(Node fileNode,
-                                       Calendar modified,
-                                       String mimeType,
-                                       InputStream content) throws CloudDriveException, RepositoryException {
+    public CloudFile updateFileContent(Node fileNode, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
+                                                                                                               RepositoryException {
       // Update existing file content and its metadata.
       String fileId = getId(fileNode);
       Document file = api.updateContent(fileId, getTitle(fileNode), content, mimeType, context(fileId, fileNode));
@@ -1510,8 +1477,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * @throws CloudDriveException the cloud drive exception
      * @throws RepositoryException the repository exception
      */
-    protected CloudFile copyFile(Document srcFile, Folder destParent, Node destFileNode) throws CloudDriveException,
-                                                                                         RepositoryException {
+    protected CloudFile copyFile(Document srcFile, Folder destParent, Node destFileNode) throws CloudDriveException, RepositoryException {
       Document file = api.copyDocument(srcFile, destParent, getTitle(destFileNode));
 
       String id = file.getId();
@@ -1602,8 +1568,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * @throws CloudDriveException the cloud drive exception
      * @throws RepositoryException the repository exception
      */
-    protected CloudFile copyFolder(Folder srcFolder, Folder destParent, Node destFolderNode) throws CloudDriveException,
-                                                                                             RepositoryException {
+    protected CloudFile copyFolder(Folder srcFolder, Folder destParent, Node destFolderNode) throws CloudDriveException, RepositoryException {
 
       String name = getTitle(destFolderNode);
       Folder folder = api.copyFolder(srcFolder, destParent, name);
@@ -1654,17 +1619,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
                  modified);
       initCMISItem(destFolderNode, folder);
 
-      return new JCRLocalCloudFile(destFolderNode.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   destFolderNode,
-                                   true);
+      return new JCRLocalCloudFile(destFolderNode.getPath(), id, name, link, type, modifiedBy, createdBy, created, modified, destFolderNode, true);
     }
 
     /**
@@ -1731,13 +1686,10 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
      * @param obj the obj
      * @param parent the parent
      * @return the JCR local cloud file
-     * @throws NotFoundException the not found exception
      * @throws CloudDriveException the cloud drive exception
      * @throws RepositoryException the repository exception
      */
-    private JCRLocalCloudFile restore(CmisObject obj, Node parent) throws NotFoundException,
-                                                                   CloudDriveException,
-                                                                   RepositoryException {
+    private JCRLocalCloudFile restore(CmisObject obj, Node parent) throws CloudDriveException, RepositoryException {
       JCRLocalCloudFile localItem = updateItem(api, obj, parent, null);
       Node localNode = localItem.getNode();
       if (localNode.isNew() && localItem.isFolder()) {
@@ -1753,62 +1705,59 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
     /**
      * {@inheritDoc}
      */
-    public JCRLocalCloudFile restore(String id, String path) throws NotFoundException,
-                                                             CloudDriveException,
-                                                             RepositoryException {
+    public JCRLocalCloudFile restore(String id, String path) throws CloudDriveException, RepositoryException {
       JCRLocalCloudFile result = null;
+      try {
+        CmisObject remote = api.getObject(id);
+        List<Folder> remoteParents = new ArrayList<Folder>(api.getParents(remote));
 
-      CmisObject remote = api.getObject(id);
-      List<Folder> remoteParents = new ArrayList<Folder>(api.getParents(remote));
+        // go through all local nodes existing with given file id
+        // and restore if its parent exists remotely, or remove local node otherwise
+        for (Node node : findNodes(Arrays.asList(id))) {
+          Node localParent = node.getParent();
+          String parentId = fileAPI.getId(localParent);
 
-      // go through all local nodes existing with given file id
-      // and restore if its parent exists remotely, or remove local node otherwise
-      for (Node node : findNodes(Arrays.asList(id))) {
-        Node localParent = node.getParent();
-        String parentId = fileAPI.getId(localParent);
+          JCRLocalCloudFile restored = null;
+          for (Iterator<Folder> rpiter = remoteParents.iterator(); rpiter.hasNext();) {
+            Folder remoteParent = rpiter.next();
+            String rpid = remoteParent.getId();
+            if (parentId.equals(rpid)) {
+              // restore file or sub-tree: update local file
+              restored = restore(remote, localParent);
+              rpiter.remove(); // this parent restored - remove it from the scope
+              if (path.equals(node.getPath())) {
+                result = restored;
+              }
+              // break; we could force break here, but let's rely on remote parents consistency
+            }
+          }
 
-        JCRLocalCloudFile restored = null;
-        for (Iterator<Folder> rpiter = remoteParents.iterator(); rpiter.hasNext();) {
-          Folder remoteParent = rpiter.next();
+          if (restored == null) {
+            // nothing restored - this local parent should not contain the file
+            // only if it is not already ignored
+            removeNode(node);
+          }
+        }
+
+        // if this list not empty then we need restore not existing locally file(s)
+        for (Folder remoteParent : remoteParents) {
           String rpid = remoteParent.getId();
-          if (parentId.equals(rpid)) {
-            // restore file or sub-tree: update local file
-            restored = restore(remote, localParent);
-            rpiter.remove(); // this parent restored - remove it from the scope
-            if (path.equals(node.getPath())) {
+          // find all nodes of this remote parent, this way we respect "multifiling" of folders, what is not
+          // possible according CMIS spec, but who knows vendors :)
+          for (Node parent : findNodes(Arrays.asList(rpid))) {
+            // restore file or sub-tree: create local file
+            JCRLocalCloudFile restored = restore(remote, parent);
+            if (result == null) {
               result = restored;
             }
-            // break; we could force break here, but let's rely on remote parents consistency
           }
         }
-
-        if (restored == null) {
-          // nothing restored - this local parent should not contain the file
-          // only if it is not already ignored
-          if (!fileAPI.isIgnored(node)) {
-            try {
-              node.remove();
-            } catch (PathNotFoundException e) {
-              // already removed
-            }
-          }
+      } catch (NotFoundException e) {
+        // Remove locally to reflect the remote state
+        for (Node node : findNodes(Arrays.asList(id))) {
+          removeNode(node);
         }
       }
-
-      // if this list not empty then we need restore not existing locally file(s)
-      for (Folder remoteParent : remoteParents) {
-        String rpid = remoteParent.getId();
-        // find all nodes of this remote parent, this way we respect "multifiling" of folders, what is not
-        // possible according CMIS spec, but who knows vendors :)
-        for (Node parent : findNodes(Arrays.asList(rpid))) {
-          // restore file or sub-tree: create local file
-          JCRLocalCloudFile restored = restore(remote, parent);
-          if (result == null) {
-            result = restored;
-          }
-        }
-      }
-
       // result will be null if no node restored but may be removed obsolete
       return result;
     }
@@ -1944,9 +1893,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @throws CMISException the CMIS exception
    * @throws CloudDriveException the cloud drive exception
    */
-  protected static CMISUser loadUser(API apiBuilder, Node driveNode) throws RepositoryException,
-                                                                     CMISException,
-                                                                     CloudDriveException {
+  protected static CMISUser loadUser(API apiBuilder, Node driveNode) throws RepositoryException, CMISException, CloudDriveException {
     String userName = driveNode.getProperty("ecd:cloudUserName").getString();
     String email = driveNode.getProperty("ecd:userEmail").getString();
     String userId = driveNode.getProperty("ecd:cloudUserId").getString();
@@ -1974,10 +1921,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @param repositoryId {@link String} optional if it's access update
    * @throws CloudDriveException the cloud drive exception
    */
-  protected void saveAccess(Node driveNode,
-                            String password,
-                            String serviceURL,
-                            String repositoryId) throws CloudDriveException {
+  protected void saveAccess(Node driveNode, String password, String serviceURL, String repositoryId) throws CloudDriveException {
     try {
       jcrListener.disable();
       try {
@@ -2228,8 +2172,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @throws RepositoryException for storage errors
    * @throws CloudDriveException for drive or format errors
    */
-  protected JCRLocalCloudFile updateItem(CMISAPI api, CmisObject item, Node parent, Node node) throws RepositoryException,
-                                                                                               CloudDriveException {
+  protected JCRLocalCloudFile updateItem(CMISAPI api, CmisObject item, Node parent, Node node) throws RepositoryException, CloudDriveException {
     if (LOG.isDebugEnabled()) {
       LOG.debug(">> updateItem: " + item.getId() + " " + item.getName() + " " + item.getType().getDisplayName() + " ("
           + item.getBaseType().getDisplayName() + ", " + item.getBaseTypeId().value() + ")");
@@ -2301,8 +2244,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
         initFolder(node, id, name, type, link, createdBy, modifiedBy, created, modified);
         initCMISItem(node, item);
       }
-      file =
-           new JCRLocalCloudFile(node.getPath(), id, name, link, type, modifiedBy, createdBy, created, modified, node, true);
+      file = new JCRLocalCloudFile(node.getPath(), id, name, link, type, modifiedBy, createdBy, created, modified, node, true);
     } else {
       link = api.getLink(item);
       thumbnailLink = link;
@@ -2424,8 +2366,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
       CMISUser cmisUser = (CMISUser) user;
 
       if (!repositoryId.equals(cmisUser.api().getRepositoryId())) {
-        LOG.warn("Cannot connect drive. Node " + driveNode.getPath() + " was connected to another repository "
-            + repositoryId);
+        LOG.warn("Cannot connect drive. Node " + driveNode.getPath() + " was connected to another repository " + repositoryId);
         throw new CannotConnectDriveException("Node already initialized for another repository " + repositoryId);
       }
       if (!serviceURL.equals(cmisUser.api().getServiceURL())) {
@@ -2488,8 +2429,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
    * @throws UnauthorizedException the unauthorized exception
    * @see #readNodes(Node, Map, boolean)
    */
-  protected List<Node> findDocumentNode(String id, CmisObject file, Map<String, List<Node>> nodes)
-                                                                                                   throws CloudDriveAccessException,
+  protected List<Node> findDocumentNode(String id, CmisObject file, Map<String, List<Node>> nodes) throws CloudDriveAccessException,
                                                                                                    CMISException,
                                                                                                    UnauthorizedException {
     List<Node> existing = nodes.get(id);
@@ -2519,8 +2459,7 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           } catch (NotFoundException e) {
             // cannot find remote versions
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Remote file " + id + " (" + file.getName() + ") or its versions cannot be found. "
-                  + e.getMessage());
+              LOG.debug("Remote file " + id + " (" + file.getName() + ") or its versions cannot be found. " + e.getMessage());
             }
           }
         }
