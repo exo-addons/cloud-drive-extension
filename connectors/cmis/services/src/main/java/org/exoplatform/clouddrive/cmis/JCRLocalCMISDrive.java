@@ -354,34 +354,37 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           // also clean the nodes map from the descendants (they can be recorded in following changes)
           for (Iterator<Node> enliter = existing.iterator(); enliter.hasNext();) {
             Node en = enliter.next();
-            String enpath = en.getPath();
             Node ep = en.getParent();
             if (fileAPI.isFolder(ep) || fileAPI.isDrive(ep)) {
               String parentId = fileAPI.getId(ep);
               // respect CMIS multi-filing and remove only if no parent exists remotely
               if (!parentIds.contains(parentId)) {
                 // this parent doesn't have the file in CMIS repo - remove it with subtree locally
-                for (Iterator<List<Node>> ecnliter = nodes.values().iterator(); ecnliter.hasNext();) {
-                  List<Node> ecnl = ecnliter.next();
-                  if (ecnl != existing) {
-                    for (Iterator<Node> ecniter = ecnl.iterator(); ecniter.hasNext();) {
-                      Node ecn = ecniter.next();
-                      if (ecn.getPath().startsWith(enpath)) {
-                        ecniter.remove();
-                      }
-                    }
-                    if (ecnl.size() == 0) {
-                      ecnliter.remove();
-                    }
-                  } // else will be removed below
-                }
-                // explicitly remove file links outside the drive and remove node 
-                removeNode(en);
-                addRemoved(enpath); // add path to removed
-                enliter.remove(); // remove from existing list
+                removeLocalNode(en);
+                // TODO cleanup after testing CMIS - May 12, 2018
+                // for (Iterator<List<Node>> ecnliter = nodes.values().iterator(); ecnliter.hasNext();) {
+                // List<Node> ecnl = ecnliter.next();
+                // if (ecnl != existing) {
+                // for (Iterator<Node> ecniter = ecnl.iterator(); ecniter.hasNext();) {
+                // Node ecn = ecniter.next();
+                // if (ecn.getPath().startsWith(enpath)) {
+                // ecniter.remove();
+                // }
+                // }
+                // if (ecnl.size() == 0) {
+                // ecnliter.remove();
+                // }
+                // } // else will be removed below
+                // }
+                // // explicitly remove file links outside the drive and remove node
+                // removeNode(en);
+                // addRemoved(enpath); // add path to removed
+
+                // This should be done as part of removeLocalNode()
+                // enliter.remove(); // remove from existing list
               } // else this file filed on this parent in CMIS repo - keep it locally also
             } else {
-              LOG.warn("Skipped node with not cloud folder/drive parent: " + enpath);
+              LOG.warn("Skipped node with not cloud folder/drive parent: " + en.getPath());
             }
           }
           if (existing.size() == 0) {
@@ -414,24 +417,25 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
 
           for (Node fp : fileParents) {
             Node localNode = null;
-            Node localNodeCopy = null;
+            Node localNodeOther = null;
             if (existing == null) {
               existing = new ArrayList<Node>();
               nodes.put(id, existing);
             } else {
               for (Node n : existing) {
-                localNodeCopy = n;
                 if (n.getParent().isSame(fp)) {
                   localNode = n;
-                  break;
+                } else if (localNodeOther == null) {
+                  // this way first not found on the parent will be an other
+                  localNodeOther = n;
                 }
               }
             }
 
             if (localNode == null) {
-              if (isFolder && localNodeCopy != null) {
+              if (isFolder && localNodeOther != null) {
                 // copy from local copy of the folder to a new parent
-                localNode = copyNode(localNodeCopy, fp);
+                localNode = copyFile(localNodeOther, fp);
               } // otherwise will be created below by updateItem() method
               // create/update node and update CMIS properties
               JCRLocalCloudFile localFile = updateItem(api, file, fp, localNode);
@@ -464,10 +468,12 @@ public class JCRLocalCMISDrive extends JCRLocalCloudDrive {
           for (Iterator<Node> niter = existing.iterator(); niter.hasNext();) {
             Node n = niter.next();
             if (!synced.contains(n)) {
-              niter.remove();
-              String path = n.getPath();
-              removeNode(n);
-              addRemoved(path);
+              removeLocalNode(n);
+              // TODO cleanup after testing CMIS - May 12, 2018
+              // niter.remove();
+              // String path = n.getPath();
+              // removeNode(n);
+              // addRemoved(path);
             }
           }
         }
