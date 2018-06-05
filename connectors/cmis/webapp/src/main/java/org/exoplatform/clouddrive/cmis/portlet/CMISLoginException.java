@@ -23,7 +23,6 @@ package org.exoplatform.clouddrive.cmis.portlet;
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CMISLoginException.java 00000 Aug 22, 2014 pnedonosko $
- * 
  */
 public class CMISLoginException extends Exception {
 

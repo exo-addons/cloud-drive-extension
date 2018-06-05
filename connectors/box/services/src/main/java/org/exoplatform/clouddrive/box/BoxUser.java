@@ -56,7 +56,8 @@ public class BoxUser extends CloudUser {
   }
 
   /**
-   * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise name. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise name or <code>null</code>
    */
@@ -65,7 +66,8 @@ public class BoxUser extends CloudUser {
   }
 
   /**
-   * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise ID. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise ID or <code>null</code>
    */

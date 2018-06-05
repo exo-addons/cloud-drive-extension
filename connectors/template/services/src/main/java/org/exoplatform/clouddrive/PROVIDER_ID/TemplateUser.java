@@ -18,16 +18,15 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.DriveRemovedException;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Template cloud user.
- * 
  */
 public class TemplateUser extends CloudUser {
 
@@ -58,7 +57,8 @@ public class TemplateUser extends CloudUser {
   }
 
   /**
-   * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise name. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise name or <code>null</code>
    */
@@ -67,7 +67,8 @@ public class TemplateUser extends CloudUser {
   }
 
   /**
-   * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise ID. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise ID or <code>null</code>
    */
@@ -91,6 +92,5 @@ public class TemplateUser extends CloudUser {
     // TODO your own drive naming can be managed from here
     return super.createDriveTitle();
   }
-  
-  
+
 }

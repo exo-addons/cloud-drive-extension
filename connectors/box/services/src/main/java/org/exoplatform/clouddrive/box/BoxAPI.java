@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2016 eXo Platform SAS.
+ * Copyright (C) 2003-2018 eXo Platform SAS.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -17,6 +17,19 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 package org.exoplatform.clouddrive.box;
+
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIConnectionListener;
@@ -48,27 +61,13 @@ import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
- * New Box Content API that replaces the Box SDK v2. Code adopted from the BoxAPI worked with SDK v2.<br>
- * 
+ * New Box Content API that replaces the Box SDK v2. Code adopted from the
+ * BoxAPI worked with SDK v2.<br>
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxContentAPI.java 00000 Aug 19, 2015 pnedonosko $
- * 
  */
 public class BoxAPI {
 
@@ -99,7 +98,7 @@ public class BoxAPI {
    * Box item_status for trashed items.
    */
   public static final String             BOX_ITEM_STATE_TRASHED      = "trashed";
-  
+
   /**
    * Box item_status for deleted items.
    */
@@ -149,10 +148,12 @@ public class BoxAPI {
       + "view=list&sort=date&theme=gray&show_parent_path=no&show_item_feed_actions=no&session_expired=true";
 
   /** The Constant BOX_EMBED_URL_SSO. */
-  public static final String             BOX_EMBED_URL_SSO           = "https://app.box.com/login/auto_initiate_sso?enterprise_id=%s&redirect_url=%s";
+  public static final String             BOX_EMBED_URL_SSO           =
+                                                           "https://app.box.com/login/auto_initiate_sso?enterprise_id=%s&redirect_url=%s";
 
   /** The Constant BOX_URL_CUSTOM_PATTERN. */
-  public static final Pattern            BOX_URL_CUSTOM_PATTERN      = Pattern.compile("^https://([\\p{ASCII}]*){1}?\\.app\\.box\\.com/.*\\z");
+  public static final Pattern            BOX_URL_CUSTOM_PATTERN      =
+                                                                Pattern.compile("^https://([\\p{ASCII}]*){1}?\\.app\\.box\\.com/.*\\z");
 
   /** The Constant BOX_URL_MAKE_CUSTOM_PATTERN. */
   public static final Pattern            BOX_URL_MAKE_CUSTOM_PATTERN = Pattern.compile("^(https)://(app\\.box\\.com/.*)\\z");
@@ -179,15 +180,16 @@ public class BoxAPI {
   }
 
   /**
-   * An array of all file/folder fields that will be requested when calling {@link ItemsIterator}.
+   * An array of all file/folder fields that will be requested when calling
+   * ItemsIterator.
    */
   public static final String[] ITEM_FIELDS = { "type", "id", "sequence_id", "etag", "name", "description", "size",
       "path_collection", "created_at", "modified_at", "created_by", "modified_by", "owned_by", "shared_link", "parent",
       "item_status", "item_collection" };
 
   /** The Constant USER_FIELDS. */
-  public static final String[] USER_FIELDS = { "type", "id", "name", "login", "created_at", "modified_at", "role",
-      "language", "timezone", "status", "avatar_url", "enterprise" };
+  public static final String[] USER_FIELDS = { "type", "id", "name", "login", "created_at", "modified_at", "role", "language",
+      "timezone", "status", "avatar_url", "enterprise" };
 
   /**
    * The Class StoredToken.
@@ -225,12 +227,13 @@ public class BoxAPI {
   }
 
   /**
-   * Iterator over whole set of items from Box service. This iterator hides next-chunk logic on
-   * request to the service. <br>
-   * Iterator methods can throw {@link BoxException} in case of remote or communication errors.
+   * Iterator over whole set of items from Box service. This iterator hides
+   * next-chunk logic on request to the service. <br>
+   * Iterator methods can throw {@link BoxException} in case of remote or
+   * communication errors.
    */
   class ItemsIterator extends ChunkIterator<BoxItem.Info> {
-    
+
     /** The parent. */
     final BoxFolder parent;
 
@@ -312,14 +315,16 @@ public class BoxAPI {
   }
 
   /**
-   * Iterator over set of events from Box service. This iterator hides next-chunk logic on
-   * request to the service. <br>
-   * Iterator methods can throw {@link BoxException} in case of remote or communication errors.
+   * Iterator over set of events from Box service. This iterator hides
+   * next-chunk logic on request to the service. <br>
+   * Iterator methods can throw {@link BoxException} in case of remote or
+   * communication errors.
    */
   class EventsIterator extends ChunkIterator<BoxEvent> {
 
     /**
-     * Set of already fetched event Ids. Used to ignore duplicates from different requests.
+     * Set of already fetched event Ids. Used to ignore duplicates from
+     * different requests.
      */
     final Set<String> eventIds = new HashSet<String>();
 
@@ -407,7 +412,7 @@ public class BoxAPI {
    * The Class ChangesLink.
    */
   public static class ChangesLink {
-    
+
     /** The type. */
     final String type;
 
@@ -533,14 +538,13 @@ public class BoxAPI {
    * @throws BoxException if authentication failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
-  BoxAPI(String clientId, String clientSecret, String authCode, String redirectUri)
-      throws BoxException, CloudDriveException {
+  BoxAPI(String clientId, String clientSecret, String authCode, String redirectUri) throws BoxException, CloudDriveException {
     try {
       this.api = new BoxAPIConnection(clientId, clientSecret, authCode);
 
       this.token = new StoredToken();
       // save just authorized access token in local store
-      this.token.store(); 
+      this.token.store();
       this.api.addListener(token);
     } catch (BoxAPIException e) {
       throw new BoxException("Error submiting authentication code: " + e.getMessage(), e);
@@ -570,8 +574,9 @@ public class BoxAPI {
       this.api.setExpires(expirationTime);
 
       this.token = new StoredToken();
-      // for a case if access token was just refreshed by the Box SDK - save it in local store
-      this.token.store();  
+      // for a case if access token was just refreshed by the Box SDK - save it
+      // in local store
+      this.token.store();
       this.api.addListener(token);
     } catch (BoxAPIException e) {
       throw new BoxException("Error creating client with authentication tokens: " + e.getMessage(), e);
@@ -606,7 +611,7 @@ public class BoxAPI {
   /**
    * Currently connected Box user.
    *
-   * @return {@link Info}
+   * @return the current user
    * @throws BoxException the box exception
    * @throws RefreshAccessException the refresh access exception
    */
@@ -688,7 +693,8 @@ public class BoxAPI {
       }
     }
 
-    // XXX This link build not on official documentation, but from observed URLs from Box app site.
+    // XXX This link build not on official documentation, but from observed URLs
+    // from Box app site.
     StringBuilder link = new StringBuilder();
     link.append(link(BOX_FILE_URL));
     String id = item.getID();
@@ -733,7 +739,8 @@ public class BoxAPI {
 
     if (linkValue.length() == 0) {
       linkValue.append(BOX_FILES_PATH);
-      // XXX This link build not on official documentation, but from observed URLs from Box app site.
+      // XXX This link build not on official documentation, but from observed
+      // URLs from Box app site.
       String id = item.getID();
       if (BOX_ROOT_ID.equals(id)) {
         linkValue.append(id);
@@ -785,9 +792,9 @@ public class BoxAPI {
   }
 
   /**
-   * Update link to the drive's long-polling changes notification service. This kind of service optional and
-   * may not be supported. If long-polling changes notification not supported then this method will do
-   * nothing.
+   * Update link to the drive's long-polling changes notification service. This
+   * kind of service optional and may not be supported. If long-polling changes
+   * notification not supported then this method will do nothing.
    *
    * @throws BoxException the box exception
    * @throws RefreshAccessException the refresh access exception
@@ -877,7 +884,8 @@ public class BoxAPI {
                                                                                             ConflictException {
     try {
       // To speedup the process we check if parent exists first.
-      // How this speedups: if parent not found we will not wait for the content upload to the Box side.
+      // How this speedups: if parent not found we will not wait for the content
+      // upload to the Box side.
       try {
         readFolder(parentId);
       } catch (NotFoundException e) {
@@ -886,14 +894,16 @@ public class BoxAPI {
       }
 
       BoxFolder parent = new BoxFolder(api, parentId);
-      // TODO You can optionally specify a Content-MD5 header with the SHA1 hash of the file to ensure that
+      // TODO You can optionally specify a Content-MD5 header with the SHA1 hash
+      // of the file to ensure that
       // the file is not corrupted in transit.
       return parent.uploadFile(data, name);
     } catch (BoxAPIException e) {
       checkTokenState(e);
       int status = e.getResponseCode();
       if (status == 404 || status == 412) {
-        // not_found or precondition_failed - then parent not found (can happen in race condition)
+        // not_found or precondition_failed - then parent not found (can happen
+        // in race condition)
         throw new NotFoundException("Parent not found " + parentId + ". File uploading canceled for " + name, e);
       } else if (status == 403) {
         throw new NotFoundException("The user doesn't have access to upload a file " + name, e);
@@ -941,8 +951,9 @@ public class BoxAPI {
   }
 
   /**
-   * Delete a cloud file by given fileId. Depending on Box enterprise settings for this user, the file will
-   * either be actually deleted from Box or moved to the Trash.
+   * Delete a cloud file by given fileId. Depending on Box enterprise settings
+   * for this user, the file will either be actually deleted from Box or moved
+   * to the Trash.
    *
    * @param id {@link String}
    * @throws BoxException the box exception
@@ -971,8 +982,9 @@ public class BoxAPI {
   }
 
   /**
-   * Delete a cloud folder by given folderId. Depending on Box enterprise settings for this user, the folder
-   * will either be actually deleted from Box or moved to the Trash.
+   * Delete a cloud folder by given folderId. Depending on Box enterprise
+   * settings for this user, the folder will either be actually deleted from Box
+   * or moved to the Trash.
    *
    * @param id {@link String}
    * @throws BoxException the box exception
@@ -1001,10 +1013,11 @@ public class BoxAPI {
   }
 
   /**
-   * Trash a cloud file by given fileId. Depending on Box enterprise settings for this user, the file will
-   * either be actually deleted from Box or moved to the Trash. If the file was actually deleted on Box, this
-   * method will throw {@link FileTrashRemovedException}, and the caller code should delete the file locally
-   * also.
+   * Trash a cloud file by given fileId. Depending on Box enterprise settings
+   * for this user, the file will either be actually deleted from Box or moved
+   * to the Trash. If the file was actually deleted on Box, this method will
+   * throw {@link FileTrashRemovedException}, and the caller code should delete
+   * the file locally also.
    *
    * @param id {@link String}
    * @return {@link BoxFile.Info} of the file successfully moved to Box Trash
@@ -1013,10 +1026,7 @@ public class BoxAPI {
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
    */
-  BoxFile.Info trashFile(String id) throws BoxException,
-                                    FileTrashRemovedException,
-                                    NotFoundException,
-                                    RefreshAccessException {
+  BoxFile.Info trashFile(String id) throws BoxException, FileTrashRemovedException, NotFoundException, RefreshAccessException {
     try {
       BoxFile file = new BoxFile(api, id);
       file.delete(); // TODO delete using etag?
@@ -1030,7 +1040,8 @@ public class BoxAPI {
         int status = e.getResponseCode();
         if (status == 404 || status == 412) {
           // not_found or precondition_failed - then file not found in the Trash
-          // XXX throwing an exception not a best solution, but returning a boolean also can have double
+          // XXX throwing an exception not a best solution, but returning a
+          // boolean also can have double
           // meaning: not trashed at all or deleted instead of trashed
           throw new FileTrashRemovedException("Trashed file deleted permanently " + id);
         }
@@ -1050,13 +1061,15 @@ public class BoxAPI {
   }
 
   /**
-   * Trash a cloud folder by given folder Id. Depending on Box enterprise settings for this user, the folder
-   * will either be actually deleted from Box or moved to the Trash. If the folder was actually deleted in
-   * Box, this method will return {@link FileTrashRemovedException}, and the caller code should delete the
-   * folder locally also.
+   * Trash a cloud folder by given folder Id. Depending on Box enterprise
+   * settings for this user, the folder will either be actually deleted from Box
+   * or moved to the Trash. If the folder was actually deleted in Box, this
+   * method will return {@link FileTrashRemovedException}, and the caller code
+   * should delete the folder locally also.
    *
    * @param id {@link String}
-   * @return {@link BoxFolder.Info} of the folder successfully moved to Box Trash
+   * @return {@link BoxFolder.Info} of the folder successfully moved to Box
+   *         Trash
    * @throws BoxException the box exception
    * @throws FileTrashRemovedException if folder was permanently removed.
    * @throws NotFoundException the not found exception
@@ -1078,8 +1091,10 @@ public class BoxAPI {
         checkTokenState(e);
         int status = e.getResponseCode();
         if (status == 404 || status == 412) {
-          // not_found or precondition_failed - then foler not found in the Trash
-          // XXX throwing an exception not a best solution, but returning a boolean also can have double
+          // not_found or precondition_failed - then foler not found in the
+          // Trash
+          // XXX throwing an exception not a best solution, but returning a
+          // boolean also can have double
           // meaning: not trashed at all or deleted instead of trashed
           throw new FileTrashRemovedException("Trashed folder deleted permanently " + id);
         }
@@ -1117,7 +1132,8 @@ public class BoxAPI {
       BoxTrash trash = new BoxTrash(api);
       return trash.restoreFile(id);
       // TODO name?
-      // BoxItemRestoreRequestObject obj = BoxItemRestoreRequestObject.restoreItemRequestObject();
+      // BoxItemRestoreRequestObject obj =
+      // BoxItemRestoreRequestObject.restoreItemRequestObject();
       // if (name != null) {
       // obj.setNewName(name);
       // }
@@ -1158,7 +1174,8 @@ public class BoxAPI {
       BoxTrash trash = new BoxTrash(api);
       return trash.restoreFolder(id);
       // TODO name?
-      // BoxItemRestoreRequestObject obj = BoxItemRestoreRequestObject.restoreItemRequestObject();
+      // BoxItemRestoreRequestObject obj =
+      // BoxItemRestoreRequestObject.restoreItemRequestObject();
       // if (name != null) {
       // obj.setNewName(name);
       // }
@@ -1182,14 +1199,14 @@ public class BoxAPI {
 
   /**
    * Update file name or/and parent. If file was actually updated (name or/and
-   * parent changed) this method return updated file object or <code>null</code> if file already exists
-   * with such name and parent.
+   * parent changed) this method return updated file object or <code>null</code>
+   * if file already exists with such name and parent.
    *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
-   * @return {@link BoxFile.Info} of actually changed file or <code>null</code> if file already exists with
-   *         such name and parent.
+   * @return {@link BoxFile.Info} of actually changed file or <code>null</code>
+   *         if file already exists with such name and parent.
    * @throws BoxException the box exception
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
@@ -1207,8 +1224,10 @@ public class BoxAPI {
     while ((nameChanged || parentChanged) && attemts < 3) {
       attemts++;
       try {
-        // if name or parent changed - we do actual update, we ignore modified date changes
-        // otherwise, if name the same, Box service will respond with error 409 (conflict)
+        // if name or parent changed - we do actual update, we ignore modified
+        // date changes
+        // otherwise, if name the same, Box service will respond with error 409
+        // (conflict)
         BoxFile file = new BoxFile(api, id);
         if (parentChanged) {
           // it's move of a file
@@ -1267,7 +1286,8 @@ public class BoxAPI {
       file.uploadVersion(data, modified.getTime());
       return file.getInfo(ITEM_FIELDS);
       // TODO
-      // BoxFileUploadRequestObject obj = BoxFileUploadRequestObject.uploadFileRequestObject(parentId, name,
+      // BoxFileUploadRequestObject obj =
+      // BoxFileUploadRequestObject.uploadFileRequestObject(parentId, name,
       // data);
       // obj.setLocalFileLastModifiedAt(modified.getTime());
       // obj.put("modified_at", formatDate(modified));
@@ -1284,16 +1304,16 @@ public class BoxAPI {
   }
 
   /**
-   * Update folder name or/and parent. If folder was actually updated (name or/and
-   * parent changed) this method return updated folder object or <code>null</code> if folder already exists
-   * with such name and parent.
+   * Update folder name or/and parent. If folder was actually updated (name
+   * or/and parent changed) this method return updated folder object or
+   * <code>null</code> if folder already exists with such name and parent.
    *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
-   * @return {@link BoxFolder.Info} of actually changed folder or <code>null</code> if folder already exists
-   *         with
-   *         such name and parent.
+   * @return {@link BoxFolder.Info} of actually changed folder or
+   *         <code>null</code> if folder already exists with such name and
+   *         parent.
    * @throws BoxException the box exception
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
@@ -1309,8 +1329,10 @@ public class BoxAPI {
     boolean parentChanged = !existing.getParent().getID().equals(parentId);
     while ((nameChanged || parentChanged) && attemts < 3) {
       attemts++;
-      // if name or parent changed - we do actual update, we ignore modified date changes
-      // otherwise, if name the same, Box service will respond with error 409 (conflict)
+      // if name or parent changed - we do actual update, we ignore modified
+      // date changes
+      // otherwise, if name the same, Box service will respond with error 409
+      // (conflict)
       try {
         BoxFolder folder = new BoxFolder(api, id);
         if (parentChanged) {
@@ -1351,7 +1373,8 @@ public class BoxAPI {
   }
 
   /**
-   * Copy file to a new one. If file was successfully copied this method return new file object.
+   * Copy file to a new one. If file was successfully copied this method return
+   * new file object.
    *
    * @param id {@link String}
    * @param parentId {@link String}
@@ -1389,7 +1412,8 @@ public class BoxAPI {
   }
 
   /**
-   * Copy folder to a new one. If folder was successfully copied this method return new folder object.
+   * Copy folder to a new one. If folder was successfully copied this method
+   * return new folder object.
    *
    * @param id {@link String}
    * @param parentId {@link String}
@@ -1477,7 +1501,8 @@ public class BoxAPI {
   }
 
   /**
-   * Current user's enterprise name. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise name. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise name or <code>null</code>
    */
@@ -1486,7 +1511,8 @@ public class BoxAPI {
   }
 
   /**
-   * Current user's enterprise ID. Can be <code>null</code> if user doesn't belong to any enterprise.
+   * Current user's enterprise ID. Can be <code>null</code> if user doesn't
+   * belong to any enterprise.
    * 
    * @return {@link String} user's enterprise ID or <code>null</code>
    */
@@ -1495,8 +1521,8 @@ public class BoxAPI {
   }
 
   /**
-   * Current user's custom domain (actual for enterprise users). Can be <code>null</code> if user doesn't have
-   * a custom domain.
+   * Current user's custom domain (actual for enterprise users). Can be
+   * <code>null</code> if user doesn't have a custom domain.
    * 
    * @return {@link String} user's custom domain or <code>null</code>
    */
@@ -1557,7 +1583,8 @@ public class BoxAPI {
    * Check if need new access token from user (refresh token already expired).
    *
    * @param e the e
-   * @throws RefreshAccessException if client failed to refresh the access token and need new new token
+   * @throws RefreshAccessException if client failed to refresh the access token
+   *           and need new new token
    */
   private void checkTokenState(BoxAPIException e) throws RefreshAccessException {
     // TODO invalid_grant invalid_scope - parse to JSON, then read "error" param
@@ -1594,7 +1621,8 @@ public class BoxAPI {
   }
 
   /**
-   * Correct file link for enterprise users with the enterprise custom domain (if it present).
+   * Correct file link for enterprise users with the enterprise custom domain
+   * (if it present).
    * 
    * @param fileLink {@link String}
    * @return file link optionally with added custom domain.
@@ -1605,7 +1633,8 @@ public class BoxAPI {
       if (m.matches()) {
         // we need add custom domain to the link host name
         return m.replaceFirst("$1://" + customDomain + ".$2");
-      } // else, link already starts with custom domain (actual for Enterprise users)
+      } // else, link already starts with custom domain (actual for Enterprise
+        // users)
     } // else, custom domain not available
 
     return fileLink;

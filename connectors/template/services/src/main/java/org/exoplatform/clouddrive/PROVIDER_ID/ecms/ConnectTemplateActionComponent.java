@@ -25,32 +25,28 @@ import org.exoplatform.webui.config.annotation.EventConfig;
 import org.exoplatform.webui.event.Event;
 
 /**
- * Template UI component for a menu action dedicated to a single provider. Its UI configuration will refer
- * the action by "ConnectTemplate" key (see in webapp config), rename it for an actual name (e.g. based on provider ID).
+ * Template UI component for a menu action dedicated to a single provider. Its
+ * UI configuration will refer the action by "ConnectTemplate" key (see in
+ * webapp config), rename it for an actual name (e.g. based on provider ID).
  */
-@ComponentConfig(
-                 events = { @EventConfig(
-                                         listeners = ConnectTemplateActionComponent.ConnectPROVIDER_IDActionListener.class) })
+@ComponentConfig(events = { @EventConfig(listeners = ConnectTemplateActionComponent.ConnectPROVIDER_IDActionListener.class) })
 public class ConnectTemplateActionComponent extends BaseConnectActionComponent {
 
   /**
    * TemplateProvider ID from configuration.
-   * */
+   */
   protected static final String PROVIDER_ID = "YOUR PROVIDER_ID";
 
   /**
-   * The listener interface for receiving connectPROVIDER_IDAction events.
-   * The class that is interested in processing a connectPROVIDER_IDAction
-   * event implements this interface, and the object created
-   * with that class is registered with a component using the
-   * component's <code>addConnectPROVIDER_IDActionListener</code> method. When
-   * the connectPROVIDER_IDAction event occurs, that object's appropriate
-   * method is invoked.
-   *
+   * The listener interface for receiving connectPROVIDER_IDAction events. The
+   * class that is interested in processing a connectPROVIDER_IDAction event
+   * implements this interface, and the object created with that class is
+   * registered with a component using the component's
+   * <code>addConnectPROVIDER_IDActionListener</code> method. When the
+   * connectPROVIDER_IDAction event occurs, that object's appropriate method is
+   * invoked.
    */
-  public static class ConnectPROVIDER_IDActionListener
-                                                      extends
-                                                      UIActionBarActionListener<ConnectTemplateActionComponent> {
+  public static class ConnectPROVIDER_IDActionListener extends UIActionBarActionListener<ConnectTemplateActionComponent> {
 
     /**
      * {@inheritDoc}

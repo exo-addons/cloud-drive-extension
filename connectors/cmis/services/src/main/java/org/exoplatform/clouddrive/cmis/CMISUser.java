@@ -18,7 +18,12 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
+import java.util.List;
+
+import javax.jcr.RepositoryException;
+
 import org.apache.chemistry.opencmis.client.api.Repository;
+
 import org.exoplatform.clouddrive.CloudDriveAccessException;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
@@ -27,13 +32,8 @@ import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.RefreshAccessException;
 import org.exoplatform.clouddrive.cmis.CMISProvider.AtomPub;
 
-import java.util.List;
-
-import javax.jcr.RepositoryException;
-
 /**
  * CMIS user.
- * 
  */
 public class CMISUser extends CloudUser {
 
@@ -156,8 +156,8 @@ public class CMISUser extends CloudUser {
   // **** internals *****
 
   /**
-   * Predefined name for this user CMIS repository or <code>null</code> if repository wasn't predefined in
-   * configuration or by administrator.
+   * Predefined name for this user CMIS repository or <code>null</code> if
+   * repository wasn't predefined in configuration or by administrator.
    * 
    * @return {@link String}
    */

@@ -18,6 +18,13 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.ConflictException;
 import org.exoplatform.clouddrive.FileTrashRemovedException;
@@ -28,17 +35,8 @@ import org.exoplatform.clouddrive.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
 /**
  * All calls to PROVIDER_ID Cloud API here.
- * 
  */
 public class TemplateAPI {
 
@@ -57,7 +55,8 @@ public class TemplateAPI {
      * @throws CloudDriveException the cloud drive exception
      */
     void store(Object apiToken) throws CloudDriveException {
-      // this.store(apiToken.getAccessToken(), apiToken.getRefreshToken(), apiToken.getExpiresIn());
+      // this.store(apiToken.getAccessToken(), apiToken.getRefreshToken(),
+      // apiToken.getExpiresIn());
     }
 
     /**
@@ -76,20 +75,19 @@ public class TemplateAPI {
   }
 
   /**
-   * Iterator over whole set of items from cloud service. This iterator hides next-chunk logic on
-   * request to the service. <br>
-   * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
-   * 
-   * TODO replace type Object to an actual type used by Cloud API for drive items.<br>
+   * Iterator over whole set of items from cloud service. This iterator hides
+   * next-chunk logic on request to the service. <br>
+   * Iterator methods can throw {@link CloudDriveException} in case of remote or
+   * communication errors. TODO replace type Object to an actual type used by
+   * Cloud API for drive items.<br>
    */
   class ItemsIterator extends ChunkIterator<Object> {
-    
+
     /** The folder id. */
     final String folderId;
 
     /**
-     * Parent folder.
-     * TODO Use read parent class.
+     * Parent folder. TODO Use read parent class.
      */
     Object       parent;
 
@@ -114,7 +112,8 @@ public class TemplateAPI {
         // TODO find parent if it is required for file calls...
         // parent = client.getFoldersManager().getFolder(folderId, obj);
 
-        // TODO Get items and let progress indicator to know the available amount
+        // TODO Get items and let progress indicator to know the available
+        // amount
         // Collection items = parent.getItemCollection();
         // available(totalSize);
 
@@ -125,13 +124,15 @@ public class TemplateAPI {
         // oitems.addAll(files);
         return oitems.iterator();
       } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+        // TODO don't catch Exception - it's bad practice, catch dedicated
+        // instead!
 
         // TODO if OAuth2 related exception then check if need refresh tokens
         // usually Cloud API has a dedicated exception to catch for OAuth2
         // checkTokenState();
 
-        // if it is service or connectivity exception throw it as a provider specific
+        // if it is service or connectivity exception throw it as a provider
+        // specific
         throw new TemplateException("Error getting folder items: " + e.getMessage(), e);
       }
     }
@@ -146,9 +147,10 @@ public class TemplateAPI {
   }
 
   /**
-   * Iterator over set of drive change events from cloud service. This iterator hides next-chunk logic on
-   * request to the service. <br>
-   * Iterator methods can throw {@link TemplateException} in case of remote or communication errors.
+   * Iterator over set of drive change events from cloud service. This iterator
+   * hides next-chunk logic on request to the service. <br>
+   * Iterator methods can throw {@link TemplateException} in case of remote or
+   * communication errors.
    */
   class EventsIterator extends ChunkIterator<Object> {
 
@@ -183,7 +185,8 @@ public class TemplateAPI {
         // fill events collection or return iterator with them
         return events.iterator();
       } catch (Exception e) {
-        // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+        // TODO don't catch Exception - it's bad practice, catch dedicated
+        // instead!
 
         // TODO if OAuth2 related exception then check if need refresh tokens
         // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -208,7 +211,8 @@ public class TemplateAPI {
      */
     long getChangeId() {
       // TODO find real next event position to read from the cloud provider,
-      // if not available then apply local incremental ID which will let guess the position for sycn
+      // if not available then apply local incremental ID which will let guess
+      // the position for sycn
       return position + 1;
     }
   }
@@ -217,7 +221,7 @@ public class TemplateAPI {
    * Sample drive state POJO.
    */
   public static class DriveState {
-    
+
     /** The type. */
     final String type;
 
@@ -306,13 +310,14 @@ public class TemplateAPI {
    * @throws TemplateException if authentication failed for any reason.
    * @throws CloudDriveException if credentials store exception happen
    */
-  TemplateAPI(String key, String clientSecret, String authCode, String redirectUri) throws TemplateException,
-      CloudDriveException {
+  TemplateAPI(String key, String clientSecret, String authCode, String redirectUri)
+      throws TemplateException, CloudDriveException {
 
     // TODO create Cloud API client and authenticate to it using given code.
     this.token = new StoredToken();
 
-    // TODO if client support add a listener to save OAuth2 tokens in stored token object.
+    // TODO if client support add a listener to save OAuth2 tokens in stored
+    // token object.
 
     // TODO init drive state (optional)
     updateState();
@@ -331,7 +336,8 @@ public class TemplateAPI {
    * @param expirationTime long, token expiration time on milliseconds
    * @throws CloudDriveException if credentials store exception happen
    */
-  TemplateAPI(String key, String clientSecret, String accessToken, String refreshToken, long expirationTime) throws CloudDriveException {
+  TemplateAPI(String key, String clientSecret, String accessToken, String refreshToken, long expirationTime)
+      throws CloudDriveException {
 
     // TODO create Cloud API client and authenticate it using stored token.
 
@@ -363,7 +369,8 @@ public class TemplateAPI {
     return token;
   }
 
-  // Bellow a dummy list of possible methods the API can has. It's blank field here, implement everything you
+  // Bellow a dummy list of possible methods the API can has. It's blank field
+  // here, implement everything you
   // need for your connector following the proposed try-catch sample.
 
   /**
@@ -378,9 +385,11 @@ public class TemplateAPI {
       // TODO get an user from cloud client
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -401,9 +410,11 @@ public class TemplateAPI {
       // return drive root folder
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -467,12 +478,15 @@ public class TemplateAPI {
    */
   void updateState() throws TemplateException, RefreshAccessException {
     try {
-      // TODO get the state from cloud or any other way and construct a new state object...
+      // TODO get the state from cloud or any other way and construct a new
+      // state object...
       this.state = new DriveState("type...", "http://....", 10);
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -508,16 +522,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object createFile(String parentId, String name, Calendar created, InputStream data) throws TemplateException,
-                                                                                     NotFoundException,
-                                                                                     RefreshAccessException,
-                                                                                     ConflictException {
+                                                                                      NotFoundException,
+                                                                                      RefreshAccessException,
+                                                                                      ConflictException {
     try {
       // TODO request the cloud API and create the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -540,16 +556,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object createFolder(String parentId, String name, Calendar created) throws TemplateException,
-                                                                     NotFoundException,
-                                                                     RefreshAccessException,
-                                                                     ConflictException {
+                                                                      NotFoundException,
+                                                                      RefreshAccessException,
+                                                                      ConflictException {
     try {
       // TODO request the cloud API and create the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -571,9 +589,11 @@ public class TemplateAPI {
     try {
       // TODO request the cloud API and remove the file...
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -595,9 +615,11 @@ public class TemplateAPI {
     try {
       // TODO request the cloud API and remove the folder...
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -611,23 +633,23 @@ public class TemplateAPI {
    * Trash a cloud file by given fileId.
    *
    * @param id {@link String}
-   * @return {@link Object} of the file successfully moved to Trash in cloud side
+   * @return {@link Object} of the file successfully moved to Trash in cloud
+   *         side
    * @throws TemplateException the template exception
    * @throws FileTrashRemovedException if file was permanently removed.
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
    */
-  Object trashFile(String id) throws TemplateException,
-                             FileTrashRemovedException,
-                             NotFoundException,
-                             RefreshAccessException {
+  Object trashFile(String id) throws TemplateException, FileTrashRemovedException, NotFoundException, RefreshAccessException {
     try {
       // TODO request the cloud API and trash the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -641,23 +663,23 @@ public class TemplateAPI {
    * Trash a cloud folder by given folderId.
    *
    * @param id {@link String}
-   * @return {@link Object} of the folder successfully moved to Trash in cloud side
+   * @return {@link Object} of the folder successfully moved to Trash in cloud
+   *         side
    * @throws TemplateException the template exception
    * @throws FileTrashRemovedException if folder was permanently removed.
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
    */
-  Object trashFolder(String id) throws TemplateException,
-                               FileTrashRemovedException,
-                               NotFoundException,
-                               RefreshAccessException {
+  Object trashFolder(String id) throws TemplateException, FileTrashRemovedException, NotFoundException, RefreshAccessException {
     try {
       // TODO request the cloud API and untrash the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -679,16 +701,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object untrashFile(String id, String name) throws TemplateException,
-                                            NotFoundException,
-                                            RefreshAccessException,
-                                            ConflictException {
+                                             NotFoundException,
+                                             RefreshAccessException,
+                                             ConflictException {
     try {
       // TODO request the cloud API and untrash the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -710,16 +734,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object untrashFolder(String id, String name) throws TemplateException,
-                                              NotFoundException,
-                                              RefreshAccessException,
-                                              ConflictException {
+                                               NotFoundException,
+                                               RefreshAccessException,
+                                               ConflictException {
     try {
       // TODO request the cloud API and untrash the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -736,25 +762,27 @@ public class TemplateAPI {
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed file or <code>null</code> if file already exists with
-   *         such name and parent.
+   * @return {@link Object} of actually changed file or <code>null</code> if
+   *         file already exists with such name and parent.
    * @throws TemplateException the template exception
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
    * @throws ConflictException the conflict exception
    */
   Object updateFile(String parentId, String id, String name, Calendar modified) throws TemplateException,
-                                                                               NotFoundException,
-                                                                               RefreshAccessException,
-                                                                               ConflictException {
+                                                                                NotFoundException,
+                                                                                RefreshAccessException,
+                                                                                ConflictException {
 
     try {
       // TODO request the cloud API and update the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -778,15 +806,17 @@ public class TemplateAPI {
    * @throws RefreshAccessException the refresh access exception
    */
   Object updateFileContent(String parentId, String id, String name, Calendar modified, InputStream data) throws TemplateException,
-                                                                                                        NotFoundException,
-                                                                                                        RefreshAccessException {
+                                                                                                         NotFoundException,
+                                                                                                         RefreshAccessException {
     try {
       // TODO request the cloud API and update the file content...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -797,32 +827,35 @@ public class TemplateAPI {
   }
 
   /**
-   * Update folder name or/and parent and set given modified date. If folder was actually updated (name or/and
-   * parent changed) this method return updated folder object or <code>null</code> if folder already exists
-   * with such name and parent.
+   * Update folder name or/and parent and set given modified date. If folder was
+   * actually updated (name or/and parent changed) this method return updated
+   * folder object or <code>null</code> if folder already exists with such name
+   * and parent.
    *
    * @param parentId {@link String}
    * @param id {@link String}
    * @param name {@link String}
    * @param modified {@link Calendar}
-   * @return {@link Object} of actually changed folder or <code>null</code> if folder already exists with
-   *         such name and parent.
+   * @return {@link Object} of actually changed folder or <code>null</code> if
+   *         folder already exists with such name and parent.
    * @throws TemplateException the template exception
    * @throws NotFoundException the not found exception
    * @throws RefreshAccessException the refresh access exception
    * @throws ConflictException the conflict exception
    */
   Object updateFolder(String parentId, String id, String name, Calendar modified) throws TemplateException,
-                                                                                 NotFoundException,
-                                                                                 RefreshAccessException,
-                                                                                 ConflictException {
+                                                                                  NotFoundException,
+                                                                                  RefreshAccessException,
+                                                                                  ConflictException {
     try {
       // TODO request the cloud API and update the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -833,7 +866,8 @@ public class TemplateAPI {
   }
 
   /**
-   * Copy file to a new one. If file was successfully copied this method return new file object.
+   * Copy file to a new one. If file was successfully copied this method return
+   * new file object.
    *
    * @param id {@link String}
    * @param parentId {@link String}
@@ -845,16 +879,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object copyFile(String id, String parentId, String name) throws TemplateException,
-                                                          NotFoundException,
-                                                          RefreshAccessException,
-                                                          ConflictException {
+                                                           NotFoundException,
+                                                           RefreshAccessException,
+                                                           ConflictException {
     try {
       // TODO request the cloud API and copy the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -865,7 +901,8 @@ public class TemplateAPI {
   }
 
   /**
-   * Copy folder to a new one. If folder was successfully copied this method return new folder object.
+   * Copy folder to a new one. If folder was successfully copied this method
+   * return new folder object.
    *
    * @param id {@link String}
    * @param parentId {@link String}
@@ -877,16 +914,18 @@ public class TemplateAPI {
    * @throws ConflictException the conflict exception
    */
   Object copyFolder(String id, String parentId, String name) throws TemplateException,
-                                                            NotFoundException,
-                                                            RefreshAccessException,
-                                                            ConflictException {
+                                                             NotFoundException,
+                                                             RefreshAccessException,
+                                                             ConflictException {
     try {
       // TODO request the cloud API and copy the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -910,9 +949,11 @@ public class TemplateAPI {
       // TODO request the cloud API and read the file...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -936,9 +977,11 @@ public class TemplateAPI {
       // TODO request the cloud API and read the folder...
       return new Object();
     } catch (Exception e) {
-      // TODO don't catch Exception - it's bad practice, catch dedicated instead!
+      // TODO don't catch Exception - it's bad practice, catch dedicated
+      // instead!
 
-      // TODO catch cloud exceptions and throw CloudDriveException dedicated to the connector
+      // TODO catch cloud exceptions and throw CloudDriveException dedicated to
+      // the connector
 
       // TODO if OAuth2 related exception then check if need refresh tokens
       // usually Cloud API has a dedicated exception to catch for OAuth2
@@ -953,10 +996,12 @@ public class TemplateAPI {
   /**
    * Check if need new access token from user (refresh token already expired).
    * 
-   * @throws RefreshAccessException if client failed to refresh the access token and need new new token
+   * @throws RefreshAccessException if client failed to refresh the access token
+   *           and need new new token
    */
   private void checkTokenState() throws RefreshAccessException {
-    // TODO do actual check in cloud API or other way to ensure OAuth2 refresh token is up to date
+    // TODO do actual check in cloud API or other way to ensure OAuth2 refresh
+    // token is up to date
     if (true) {
       // we need new access token (refresh token already expired here)
       throw new RefreshAccessException("Authentication failure. Reauthenticate.");
@@ -971,6 +1016,7 @@ public class TemplateAPI {
    * @throws NotFoundException the not found exception
    */
   private void initUser() throws TemplateException, RefreshAccessException, NotFoundException {
-    // TODO additional and optional ops to init current user and its enterprise or group from cloud services
+    // TODO additional and optional ops to init current user and its enterprise
+    // or group from cloud services
   }
 }

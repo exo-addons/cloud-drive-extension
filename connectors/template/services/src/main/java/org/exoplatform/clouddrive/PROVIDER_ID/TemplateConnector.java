@@ -18,6 +18,13 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.Map;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDrive;
 import org.exoplatform.clouddrive.CloudDriveConnector;
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -32,29 +39,22 @@ import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.Map;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-
 /**
- * Template of Cloud Drive Connector. Fill the class with actual implementation.<br>
- * 
+ * Template of Cloud Drive Connector. Fill the class with actual
+ * implementation.<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: TemplateConnector.java 00000 Aug 30, 2013 pnedonosko $
- * 
  */
 public class TemplateConnector extends CloudDriveConnector {
 
   /**
-   * Internal API builder (logic based on OAuth2 flow used in Google Drive and Box connectors).
+   * Internal API builder (logic based on OAuth2 flow used in Google Drive and
+   * Box connectors).
    */
   class API {
-    
+
     /** The access token. */
     String code, refreshToken, accessToken;
 
@@ -91,7 +91,8 @@ public class TemplateConnector extends CloudDriveConnector {
      * Build API.
      * 
      * @return {@link TemplateAPI}
-     * @throws TemplateException if error happen during communication with Google Drive services
+     * @throws TemplateException if error happen during communication with
+     *           Google Drive services
      * @throws CloudDriveException if cannot load local tokens
      */
     TemplateAPI build() throws TemplateException, CloudDriveException {
@@ -119,7 +120,8 @@ public class TemplateConnector extends CloudDriveConnector {
                            SessionProviderService sessionProviders,
                            NodeFinder finder,
                            ExtendedMimeTypeResolver mimeTypes,
-                           InitParams params) throws ConfigurationException {
+                           InitParams params)
+      throws ConfigurationException {
     super(jcrService, sessionProviders, finder, mimeTypes, params);
   }
 

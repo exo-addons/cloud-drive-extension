@@ -18,16 +18,15 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.CloudUser;
 import org.exoplatform.clouddrive.DriveRemovedException;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Template cloud user.
- * 
  */
 public class DropboxUser extends CloudUser {
 

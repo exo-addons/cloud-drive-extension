@@ -18,18 +18,6 @@
  */
 package org.exoplatform.clouddrive.dropbox.rest;
 
-import org.exoplatform.clouddrive.CloudDrive;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudDriveService;
-import org.exoplatform.clouddrive.CloudFile;
-import org.exoplatform.clouddrive.NotCloudFileException;
-import org.exoplatform.clouddrive.features.CloudDriveFeatures;
-import org.exoplatform.services.jcr.RepositoryService;
-import org.exoplatform.services.jcr.ext.app.SessionProviderService;
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-import org.exoplatform.services.rest.resource.ResourceContainer;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,9 +34,21 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
+import org.exoplatform.clouddrive.CloudDrive;
+import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudDriveService;
+import org.exoplatform.clouddrive.CloudFile;
+import org.exoplatform.clouddrive.NotCloudFileException;
+import org.exoplatform.clouddrive.features.CloudDriveFeatures;
+import org.exoplatform.services.jcr.RepositoryService;
+import org.exoplatform.services.jcr.ext.app.SessionProviderService;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+import org.exoplatform.services.rest.resource.ResourceContainer;
+
 /**
- * Sample RESTful service to provide some specific features of Dropbox connector.<br>
- * 
+ * Sample RESTful service to provide some specific features of Dropbox
+ * connector.<br>
  */
 @Path("/clouddrive/dropbox")
 @Produces(MediaType.APPLICATION_JSON)
@@ -78,9 +78,9 @@ public class DropboxService implements ResourceContainer {
    * @param sessionProviders the session providers
    */
   public DropboxService(CloudDriveService cloudDrives,
-                         CloudDriveFeatures features,
-                         RepositoryService jcrService,
-                         SessionProviderService sessionProviders) {
+                        CloudDriveFeatures features,
+                        RepositoryService jcrService,
+                        SessionProviderService sessionProviders) {
     this.cloudDrives = cloudDrives;
     this.features = features;
 
@@ -101,9 +101,9 @@ public class DropboxService implements ResourceContainer {
   @Path("/content")
   @RolesAllowed("users")
   public Response getFileLink(@Context UriInfo uriInfo,
-                                  @QueryParam("workspace") String workspace,
-                                  @QueryParam("path") String path, 
-                                  @QueryParam("contentId") String contentId) {
+                              @QueryParam("workspace") String workspace,
+                              @QueryParam("path") String path,
+                              @QueryParam("contentId") String contentId) {
     if (workspace != null) {
       if (path != null) {
         // TODO Get a cloud file and return collection of comments on the file.
@@ -122,24 +122,17 @@ public class DropboxService implements ResourceContainer {
           }
           return Response.status(Status.NO_CONTENT).build();
         } catch (LoginException e) {
-          LOG.warn("Error login to read drive file comments " + workspace + ":" + path + ": "
-              + e.getMessage());
+          LOG.warn("Error login to read drive file comments " + workspace + ":" + path + ": " + e.getMessage());
           return Response.status(Status.UNAUTHORIZED).entity("Authentication error.").build();
         } catch (CloudDriveException e) {
           LOG.warn("Error reading file comments " + workspace + ":" + path, e);
-          return Response.status(Status.BAD_REQUEST)
-                         .entity("Error reading file comments. " + e.getMessage())
-                         .build();
+          return Response.status(Status.BAD_REQUEST).entity("Error reading file comments. " + e.getMessage()).build();
         } catch (RepositoryException e) {
           LOG.error("Error reading file comments " + workspace + ":" + path, e);
-          return Response.status(Status.INTERNAL_SERVER_ERROR)
-                         .entity("Error reading file comments: storage error.")
-                         .build();
+          return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error reading file comments: storage error.").build();
         } catch (Throwable e) {
           LOG.error("Error reading file comments " + workspace + ":" + path, e);
-          return Response.status(Status.INTERNAL_SERVER_ERROR)
-                         .entity("Error reading file comments: runtime error.")
-                         .build();
+          return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error reading file comments: runtime error.").build();
         }
       } else {
         return Response.status(Status.BAD_REQUEST).entity("Null path.").build();

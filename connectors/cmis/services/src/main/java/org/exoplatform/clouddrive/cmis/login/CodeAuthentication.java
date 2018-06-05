@@ -18,26 +18,24 @@
  */
 package org.exoplatform.clouddrive.cmis.login;
 
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.services.idgenerator.IDGeneratorService;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import java.util.Random;
-import java.util.WeakHashMap;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.jcr.RepositoryException;
-
 /**
- * Maintain temporal codes for authentication in OAuth2 fashion. This component doesn't persist the codes.
- * Only the last attempt actual (will work for the user). <br>
- * 
+ * Maintain temporal codes for authentication in OAuth2 fashion. This component
+ * doesn't persist the codes. Only the last attempt actual (will work for the
+ * user). <br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CodeAuthentication.java 00000 Aug 19, 2014 pnedonosko $
- * 
  */
 public class CodeAuthentication {
 
@@ -53,7 +51,7 @@ public class CodeAuthentication {
    * The Class Identity.
    */
   public class Identity {
-    
+
     /** The user. */
     final String user;
 
@@ -226,9 +224,10 @@ public class CodeAuthentication {
   }
 
   /**
-   * Create user identity for given user name, password and a service URL. This identity will be stored
-   * internally and an authentication code will be returned to the caller. Later this code can be exchanged on
-   * the identity in {@link #exchangeCode(String)}.
+   * Create user identity for given user name, password and a service URL. This
+   * identity will be stored internally and an authentication code will be
+   * returned to the caller. Later this code can be exchanged on the identity in
+   * {@link #exchangeCode(String)}.
    *
    * @param serviceURL {@link String}
    * @param user {@link String}
@@ -275,12 +274,13 @@ public class CodeAuthentication {
 
   /**
    * Exchange given code on user identity associated with this code in
-   * {@link #authenticate(String, String, String)}. User identity after this method may be not fully
-   * initialized as for its context. Identity context is optional and can be initialized by
-   * {@link #setCodeContext(String, String)} method once, after that call identity will be fully removed from
-   * the authenticator.<br>
-   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be
-   * thrown.
+   * {@link #authenticate(String, String, String)}. User identity after this
+   * method may be not fully initialized as for its context. Identity context is
+   * optional and can be initialized by {@link #setCodeContext(String, String)}
+   * method once, after that call identity will be fully removed from the
+   * authenticator.<br>
+   * If given code wasn't associated with an user previously then
+   * {@link AuthenticationException} will be thrown.
    *
    * @param code {@link String}
    * @return {@link Identity} of an user
@@ -297,10 +297,11 @@ public class CodeAuthentication {
   }
 
   /**
-   * Set identity context for a code. The code may be already exchanged by {@link #exchangeCode(String)},
-   * after this it will be fully removed from the authenticator.<br>
-   * If given code wasn't associated with an user previously then {@link AuthenticationException} will be
-   * thrown.
+   * Set identity context for a code. The code may be already exchanged by
+   * {@link #exchangeCode(String)}, after this it will be fully removed from the
+   * authenticator.<br>
+   * If given code wasn't associated with an user previously then
+   * {@link AuthenticationException} will be thrown.
    *
    * @param code {@link String}
    * @param context {@link String}

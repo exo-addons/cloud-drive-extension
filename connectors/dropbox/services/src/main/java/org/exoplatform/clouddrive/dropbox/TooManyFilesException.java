@@ -22,15 +22,14 @@ package org.exoplatform.clouddrive.dropbox;
 import org.exoplatform.clouddrive.NotAcceptableException;
 
 /**
- * Dropbox doesn't accept creation, modification or removal if a file due to too many files would be involved
- * in the operation for it to complete successfully. The limit is currently 10,000 files and folders (as for
- * July 2015, Dropbox API ver1.7.7).<br>
- * 
+ * Dropbox doesn't accept creation, modification or removal if a file due to too
+ * many files would be involved in the operation for it to complete
+ * successfully. The limit is currently 10,000 files and folders (as for July
+ * 2015, Dropbox API ver1.7.7).<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: TooManyFilesException.java 00000 Jul 21, 2015 pnedonosko $
- * 
  */
 @Deprecated
 public class TooManyFilesException extends NotAcceptableException {

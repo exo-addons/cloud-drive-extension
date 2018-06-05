@@ -22,13 +22,12 @@ package org.exoplatform.clouddrive.box;
 import org.exoplatform.clouddrive.CloudDriveException;
 
 /**
- * Error determining or parsing format of Box data (from Box service response). <br>
- * 
+ * Error determining or parsing format of Box data (from Box service response).
+ * <br>
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxInsconsistentException.java 00000 Dec 9, 2013 pnedonosko $
- * 
  */
 public class BoxFormatException extends CloudDriveException {
 

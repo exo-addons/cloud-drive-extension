@@ -18,20 +18,18 @@
  */
 package org.exoplatform.clouddrive.box;
 
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.services.jcr.RepositoryService;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Box provider copies GoogleDrive's provider by the code because of OAuth2.
- * 
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxProvider.java 00000 Aug 30, 2013 pnedonosko $
- * 
  */
 public class BoxProvider extends CloudProvider {
 
@@ -57,12 +55,7 @@ public class BoxProvider extends CloudProvider {
    * @param loginSSO the login SSO
    * @param jcrService the jcr service
    */
-  public BoxProvider(String id,
-                     String name,
-                     String authURL,
-                     String redirectURL,
-                     boolean loginSSO,
-                     RepositoryService jcrService) {
+  public BoxProvider(String id, String name, String authURL, String redirectURL, boolean loginSSO, RepositoryService jcrService) {
     super(id, name);
     this.authURL = authURL;
     this.redirectURL = redirectURL;

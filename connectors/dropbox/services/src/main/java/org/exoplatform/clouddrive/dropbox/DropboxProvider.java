@@ -18,21 +18,20 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.services.jcr.RepositoryService;
 
-import javax.jcr.RepositoryException;
-
 /**
  * Dropbox provider.
- * 
  */
 public class DropboxProvider extends CloudProvider {
 
   /** The auth bilder. */
-  protected final API            authFactory;
+  protected final API               authFactory;
 
   /** The jcr service. */
   protected final RepositoryService jcrService;

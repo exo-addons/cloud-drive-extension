@@ -27,22 +27,20 @@ import org.exoplatform.webui.event.Event;
 /**
  * The Class ConnectBoxActionComponent.
  */
-@ComponentConfig(
-                 events = { @EventConfig(listeners = ConnectBoxActionComponent.ConnectBoxActionListener.class) })
+@ComponentConfig(events = { @EventConfig(listeners = ConnectBoxActionComponent.ConnectBoxActionListener.class) })
 public class ConnectBoxActionComponent extends BaseConnectActionComponent {
 
   /**
    * Box.com id from configuration - box.
-   * */
+   */
   protected static final String PROVIDER_ID = "box";
 
   /**
-   * The listener interface for receiving connectBoxAction events.
-   * The class that is interested in processing a connectBoxAction
-   * event implements this interface, and the object created
-   * with that class is registered with a component using the
-   * component's <code>addConnectBoxActionListener</code> method. When
-   * the connectBoxAction event occurs, that object's appropriate
+   * The listener interface for receiving connectBoxAction events. The class
+   * that is interested in processing a connectBoxAction event implements this
+   * interface, and the object created with that class is registered with a
+   * component using the component's <code>addConnectBoxActionListener</code>
+   * method. When the connectBoxAction event occurs, that object's appropriate
    * method is invoked.
    */
   public static class ConnectBoxActionListener extends UIActionBarActionListener<ConnectBoxActionComponent> {

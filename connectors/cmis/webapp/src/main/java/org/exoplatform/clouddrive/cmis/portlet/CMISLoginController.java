@@ -18,30 +18,6 @@
  */
 package org.exoplatform.clouddrive.cmis.portlet;
 
-import juzu.Action;
-import juzu.Path;
-import juzu.Resource;
-import juzu.Response;
-import juzu.View;
-import juzu.request.RequestContext;
-import juzu.request.RequestParameter;
-
-import org.exoplatform.clouddrive.CloudDriveAccessException;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudDriveService;
-import org.exoplatform.clouddrive.CloudProvider;
-import org.exoplatform.clouddrive.ProviderNotAvailableException;
-import org.exoplatform.clouddrive.cmis.CMISException;
-import org.exoplatform.clouddrive.cmis.CMISUser;
-import org.exoplatform.clouddrive.cmis.WrongCMISProviderException;
-import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
-import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
-import org.exoplatform.commons.juzu.ajax.Ajax;
-import org.exoplatform.portal.application.PortalRequestContext;
-import org.exoplatform.services.log.ExoLogger;
-import org.exoplatform.services.log.Log;
-import org.gatein.common.util.Base64;
-
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -58,14 +34,37 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.inject.Inject;
 
+import org.gatein.common.util.Base64;
+
+import org.exoplatform.clouddrive.CloudDriveAccessException;
+import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.clouddrive.CloudDriveService;
+import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.clouddrive.ProviderNotAvailableException;
+import org.exoplatform.clouddrive.cmis.CMISException;
+import org.exoplatform.clouddrive.cmis.CMISUser;
+import org.exoplatform.clouddrive.cmis.WrongCMISProviderException;
+import org.exoplatform.clouddrive.cmis.login.AuthenticationException;
+import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
+import org.exoplatform.commons.juzu.ajax.Ajax;
+import org.exoplatform.portal.application.PortalRequestContext;
+import org.exoplatform.services.log.ExoLogger;
+import org.exoplatform.services.log.Log;
+
+import juzu.Action;
+import juzu.Path;
+import juzu.Resource;
+import juzu.Response;
+import juzu.View;
+import juzu.request.RequestContext;
+import juzu.request.RequestParameter;
+
 /**
  * Juzu controller for Cloud Drive's CMIS connector login page.<br>
- * 
  * Created by The eXo Platform SAS<br>
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: CMISLoginController.java 00000 Aug 12, 2014 pnedonosko $
- * 
  */
 public class CMISLoginController {
 
@@ -116,8 +115,7 @@ public class CMISLoginController {
     try {
       // return login.with(parameters)
       return login.with()
-                  .set("res",
-                       context.getApplicationContext().resolveBundle(context.getUserContext().getLocale()))
+                  .set("res", context.getApplicationContext().resolveBundle(context.getUserContext().getLocale()))
                   .set("provider", cloudDrives.getProvider(providerId))
                   .ok();
     } catch (ProviderNotAvailableException e) {
@@ -172,8 +170,7 @@ public class CMISLoginController {
                   + ". Check your username, password and have access permissions and try again.");
             } catch (CMISException e) {
               LOG.error("Login error: error reading repositories list", e);
-              return errorMessage("Error reading repositories list from " + providerName + ". "
-                  + e.getMessage());
+              return errorMessage("Error reading repositories list from " + providerName + ". " + e.getMessage());
             }
           } catch (InvalidKeyException e) {
             LOG.warn("Error initializing " + KEY_ALGORITHM + " cipher for key from user " + userName, e);
@@ -244,8 +241,8 @@ public class CMISLoginController {
   // ***************** internals *****************
 
   /**
-   * Create key-pair. Store private key in the controller. Return public key from the method (should be return
-   * to an user).
+   * Create key-pair. Store private key in the controller. Return public key
+   * from the method (should be return to an user).
    * 
    * @param user {@link String}
    * @return String public key in string encoded in Base64.

@@ -20,11 +20,11 @@
 package org.exoplatform.clouddrive.dropbox;
 
 /**
- * Indicates that the cursor has been invalidated. Call list_folder to obtain a new cursor. 
+ * Indicates that the cursor has been invalidated. Call list_folder to obtain a
+ * new cursor.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: ResetCursorException.java 00000 Apr 10, 2018 pnedonosko $
- * 
  */
 public class ResetCursorException extends DropboxException {
 

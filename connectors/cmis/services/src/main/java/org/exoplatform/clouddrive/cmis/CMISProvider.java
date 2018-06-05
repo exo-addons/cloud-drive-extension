@@ -18,6 +18,12 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveConnector.PredefinedServices;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
@@ -25,15 +31,8 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
-import javax.jcr.RepositoryException;
-
 /**
  * CMIS provider.
- * 
  */
 public class CMISProvider extends CloudProvider {
 
@@ -41,7 +40,7 @@ public class CMISProvider extends CloudProvider {
    * The Class AtomPub.
    */
   public static class AtomPub {
-    
+
     /** The name. */
     String name;
 
@@ -114,8 +113,7 @@ public class CMISProvider extends CloudProvider {
     @Override
     public boolean equals(Object obj) {
       if (obj instanceof AtomPub) {
-        return (name != null ? name.equals(((AtomPub) obj).getName()) : true)
-            && (url.equals(((AtomPub) obj).getUrl()));
+        return (name != null ? name.equals(((AtomPub) obj).getName()) : true) && (url.equals(((AtomPub) obj).getUrl()));
       }
       return false;
     }
@@ -200,7 +198,8 @@ public class CMISProvider extends CloudProvider {
     String predefinedPropOverride = System.getProperty(propKey + ".override", "true");
 
     if ("true".equalsIgnoreCase(predefinedPropOverride)) {
-      // get predefined services from connector plugin configuration (in container configuration)
+      // get predefined services from connector plugin configuration (in
+      // container configuration)
       for (Object obj : predefined.getServices()) {
         if (obj instanceof AtomPub) {
           this.predefined.add((AtomPub) obj);
@@ -210,7 +209,8 @@ public class CMISProvider extends CloudProvider {
       }
     }
 
-    // add predefined services from system properties (set via exo.properties or directly in JVM)
+    // add predefined services from system properties (set via exo.properties or
+    // directly in JVM)
     String predefinedProp = System.getProperty(propKey);
     if (predefinedProp != null) {
       // parse predefined string
