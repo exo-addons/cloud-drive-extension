@@ -243,9 +243,10 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
             String epath = enode.getPath();
             if (!epath.equals(path) && notInRange(epath, getRemoved())) {
               // remove file links outside the drive, then the node itself
-              removeNode(enode);
-              addRemoved(epath);
-              eiter.remove();
+              removeLocalNode(enode);
+              // TODO this will be done by removeLocalNode()
+              //addRemoved(epath);
+              //eiter.remove();
             }
           }
         }
@@ -1162,7 +1163,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
                   if (fileAPI.getTitle(sourceNode).equals(name) && fileAPI.getParentId(sourceNode).equals(parentId)) {
                     // file node already has required name and parent, may be it is a child of copied
                   } else {
-                    Node destNode = copyNode(sourceNode, parent);
+                    Node destNode = copyFile(sourceNode, parent);
                     apply(updateItem(api, item, parent, destNode));
                   }
                 } else {
