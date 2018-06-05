@@ -25,32 +25,28 @@ import org.exoplatform.webui.config.annotation.EventConfig;
 import org.exoplatform.webui.event.Event;
 
 /**
- * Dropbox UI component for a menu action dedicated to a single provider. Its UI configuration will refer
- * the action by "ConnectDropbox" key (see in webapp config), rename it for an actual name (e.g. based on provider ID).
+ * Dropbox UI component for a menu action dedicated to a single provider. Its UI
+ * configuration will refer the action by "ConnectDropbox" key (see in webapp
+ * config), rename it for an actual name (e.g. based on provider ID).
  */
-@ComponentConfig(
-                 events = { @EventConfig(
-                                         listeners = ConnectDropboxActionComponent.ConnectDropboxActionListener.class) })
+@ComponentConfig(events = { @EventConfig(listeners = ConnectDropboxActionComponent.ConnectDropboxActionListener.class) })
 public class ConnectDropboxActionComponent extends BaseConnectActionComponent {
 
   /**
    * DropboxProvider ID from configuration.
-   * */
+   */
   protected static final String PROVIDER_ID = "dropbox";
 
   /**
-   * The listener interface for receiving connectDropboxAction events.
-   * The class that is interested in processing a connectDropboxAction
-   * event implements this interface, and the object created
-   * with that class is registered with a component using the
-   * component's <code>addConnectDropboxActionListener</code> method. When
-   * the connectDropboxAction event occurs, that object's appropriate
-   * method is invoked.
-   *
+   * The listener interface for receiving connectDropboxAction events. The class
+   * that is interested in processing a connectDropboxAction event implements
+   * this interface, and the object created with that class is registered with a
+   * component using the component's
+   * <code>addConnectDropboxActionListener</code> method. When the
+   * connectDropboxAction event occurs, that object's appropriate method is
+   * invoked.
    */
-  public static class ConnectDropboxActionListener
-                                                      extends
-                                                      UIActionBarActionListener<ConnectDropboxActionComponent> {
+  public static class ConnectDropboxActionListener extends UIActionBarActionListener<ConnectDropboxActionComponent> {
 
     /**
      * {@inheritDoc}

@@ -22,7 +22,6 @@ import org.exoplatform.clouddrive.CloudProviderException;
 
 /**
  * Indicates a problem on provider side or communication problem.<br>
- * 
  */
 public class CMISException extends CloudProviderException {
 

@@ -22,13 +22,13 @@ package org.exoplatform.clouddrive.cmis;
 import org.apache.chemistry.opencmis.commons.exceptions.CmisInvalidArgumentException;
 
 /**
- * Wrong argument in a request to CMIS service. Created to warp {@link CmisInvalidArgumentException}.<br>
- * 
+ * Wrong argument in a request to CMIS service. Created to warp
+ * {@link CmisInvalidArgumentException}.<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
- * @version $Id: CMISInvalidArgumentException.java 00000 Nov 5, 2014 pnedonosko $
- * 
+ * @version $Id: CMISInvalidArgumentException.java 00000 Nov 5, 2014 pnedonosko
+ *          $
  */
 public class CMISInvalidArgumentException extends CMISException {
 

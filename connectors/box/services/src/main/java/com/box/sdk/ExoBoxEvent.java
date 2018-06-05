@@ -22,13 +22,12 @@ package com.box.sdk;
 import com.eclipsesource.json.JsonObject;
 
 /**
- * Original {@link BoxEvent} extended to get an access to its constructor based on {@link JsonObject}.<br>
- * 
+ * Original {@link BoxEvent} extended to get an access to its constructor based
+ * on {@link JsonObject}.<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: ExoBoxEvent.java 00000 Aug 21, 2015 pnedonosko $
- * 
  */
 public class ExoBoxEvent extends BoxEvent {
 

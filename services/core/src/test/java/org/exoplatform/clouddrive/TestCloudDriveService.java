@@ -18,7 +18,20 @@
  */
 package org.exoplatform.clouddrive;
 
-import junit.framework.TestCase;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.Repository;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 import org.exoplatform.clouddrive.CloudDrive.Command;
 import org.exoplatform.clouddrive.exodrive.ExoDriveUser;
@@ -38,20 +51,7 @@ import org.exoplatform.services.security.Credential;
 import org.exoplatform.services.security.PasswordCredential;
 import org.exoplatform.services.security.UsernameCredential;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
-import javax.jcr.Repository;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
+import junit.framework.TestCase;
 
 /**
  * Created by The eXo Platform SAS.
@@ -115,8 +115,7 @@ public class TestCloudDriveService extends TestCase {
 
     // login via Authenticator
     Authenticator authr = (Authenticator) container.getComponentInstanceOfType(Authenticator.class);
-    String user = authr.validateUser(new Credential[] { new UsernameCredential("root"),
-        new PasswordCredential("") });
+    String user = authr.validateUser(new Credential[] { new UsernameCredential("root"), new PasswordCredential("") });
     ConversationState.setCurrent(new ConversationState(authr.createIdentity(user)));
 
     // and set session provider to the service
@@ -198,18 +197,19 @@ public class TestCloudDriveService extends TestCase {
     }
   }
 
-//  protected void assertFilesExist(List<FileStore> files, String... expected) {
-//    List<String> names = new ArrayList<String>(Arrays.asList(expected));
-//    for (FileStore f : files) {
-//      if (names.contains(f.getName())) {
-//        names.remove(f.getName());
-//      }
-//    }
-//
-//    if (names.size() > 0) {
-//      fail("Expected files not exist: " + names);
-//    }
-//  }
+  // protected void assertFilesExist(List<FileStore> files, String... expected)
+  // {
+  // List<String> names = new ArrayList<String>(Arrays.asList(expected));
+  // for (FileStore f : files) {
+  // if (names.contains(f.getName())) {
+  // names.remove(f.getName());
+  // }
+  // }
+  //
+  // if (names.size() > 0) {
+  // fail("Expected files not exist: " + names);
+  // }
+  // }
 
   protected void assertFilesExist(List<FileStore> files, String... expectedNames) {
     List<String> names = Arrays.asList(expectedNames);
@@ -244,7 +244,7 @@ public class TestCloudDriveService extends TestCase {
       }
     }
   }
-  
+
   /**
    * Test if drive connected well, has expected nodetypes and subnodes.
    * 
@@ -265,8 +265,7 @@ public class TestCloudDriveService extends TestCase {
 
     // test what it did
     assertTrue("Drive node is not a ecd:cloudDrive", driveNode.isNodeType("ecd:cloudDrive"));
-    assertTrue("Drive should have ecd:connected property with value true",
-               driveNode.getProperty("ecd:connected").getBoolean());
+    assertTrue("Drive should have ecd:connected property with value true", driveNode.getProperty("ecd:connected").getBoolean());
 
     assertTrue("Drive node should have sub-files", driveNode.getNodes().getSize() > 0);
 
@@ -276,8 +275,7 @@ public class TestCloudDriveService extends TestCase {
 
     Node resource1 = file1.getNode("jcr:content");
     assertTrue("Drive file content is not a nt:resource", resource1.isNodeType("nt:resource"));
-    assertTrue("Drive file content is not a ecd:cloudFileResource",
-               resource1.isNodeType("ecd:cloudFileResource"));
+    assertTrue("Drive file content is not a ecd:cloudFileResource", resource1.isNodeType("ecd:cloudFileResource"));
   }
 
   /**
@@ -310,8 +308,7 @@ public class TestCloudDriveService extends TestCase {
     assertTrue(testRoot.hasNode(driveName));
 
     assertTrue("Drive node is not a ecd:cloudDrive", driveNode.isNodeType("ecd:cloudDrive"));
-    assertFalse("Drive should have ecd:connected property with value false",
-                driveNode.getProperty("ecd:connected").getBoolean());
+    assertFalse("Drive should have ecd:connected property with value false", driveNode.getProperty("ecd:connected").getBoolean());
 
     assertTrue("Drive node should not have sub-files", driveNode.getNodes().getSize() == 0);
   }
@@ -321,7 +318,7 @@ public class TestCloudDriveService extends TestCase {
       String driveName = provider.getName() + " - " + cloudUser.getEmail();
       Node driveNode = testRoot.addNode(driveName, "nt:folder");
       testRoot.save();
-      
+
       // connect
       drive = cdService.createDrive(cloudUser, driveNode);
       connect(drive);
@@ -361,13 +358,13 @@ public class TestCloudDriveService extends TestCase {
     }
   }
 
-  // FIXME not high priority 
+  // FIXME not high priority
   public void skip_testSynchronizeNode() throws RepositoryException, InterruptedException {
     try {
       String driveName = provider.getName() + " - " + cloudUser.getEmail();
       Node driveNode = testRoot.addNode(driveName, "nt:folder");
       testRoot.save();
-      
+
       // connect
       drive = cdService.createDrive(cloudUser, driveNode);
       connect(drive);

@@ -27,8 +27,6 @@ import javax.jcr.observation.EventListener;
 import javax.jcr.observation.EventListenerIterator;
 import javax.jcr.observation.ObservationManager;
 
-import junit.framework.TestCase;
-
 import org.exoplatform.container.PortalContainer;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.core.ManageableRepository;
@@ -41,6 +39,8 @@ import org.exoplatform.services.security.ConversationState;
 import org.exoplatform.services.security.Credential;
 import org.exoplatform.services.security.PasswordCredential;
 import org.exoplatform.services.security.UsernameCredential;
+
+import junit.framework.TestCase;
 
 /**
  * Created by The eXo Platform SAS.
@@ -78,8 +78,7 @@ public class TestJCRRemoveObservation extends TestCase {
 
     // login via Authenticator
     Authenticator authr = (Authenticator) container.getComponentInstanceOfType(Authenticator.class);
-    String user = authr.validateUser(new Credential[] { new UsernameCredential("root"),
-        new PasswordCredential("") });
+    String user = authr.validateUser(new Credential[] { new UsernameCredential("root"), new PasswordCredential("") });
     ConversationState.setCurrent(new ConversationState(authr.createIdentity(user)));
 
     // and set session provider to the service
@@ -117,8 +116,8 @@ public class TestJCRRemoveObservation extends TestCase {
   }
 
   /**
-   * Test if JCR Observation respects self-removing listeners. To prototype real env using few dummy listeners
-   * also.
+   * Test if JCR Observation respects self-removing listeners. To prototype real
+   * env using few dummy listeners also.
    * 
    * @throws RepositoryException
    */
@@ -133,15 +132,9 @@ public class TestJCRRemoveObservation extends TestCase {
     }
 
     ObservationManager observationManager = session.getWorkspace().getObservationManager();
-    
+
     // and register dummy listener
-    observationManager.addEventListener(new DummyListener(),
-                             Event.NODE_ADDED,
-                             testRoot.getPath(),
-                             false,
-                             null,
-                             null,
-                             true);
+    observationManager.addEventListener(new DummyListener(), Event.NODE_ADDED, testRoot.getPath(), false, null, null, true);
 
     // register self-removing listener
     final ConversationState currentConvo = ConversationState.getCurrent();
@@ -173,13 +166,7 @@ public class TestJCRRemoveObservation extends TestCase {
     observationManager.addEventListener(selfRemoving, Event.NODE_REMOVED, testRoot.getPath(), false, null, null, true);
 
     // one more dummy listener
-    observationManager.addEventListener(new DummyListener(),
-                             Event.NODE_REMOVED,
-                             testRoot.getPath(),
-                             false,
-                             null,
-                             null,
-                             true);
+    observationManager.addEventListener(new DummyListener(), Event.NODE_REMOVED, testRoot.getPath(), false, null, null, true);
 
     // test it in another session (listeners above are noLocal=true)
     testSession.refresh(false);
@@ -194,7 +181,7 @@ public class TestJCRRemoveObservation extends TestCase {
     // Ensure node was removed even more than smoothly
     assertFalse("Node test1 should be removed", testRoot.hasNode("test1"));
 
-    // Ensure listener is not more registered (even in registration session) 
+    // Ensure listener is not more registered (even in registration session)
     for (EventListenerIterator listeners = observationManager.getRegisteredEventListeners(); listeners.hasNext();) {
       EventListener l = listeners.nextEventListener();
       // LOG.info(l);

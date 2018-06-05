@@ -18,6 +18,12 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Iterator;
+import java.util.List;
+
 import com.dropbox.core.BadResponseCodeException;
 import com.dropbox.core.DbxApiException;
 import com.dropbox.core.DbxAuthFinish;
@@ -82,15 +88,8 @@ import org.exoplatform.clouddrive.utils.Web;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * All calls to Dropbox SDK v2 here.
- * 
  */
 public class DropboxAPI {
 
@@ -102,7 +101,7 @@ public class DropboxAPI {
 
   /** The Constant ROOT_PATH_V2. */
   public static final String ROOT_PATH_V2             = "".intern();
-  
+
   /** The Constant TEMP_LINK_EXPIRATION is 4hours - 5sec. */
   public static final int    TEMP_LINK_EXPIRATION     = 14395000;
 
@@ -144,9 +143,11 @@ public class DropboxAPI {
   }
 
   /**
-   * Dropbox folder listing with iterator over whole set of file children in Dropbox. This iterator hides
-   * next-chunk logic on request to the service. <br>
-   * Iterator methods can throw {@link CloudDriveException} in case of remote or communication errors.
+   * Dropbox folder listing with iterator over whole set of file children in
+   * Dropbox. This iterator hides next-chunk logic on request to the service.
+   * <br>
+   * Iterator methods can throw {@link CloudDriveException} in case of remote or
+   * communication errors.
    */
   class ListFolder extends ChunkIterator<Metadata> {
 
@@ -162,7 +163,8 @@ public class DropboxAPI {
     /**
      * Instantiates a new folder listing.
      *
-     * @param idPath the folder unique identifier, an ID or a path in lower case obtained from the SDK
+     * @param idPath the folder unique identifier, an ID or a path in lower case
+     *          obtained from the SDK
      * @param cursor the cursor
      * @throws NotFoundException the not found exception
      * @throws DropboxException the dropbox exception
@@ -231,7 +233,8 @@ public class DropboxAPI {
                 throw new DropboxException("Failed to continue list folder due to path lookup error: " + idPath, e);
               }
             } else if (e.errorValue.isReset()) {
-              // Indicates that the cursor has been invalidated. Call list_folder to obtain a new cursor.
+              // Indicates that the cursor has been invalidated. Call
+              // list_folder to obtain a new cursor.
               throw new ResetCursorException("Reset cursor for: " + idPath, e);
             } else {
               throw new DropboxException("Failed to continue list folder: " + idPath, e);
@@ -297,9 +300,11 @@ public class DropboxAPI {
   }
 
   /**
-   * Dropbox uses specific encoding of file paths in its URLs, it is almost the same as Java URI does, but
-   * also requires encoding of such chars as ampersand etc.<br>
-   * Code grabbed from here http://stackoverflow.com/questions/724043/http-url-address-encoding-in-java.
+   * Dropbox uses specific encoding of file paths in its URLs, it is almost the
+   * same as Java URI does, but also requires encoding of such chars as
+   * ampersand etc.<br>
+   * Code grabbed from here
+   * http://stackoverflow.com/questions/724043/http-url-address-encoding-in-java.
    */
   class PathEncoder {
 
@@ -480,17 +485,23 @@ public class DropboxAPI {
    * @throws RetryLaterException the retry later exception
    * @throws NotAcceptableException the not acceptable exception
    */
-  Metadata get(String idPath) throws DropboxException, NotFoundException, RefreshAccessException, RetryLaterException, NotAcceptableException {
+  Metadata get(String idPath) throws DropboxException,
+                              NotFoundException,
+                              RefreshAccessException,
+                              RetryLaterException,
+                              NotAcceptableException {
     return this.get(idPath, false);
   }
 
   /**
-   * Gets file or folder metadata, optionally it can return deleted metadata instead of throwing
-   * {@link NotFoundException} for not permanently deleted item.
+   * Gets file or folder metadata, optionally it can return deleted metadata
+   * instead of throwing {@link NotFoundException} for not permanently deleted
+   * item.
    *
    * @param idPath the path or ID
-   * @param includeDeleted if <code>true</code> then for deleted item it will return deleted metadata instead
-   *          of throwing {@link NotFoundException} (which is for <code>false</code> value)
+   * @param includeDeleted if <code>true</code> then for deleted item it will
+   *          return deleted metadata instead of throwing
+   *          {@link NotFoundException} (which is for <code>false</code> value)
    * @return the {@link Metadata}
    * @throws DropboxException the dropbox exception
    * @throws NotFoundException the not found exception
@@ -692,8 +703,10 @@ public class DropboxAPI {
    */
   String getUserFileLink(String parentPath, String name) {
     // XXX it is undocumented URL structure observed on Dropbox
-    // for files https://www.dropbox.com/home?preview=Comminications+in+Hanoi.jpg
-    // file in subfolder https://www.dropbox.com/home/test/sub-folder%20N1?preview=20150713_182628.jpg
+    // for files
+    // https://www.dropbox.com/home?preview=Comminications+in+Hanoi.jpg
+    // file in subfolder
+    // https://www.dropbox.com/home/test/sub-folder%20N1?preview=20150713_182628.jpg
     StringBuilder link = new StringBuilder(ROOT_URL);
     if (!ROOT_PATH_V2.equals(parentPath)) {
       // FYI prior Nov 12 2015 was: link.append(Web.pathEncode(parentPath));
@@ -720,7 +733,8 @@ public class DropboxAPI {
   }
 
   /**
-   * Temporary link (URL with expiration in four hours) to a file content for streaming/downloading.
+   * Temporary link (URL with expiration in four hours) to a file content for
+   * streaming/downloading.
    *
    * @param idPath {@link String}
    * @return DbxUrlWithExpiration with the file embed URL.
@@ -787,8 +801,9 @@ public class DropboxAPI {
   }
 
   /**
-   * Create shared link to a file or folder' "preview page" on Dropbox. See more on
-   * <a href="https://www.dropbox.com/help/167">https://www.dropbox.com/help/167</a><br>
+   * Create shared link to a file or folder' "preview page" on Dropbox. See more
+   * on <a href=
+   * "https://www.dropbox.com/help/167">https://www.dropbox.com/help/167</a><br>
    *
    * @param idPath {@link String} ID or file path
    * @return {@link SharedLinkMetadata} for the shared link
@@ -800,11 +815,11 @@ public class DropboxAPI {
    * @throws UnauthorizedException the unauthorized exception
    */
   SharedLinkMetadata createSharedLink(String idPath) throws RefreshAccessException,
-                                                  DropboxException,
-                                                  RetryLaterException,
-                                                  NotFoundException,
-                                                  NotAcceptableException,
-                                                  UnauthorizedException {
+                                                     DropboxException,
+                                                     RetryLaterException,
+                                                     NotFoundException,
+                                                     NotAcceptableException,
+                                                     UnauthorizedException {
     if (ROOT_PATH_V2.equals(idPath)) {
       // no shared link for root
       return null;
@@ -886,11 +901,11 @@ public class DropboxAPI {
    * @throws UnauthorizedException the unauthorized exception
    */
   List<SharedLinkMetadata> listSharedLinks(String idPath) throws RefreshAccessException,
-                                                  DropboxException,
-                                                  RetryLaterException,
-                                                  NotFoundException,
-                                                  NotAcceptableException,
-                                                  UnauthorizedException {
+                                                          DropboxException,
+                                                          RetryLaterException,
+                                                          NotFoundException,
+                                                          NotAcceptableException,
+                                                          UnauthorizedException {
     if (ROOT_PATH_V2.equals(idPath)) {
       // no shared link for root
       return null;
@@ -1016,30 +1031,38 @@ public class DropboxAPI {
   }
 
   /**
-   * Handle upload lookup error (used in {@link #uploadFile(String, String, InputStream, String)}). This
-   * method will extract an error and throw {@link RetryLaterException} or {@link DropboxException}.
+   * Handle upload lookup error (used in
+   * {@link #uploadFile(String, String, InputStream, String)}). This method will
+   * extract an error and throw {@link RetryLaterException} or
+   * {@link DropboxException}.
    *
    * @param lookupError the {@link UploadSessionLookupError} instance
-   * @param e the {@link DbxApiException} instance (connected to the lookup error)
+   * @param e the {@link DbxApiException} instance (connected to the lookup
+   *          error)
    * @throws RetryLaterException the retry later exception
    * @throws DropboxException the dropbox exception
    */
-  private void handleUploadLookupError(UploadSessionLookupError lookupError, DbxApiException e) throws RetryLaterException, DropboxException {
+  private void handleUploadLookupError(UploadSessionLookupError lookupError, DbxApiException e) throws RetryLaterException,
+                                                                                                DropboxException {
     if (lookupError.isNotFound()) {
       // Dropbox session expired (in 48hrs)
       throw new RetryLaterException("Upload session expired. Please retry", RETRY_TIMEOUT_MILLIS, e);
     } else if (lookupError.isIncorrectOffset()) {
-      // The specified offset was incorrect. See the value for the correct offset. This error may occur when a
-      // previous request was received and processed successfully but the client did not receive the response,
+      // The specified offset was incorrect. See the value for the correct
+      // offset. This error may occur when a
+      // previous request was received and processed successfully but the client
+      // did not receive the response,
       // e.g. due to a network error.
       LOG.warn("Upload failed due to not completed request. Need retry with correct offset from Dropbox ("
           + lookupError.getIncorrectOffsetValue().getCorrectOffset() + "). " + e.getMessage());
-      // FYI but we cannot continue with some offset in past as data stream already consumed (and not
+      // FYI but we cannot continue with some offset in past as data stream
+      // already consumed (and not
       // buffered),
       // thus we need retry the whole file upload again.
       throw new RetryLaterException("Upload not complete. Please retry", RETRY_TIMEOUT_MILLIS, e);
     } else if (lookupError.isClosed()) {
-      // Was attempting to append data to an upload session that has already been closed (i.e. committed).
+      // Was attempting to append data to an upload session that has already
+      // been closed (i.e. committed).
       throw new DropboxException("Upload cannot be continued if session closed");
     } else if (lookupError.isNotClosed()) {
       // The session must be closed before calling upload_session/finish_batch.
@@ -1088,7 +1111,9 @@ public class DropboxAPI {
             uploader.close();
           }
         } else {
-          UploadSessionAppendV2Uploader uploader = client.files().uploadSessionAppendV2(new UploadSessionCursor(uploadSessionId, uploaded));
+          UploadSessionAppendV2Uploader uploader =
+                                                 client.files()
+                                                       .uploadSessionAppendV2(new UploadSessionCursor(uploadSessionId, uploaded));
           try {
             OutputStream out = uploader.getOutputStream();
             int[] chunkRes = transferChunk(data, out);
@@ -1105,8 +1130,11 @@ public class DropboxAPI {
         if (dataStatus == -1) { // was end-of-stream in the data
           try {
             WriteMode writeMode = updateRev != null ? WriteMode.update(updateRev) : WriteMode.ADD;
-            UploadSessionFinishUploader finish = client.files().uploadSessionFinish(new UploadSessionCursor(uploadSessionId, uploaded),
-                                                                                    CommitInfo.newBuilder(path).withMode(writeMode).build());
+            UploadSessionFinishUploader finish = client.files()
+                                                       .uploadSessionFinish(new UploadSessionCursor(uploadSessionId, uploaded),
+                                                                            CommitInfo.newBuilder(path)
+                                                                                      .withMode(writeMode)
+                                                                                      .build());
             return finish.finish(); // return from the loop here
           } catch (UploadSessionFinishErrorException e) {
             if (e.errorValue.isLookupFailed()) {
@@ -1119,14 +1147,17 @@ public class DropboxAPI {
             } else if (e.errorValue.isTooManySharedFolderTargets()) {
               throw new DropboxException("Upload cannot be done for files into too many different shared folders", e);
             } else if (e.errorValue.isTooManyWriteOperations()) {
-              throw new RetryLaterException("Upload cannot complete due too many write operations. Please retry", RETRY_TIMEOUT_MILLIS, e);
+              throw new RetryLaterException("Upload cannot complete due too many write operations. Please retry",
+                                            RETRY_TIMEOUT_MILLIS,
+                                            e);
             }
             throw new DropboxException("Upload failed");
           }
         }
       } while (true);
     } catch (IllegalStateException e) {
-      // Happens if the uploader has already been closed (see close) or finished (see finish)
+      // Happens if the uploader has already been closed (see close) or finished
+      // (see finish)
       throw new RetryLaterException("Upload session unexpectedly closed. Please retry", RETRY_TIMEOUT_MILLIS, e);
     } catch (InvalidAccessTokenException e) {
       String msg = "Invalid access credentials";
@@ -1262,9 +1293,12 @@ public class DropboxAPI {
         WriteError writeError = e.errorValue.getPathWriteValue();
         handleWriteError(writeError, "Delete", idPath, e);
       } else if (e.errorValue.isTooManyFiles()) {
-        throw new NotAcceptableException("Deletion of " + idPath + " involved too many files. Please retry with less of files", e);
+        throw new NotAcceptableException("Deletion of " + idPath + " involved too many files. Please retry with less of files",
+                                         e);
       } else if (e.errorValue.isTooManyWriteOperations()) {
-        throw new RetryLaterException("Deletion cannot complete due too many write operations. Please retry", RETRY_TIMEOUT_MILLIS, e);
+        throw new RetryLaterException("Deletion cannot complete due too many write operations. Please retry",
+                                      RETRY_TIMEOUT_MILLIS,
+                                      e);
       }
       throw new DropboxException("Failed to delete: " + idPath, e);
     } catch (InvalidAccessTokenException e) {
@@ -1336,7 +1370,8 @@ public class DropboxAPI {
         }
         throw new DropboxException("Failed to restore file due to lookup error: " + path + " (" + rev + ")", e);
       } else if (e.errorValue.isInvalidRevision()) {
-        // The revision is invalid, but NotFoundException not a good ex to throw here
+        // The revision is invalid, but NotFoundException not a good ex to throw
+        // here
         throw new NotAcceptableException("Cannot restore file due to wrong revision: " + path + " (" + rev + ")", e);
       } else if (e.errorValue.isPathWrite()) {
         WriteError writeError = e.errorValue.getPathWriteValue();
@@ -1422,8 +1457,9 @@ public class DropboxAPI {
   }
 
   /**
-   * Handle write error at Dropbox side. This method will extract an error and throw
-   * {@link NotFoundException}, {@link ConflictException} or {@link NotAcceptableException} exception.
+   * Handle write error at Dropbox side. This method will extract an error and
+   * throw {@link NotFoundException}, {@link ConflictException} or
+   * {@link NotAcceptableException} exception.
    *
    * @param writeError the {@link WriteError} instance
    * @param opName the operation name, will be used for new exception message
@@ -1433,9 +1469,10 @@ public class DropboxAPI {
    * @throws ConflictException the conflict exception
    * @throws NotAcceptableException the not acceptable exception
    */
-  private void handleWriteError(WriteError writeError, String opName, String itemPath, DbxApiException e) throws NotFoundException,
-                                                                                                          ConflictException,
-                                                                                                          NotAcceptableException {
+  private void handleWriteError(WriteError writeError,
+                                String opName,
+                                String itemPath,
+                                DbxApiException e) throws NotFoundException, ConflictException, NotAcceptableException {
     if (writeError.isConflict()) {
       StringBuilder msg = new StringBuilder(opName + " conflict");
       if (WriteConflictError.FILE.equals(writeError.getConflictValue())) {
@@ -1464,14 +1501,16 @@ public class DropboxAPI {
   }
 
   /**
-   * Handle relocation error (used in {@link #copy(String, String)} and {@link #move(String, String)}).
+   * Handle relocation error (used in {@link #copy(String, String)} and
+   * {@link #move(String, String)}).
    *
    * @param relocationError the relocation error
    * @param opName the op name
    * @param fromPath the from path
    * @param toPath the to path
    * @param e the e
-   * @return the metadata, but it never will be returned as one of exceptions will be thrown
+   * @return the metadata, but it never will be returned as one of exceptions
+   *         will be thrown
    * @throws NotFoundException the not found exception
    * @throws ConflictException the conflict exception
    * @throws NotAcceptableException the not acceptable exception
@@ -1481,7 +1520,10 @@ public class DropboxAPI {
                                  String opName,
                                  String fromPath,
                                  String toPath,
-                                 DbxApiException e) throws NotFoundException, ConflictException, NotAcceptableException, DropboxException {
+                                 DbxApiException e) throws NotFoundException,
+                                                    ConflictException,
+                                                    NotAcceptableException,
+                                                    DropboxException {
     if (relocationError.isFromLookup()) {
       LookupError lookupError = relocationError.getFromLookupValue();
       if (lookupError.isNotFound() || lookupError.isNotFile() || lookupError.isNotFolder()) {
@@ -1496,7 +1538,8 @@ public class DropboxAPI {
       }
       throw new DropboxException(opName + " failed due to lookup error: " + fromPath, e);
     } else if (relocationError.isFromWrite()) {
-      // XXX weird to handle most of the following at source (from), but Dropbox API declared it, thus we do
+      // XXX weird to handle most of the following at source (from), but Dropbox
+      // API declared it, thus we do
       WriteError writeError = relocationError.getFromWriteValue();
       handleWriteError(writeError, "Source " + opName.toLowerCase(), fromPath, e);
     } else if (relocationError.isTo()) {
@@ -1511,7 +1554,8 @@ public class DropboxAPI {
     } else if (relocationError.isCantTransferOwnership()) {
       throw new NotAcceptableException(opName + " of " + fromPath + " would result in an ownership transfer", e);
     } else if (relocationError.isTooManyFiles()) {
-      throw new NotAcceptableException(opName + " of " + fromPath + " involved too many files. Please retry with less of files", e);
+      throw new NotAcceptableException(opName + " of " + fromPath + " involved too many files. Please retry with less of files",
+                                       e);
     } else if (relocationError.isDuplicatedOrNestedPaths()) {
       throw new NotAcceptableException("Cannot " + opName.toLowerCase() + " " + fromPath + " with duplicated/nested paths", e);
     } else if (relocationError.isInsufficientQuota()) {
@@ -1521,7 +1565,8 @@ public class DropboxAPI {
   }
 
   /**
-   * Copy file to a new one. If file was successfully copied this method return new file object.
+   * Copy file to a new one. If file was successfully copied this method return
+   * new file object.
    *
    * @param fromIdPath the from path or ID
    * @param toPath the to path
@@ -1597,7 +1642,8 @@ public class DropboxAPI {
   /**
    * Build a child path.
    *
-   * @param parent the parent's ID or path (defacto both will work with Dropbox API)
+   * @param parent the parent's ID or path (defacto both will work with Dropbox
+   *          API)
    * @param name the name, it can be both all lowercase or in natural case
    * @return the string
    */
@@ -1610,8 +1656,8 @@ public class DropboxAPI {
    *
    * @param in the in
    * @param out the out
-   * @return the array of integers, first is number of bytes transfered, second is -1 if end of stream reached
-   *         or 0 otherwise
+   * @return the array of integers, first is number of bytes transfered, second
+   *         is -1 if end of stream reached or 0 otherwise
    * @throws IOException Signals that an I/O exception has occurred.
    */
   int[] transferChunk(InputStream in, OutputStream out) throws IOException {

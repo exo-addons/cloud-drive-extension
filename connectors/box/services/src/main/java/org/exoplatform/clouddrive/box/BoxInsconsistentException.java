@@ -22,13 +22,12 @@ package org.exoplatform.clouddrive.box;
 import org.exoplatform.clouddrive.CloudDriveException;
 
 /**
- * Inconsistency between local Cloud Drive and changes in synchronization command. <br>
- * 
+ * Inconsistency between local Cloud Drive and changes in synchronization
+ * command. <br>
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: BoxInsconsistentException.java 00000 Dec 9, 2013 pnedonosko $
- * 
  */
 @Deprecated
 public class BoxInsconsistentException extends CloudDriveException {

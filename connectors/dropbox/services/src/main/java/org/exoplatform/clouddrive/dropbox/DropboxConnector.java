@@ -18,6 +18,14 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.jcr.Node;
+import javax.jcr.RepositoryException;
+
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
 import com.dropbox.core.DbxException;
@@ -50,22 +58,12 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.organization.OrganizationService;
 
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.jcr.Node;
-import javax.jcr.RepositoryException;
-
 /**
  * Cloud Drive Connector for Dropbox.<br>
- * 
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: DropboxConnector.java 00000 Aug 30, 2013 pnedonosko $
- * 
  */
 public class DropboxConnector extends CloudDriveConnector {
 
@@ -130,7 +128,8 @@ public class DropboxConnector extends CloudDriveConnector {
   }
 
   /**
-   * Dropbox API factory (logic based on OAuth2 flow used in Google Drive and Box connectors).
+   * Dropbox API factory (logic based on OAuth2 flow used in Google Drive and
+   * Box connectors).
    */
   class API {
 
@@ -198,9 +197,19 @@ public class DropboxConnector extends CloudDriveConnector {
       String buildAuthLink() {
         if (authLink == null) {
           DbxWebAuth.Request.Builder authRequestBuilder = DbxWebAuth.newRequestBuilder()
-                                                                    // After we redirect the user to the
-                                                                    // Dropbox website for authorization,
-                                                                    // Dropbox will redirect them back here.
+                                                                    // After we
+                                                                    // redirect
+                                                                    // the user
+                                                                    // to the
+                                                                    // Dropbox
+                                                                    // website
+                                                                    // for
+                                                                    // authorization,
+                                                                    // Dropbox
+                                                                    // will
+                                                                    // redirect
+                                                                    // them back
+                                                                    // here.
                                                                     .withRedirectUri(redirectUri, sessionStore);
 
           if (state != null) {
@@ -216,7 +225,8 @@ public class DropboxConnector extends CloudDriveConnector {
        * Build API.
        * 
        * @return {@link DropboxAPI}
-       * @throws DropboxException if error happen during communication with Google Drive services
+       * @throws DropboxException if error happen during communication with
+       *           Google Drive services
        * @throws CloudDriveException if cannot load local tokens
        */
       DropboxAPI build() throws DropboxException, CloudDriveException {
@@ -280,8 +290,11 @@ public class DropboxConnector extends CloudDriveConnector {
     final String               redirectUri = redirectLink();
 
     /** Auth config for all users. */
-    // FYI we use system locale for an user as its messages will (also) go to the server log.
-    final DbxRequestConfig     authConfig  = DbxRequestConfig.newBuilder(CLIENT_NAME).withUserLocaleFrom(Locale.getDefault()).build();
+    // FYI we use system locale for an user as its messages will (also) go to
+    // the server log.
+    final DbxRequestConfig     authConfig  = DbxRequestConfig.newBuilder(CLIENT_NAME)
+                                                             .withUserLocaleFrom(Locale.getDefault())
+                                                             .build();
 
     /** API builders in per-user map. */
     final Map<String, Builder> users       = new HashMap<String, Builder>();
@@ -322,7 +335,8 @@ public class DropboxConnector extends CloudDriveConnector {
     }
 
     /**
-     * Authenticate to the API with OAuth2 parameters returned from redirect request.
+     * Authenticate to the API with OAuth2 parameters returned from redirect
+     * request.
      *
      * @param params the auth request params
      * @return a {@link Builder} for Dropbox API
@@ -350,7 +364,7 @@ public class DropboxConnector extends CloudDriveConnector {
   protected final OrganizationService organization;
 
   /** Dropbox API factory instance. */
-  private API                 apiFactory;
+  private API                         apiFactory;
 
   /**
    * Instantiates a new Dropbox connector.
@@ -400,7 +414,11 @@ public class DropboxConnector extends CloudDriveConnector {
     if (code != null && code.length() > 0) {
       DropboxAPI driveAPI = apiFactory().auth(params).build();
       FullAccount apiUser = driveAPI.getCurrentUser();
-      DropboxUser user = new DropboxUser(apiUser.getAccountId(), apiUser.getName().getDisplayName(), apiUser.getEmail(), provider, driveAPI);
+      DropboxUser user = new DropboxUser(apiUser.getAccountId(),
+                                         apiUser.getName().getDisplayName(),
+                                         apiUser.getEmail(),
+                                         provider,
+                                         driveAPI);
       return user;
     } else {
       throw new CloudDriveException("Access key should not be null or empty");
@@ -428,7 +446,12 @@ public class DropboxConnector extends CloudDriveConnector {
   protected CloudDrive loadDrive(Node driveNode) throws DriveRemovedException, CloudDriveException, RepositoryException {
     JCRLocalCloudDrive.checkNotTrashed(driveNode);
     JCRLocalCloudDrive.migrateName(driveNode);
-    JCRLocalDropboxDrive drive = new JCRLocalDropboxDrive(apiFactory(), getProvider(), driveNode, sessionProviders, jcrFinder, mimeTypes);
+    JCRLocalDropboxDrive drive = new JCRLocalDropboxDrive(apiFactory(),
+                                                          getProvider(),
+                                                          driveNode,
+                                                          sessionProviders,
+                                                          jcrFinder,
+                                                          mimeTypes);
     return drive;
   }
 

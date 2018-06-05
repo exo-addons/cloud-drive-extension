@@ -22,9 +22,7 @@ import org.exoplatform.clouddrive.CloudProviderException;
 
 /**
  * Indicates a problem on provider side or communication problem.<br>
- * 
  * TODO rename to something using PROVIDER_ID. e.g. BoxException.
- * 
  */
 public class TemplateException extends CloudProviderException {
 

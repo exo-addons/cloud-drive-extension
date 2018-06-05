@@ -18,16 +18,14 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
-
 /**
- * Wrong provider used for CMIS service end-point. This can be happen if dedicated CMIS extension used for
- * other CMIS vendor (e.g. attempted to use SharePoint connector for Alfresco repository).<br>
- * 
+ * Wrong provider used for CMIS service end-point. This can be happen if
+ * dedicated CMIS extension used for other CMIS vendor (e.g. attempted to use
+ * SharePoint connector for Alfresco repository).<br>
  * Created by The eXo Platform SAS
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: WrongProviderException.java 00000 Oct 31, 2014 pnedonosko $
- * 
  */
 public class WrongCMISProviderException extends CMISException {
 

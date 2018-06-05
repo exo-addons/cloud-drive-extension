@@ -20,21 +20,11 @@
  * CMIS connector login portlet.
  */
 @Application
-@Portlet(name="CMISLoginPortlet")
-@Bindings({
-    @Binding(value = RepositoryService.class),
-    @Binding(value = SessionProviderService.class),
-    @Binding(value = NodeHierarchyCreator.class),
-    @Binding(value = CloudDriveService.class),
-    @Binding(value = CodeAuthentication.class)
-}
-)
+@Portlet(name = "CMISLoginPortlet")
+@Bindings({ @Binding(value = RepositoryService.class), @Binding(value = SessionProviderService.class),
+    @Binding(value = NodeHierarchyCreator.class), @Binding(value = CloudDriveService.class),
+    @Binding(value = CodeAuthentication.class) })
 package org.exoplatform.clouddrive.cmis.portlet;
-
-import juzu.Application;
-import juzu.plugin.binding.Binding;
-import juzu.plugin.binding.Bindings;
-import juzu.plugin.portlet.Portlet;
 
 import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
@@ -42,3 +32,7 @@ import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.hierarchy.NodeHierarchyCreator;
 
+import juzu.Application;
+import juzu.plugin.binding.Binding;
+import juzu.plugin.binding.Bindings;
+import juzu.plugin.portlet.Portlet;

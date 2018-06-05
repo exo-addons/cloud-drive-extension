@@ -18,6 +18,16 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import java.io.InputStream;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudFileAPI;
@@ -37,28 +47,17 @@ import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
 import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import java.io.InputStream;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-
 /**
  * Local drive for Template provider.<br>
- * 
- * TODO Code below is "almost" dummy and just lets an example how it could be. Fill it with
- * the logic of actual implementation reusing the ideas (or dropping them).
- * 
+ * TODO Code below is "almost" dummy and just lets an example how it could be.
+ * Fill it with the logic of actual implementation reusing the ideas (or
+ * dropping them).
  */
 public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTokenRefreshListener {
 
   /**
-   * Period to perform {@link FullSync} as a next sync request. See implementation of
-   * {@link #getSyncCommand()}.
+   * Period to perform {@link FullSync} as a next sync request. See
+   * implementation of {@link #getSyncCommand()}.
    */
   public static final long FULL_SYNC_PERIOD = 24 * 60 * 60 * 1000; // 24hrs
 
@@ -133,8 +132,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   }
 
   /**
-   * {@link SyncCommand} of cloud drive based on all remote files traversing: we do
-   * compare all remote files with locals by its Etag and fetch an item if the tags differ.
+   * {@link SyncCommand} of cloud drive based on all remote files traversing: we
+   * do compare all remote files with locals by its Etag and fetch an item if
+   * the tags differ.
    */
   protected class FullSync extends SyncCommand {
 
@@ -171,8 +171,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
       // remove local nodes of files not existing remotely, except of root
       nodes.remove("ROOT_ID"); // TODO use actual ID
-      for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext()
-          && !Thread.currentThread().isInterrupted();) {
+      for (Iterator<List<Node>> niter = nodes.values().iterator(); niter.hasNext() && !Thread.currentThread().isInterrupted();) {
         List<Node> nls = niter.next();
         niter.remove();
         for (Node n : nls) {
@@ -211,8 +210,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         if (localItem.isChanged()) {
           addChanged(localItem);
 
-          // cleanup of this file located in another place (usecase of rename/move)
-          // XXX this also assumes that cloud doesn't support linking of files to other folders
+          // cleanup of this file located in another place (usecase of
+          // rename/move)
+          // XXX this also assumes that cloud doesn't support linking of files
+          // to other folders
           if (existing != null) {
             for (Iterator<Node> eiter = existing.iterator(); eiter.hasNext();) {
               Node enode = eiter.next();
@@ -248,7 +249,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
       super.exec();
 
-      // at this point we know all changes already applied - we don't need history anymore in super class
+      // at this point we know all changes already applied - we don't need
+      // history anymore in super class
       fileHistory.clear();
       try {
         jcrListener.disable();
@@ -305,12 +307,14 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       try {
         file = api.createFile(parentId, title, created, content);
       } catch (ConflictException e) {
-        // XXX we assume name as factor of equality here and make local file to reflect the cloud side
+        // XXX we assume name as factor of equality here and make local file to
+        // reflect the cloud side
         Object existing = null;
         ItemsIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
           Object item = files.next();
-          if (title.equals("TODO item.getName()")) { // TODO do more complex check if required
+          if (title.equals("TODO item.getName()")) { // TODO do more complex
+                                                     // check if required
             existing = item;
             break;
           }
@@ -321,7 +325,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
           file = existing;
           // and erase local file data here
           if (fileNode.hasNode("jcr:content")) {
-            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty data by default
+            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty
+                                                                                 // data
+                                                                                 // by
+                                                                                 // default
           }
         }
       }
@@ -387,7 +394,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
         ItemsIterator files = api.getFolderItems(parentId);
         while (files.hasNext()) {
           Object item = files.next();
-          if (title.equals("TODO item.getName()")) { // TODO use more complex check if required
+          if (title.equals("TODO item.getName()")) { // TODO use more complex
+                                                     // check if required
             existing = item;
             break;
           }
@@ -697,7 +705,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     @Override
     public boolean trashFile(String id) throws CloudDriveException, RepositoryException {
       Object trashed = api.trashFile(id);
-      // TODO actual logic to check if file was successfully trashed (or may be not if
+      // TODO actual logic to check if file was successfully trashed (or may be
+      // not if
       // permissions or anything else prevented that)
       return true;
     }
@@ -708,7 +717,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     @Override
     public boolean trashFolder(String id) throws CloudDriveException, RepositoryException {
       Object trashed = api.trashFolder(id);
-      // TODO actual logic to check if folder was successfully trashed (or may be not if
+      // TODO actual logic to check if folder was successfully trashed (or may
+      // be not if
       // permissions or anything else prevented that)
       return true;
     }
@@ -719,7 +729,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     @Override
     public CloudFile untrashFile(Node fileNode) throws CloudDriveException, RepositoryException {
       Object untrashed = api.untrashFile(fileAPI.getId(fileNode), fileAPI.getTitle(fileNode));
-      // TODO actual logic to check if file was successfully untrashed (or may be not if
+      // TODO actual logic to check if file was successfully untrashed (or may
+      // be not if
       // permissions or anything else prevented that)
       return (CloudFile) untrashed;
     }
@@ -730,7 +741,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     @Override
     public CloudFile untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
       Object untrashed = api.untrashFolder(fileAPI.getId(folderNode), fileAPI.getTitle(folderNode));
-      // TODO actual logic to check if folder was successfully trashed (or may be not if
+      // TODO actual logic to check if folder was successfully trashed (or may
+      // be not if
       // permissions or anything else prevented that)
       return (CloudFile) untrashed;
     }
@@ -748,15 +760,15 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     @Override
     public CloudFile restore(String id, String path) throws NotFoundException, CloudDriveException, RepositoryException {
-      // TODO implement restoration of file by id at its local path (known as part of remove/update)
+      // TODO implement restoration of file by id at its local path (known as
+      // part of remove/update)
       throw new SyncNotSupportedException("Restore not supported");
     }
   }
 
   /**
-   * An implementation of {@link SyncCommand} based on an abstract events queue proposed and maintained by the
-   * cloud service.
-   * 
+   * An implementation of {@link SyncCommand} based on an abstract events queue
+   * proposed and maintained by the cloud service.
    */
   protected class EventsSync extends SyncCommand {
 
@@ -801,7 +813,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       events = api.getEvents(localChangeId);
       iterators.add(events);
 
-      // loop over events and respect this thread interrupted status to cancel the command correctly
+      // loop over events and respect this thread interrupted status to cancel
+      // the command correctly
       while (events.hasNext() && !Thread.currentThread().isInterrupted()) {
         Object event = events.next();
         Object item = new Object(); // event.getItem();
@@ -835,7 +848,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
       }
 
       if (!Thread.currentThread().isInterrupted()) {
-        if (false) { // TODO if sync via events not possible - then we can run Full Sync
+        if (false) { // TODO if sync via events not possible - then we can run
+                     // Full Sync
           // EventsSync cannot solve all changes, need run FullSync
           LOG.warn("Not all events applied for cloud sync. Running full sync.");
 
@@ -917,7 +931,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
      */
     @Override
     protected void preSaveChunk() throws CloudDriveException, RepositoryException {
-      // TODO save event marker of last applied file that can be used by next sync
+      // TODO save event marker of last applied file that can be used by next
+      // sync
     }
   }
 
@@ -936,7 +951,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                   Node driveNode,
                                   SessionProviderService sessionProviders,
                                   NodeFinder finder,
-                                  ExtendedMimeTypeResolver mimeTypes) throws CloudDriveException, RepositoryException {
+                                  ExtendedMimeTypeResolver mimeTypes)
+      throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
@@ -958,7 +974,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                                   Node driveNode,
                                   SessionProviderService sessionProviders,
                                   NodeFinder finder,
-                                  ExtendedMimeTypeResolver mimeTypes) throws RepositoryException, CloudDriveException {
+                                  ExtendedMimeTypeResolver mimeTypes)
+      throws RepositoryException, CloudDriveException {
     super(loadUser(apiBuilder, provider, driveNode), driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
   }
@@ -984,9 +1001,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    * @throws TemplateException the template exception
    * @throws CloudDriveException the cloud drive exception
    */
-  protected static TemplateUser loadUser(API apiBuilder,
-                                         TemplateProvider provider,
-                                         Node driveNode) throws RepositoryException, TemplateException, CloudDriveException {
+  protected static TemplateUser loadUser(API apiBuilder, TemplateProvider provider, Node driveNode) throws RepositoryException,
+                                                                                                    TemplateException,
+                                                                                                    CloudDriveException {
     String username = driveNode.getProperty("ecd:cloudUserName").getString();
     String email = driveNode.getProperty("ecd:userEmail").getString();
     String userId = driveNode.getProperty("ecd:cloudUserId").getString();
@@ -1007,7 +1024,6 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
 
   /**
    * {@inheritDoc}
-   * 
    */
   @Override
   public void onUserTokenRefresh(UserToken token) throws CloudDriveException {
@@ -1051,7 +1067,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     Calendar last = rootNode().getProperty("PROVIDER_ID:changeDate").getDate();
 
     // XXX we force a full sync (a whole drive traversing) each defined period.
-    // We do this for a case when provider will not provide a full history for files connected long time ago
+    // We do this for a case when provider will not provide a full history for
+    // files connected long time ago
     // and weren't synced day by day (drive was rarely used).
     if (now.getTimeInMillis() - last.getTimeInMillis() < FULL_SYNC_PERIOD) {
       return new EventsSync();
@@ -1104,8 +1121,10 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    */
   @Override
   protected void refreshAccess() throws CloudDriveException {
-    // TODO implement this method if Cloud API requires explicit forcing of access token renewal check
-    // Some APIes do this check internally on each call (then do nothing here), others may need explicit
+    // TODO implement this method if Cloud API requires explicit forcing of
+    // access token renewal check
+    // Some APIes do this check internally on each call (then do nothing here),
+    // others may need explicit
     // forcing of the check (then call the API check from here) -
     // follow the API docs to find required behviour for this method.
   }
@@ -1151,8 +1170,9 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
   }
 
   /**
-   * Update or create a local node of Cloud File. If the node is <code>null</code> then it will be open on the
-   * given parent and created if not already exists.
+   * Update or create a local node of Cloud File. If the node is
+   * <code>null</code> then it will be open on the given parent and created if
+   * not already exists.
    * 
    * @param api {@link TemplateAPI}
    * @param item {@link Object}
@@ -1170,7 +1190,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
     String name = ""; // item.getName();
     boolean isFolder = false; // item instanceof APIFolder;
     String type = ""; // isFolder ? item.getType() : findMimetype(name);
-    // TODO type mode not required if provider's preview/edit will be used (embedded in eXo)
+    // TODO type mode not required if provider's preview/edit will be used
+    // (embedded in eXo)
     String typeMode = mimeTypes.getMimeTypeMode(type, name);
     String itemHash = ""; // item.getEtag()
 
@@ -1208,17 +1229,7 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
                    modified);
         initCloudItem(node, item);
       }
-      file = new JCRLocalCloudFile(node.getPath(),
-                                   id,
-                                   name,
-                                   link,
-                                   type,
-                                   modifiedBy,
-                                   createdBy,
-                                   created,
-                                   modified,
-                                   node,
-                                   true);
+      file = new JCRLocalCloudFile(node.getPath(), id, name, link, type, modifiedBy, createdBy, created, modified, node, true);
     } else {
       link = api.getLink(item);
       embedLink = api.getEmbedLink(item);
@@ -1265,7 +1276,8 @@ public class JCRLocalTemplateDrive extends JCRLocalCloudDrive implements UserTok
    */
   @Override
   protected String previewLink(Node fileNode) throws RepositoryException {
-    // TODO return specially formatted preview link or using a special URL if that required by the cloud API
+    // TODO return specially formatted preview link or using a special URL if
+    // that required by the cloud API
     return super.previewLink(fileNode);
   }
 

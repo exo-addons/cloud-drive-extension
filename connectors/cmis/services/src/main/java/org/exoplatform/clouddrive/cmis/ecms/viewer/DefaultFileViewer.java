@@ -24,9 +24,9 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 
 /**
- * Default WebUI component for CMIS files. It accepts only visual file formats and show the content of remote
- * file by its URL in iframe on file page in eXo Documents.<br>
- * 
+ * Default WebUI component for CMIS files. It accepts only visual file formats
+ * and show the content of remote file by its URL in iframe on file page in eXo
+ * Documents.<br>
  * Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>

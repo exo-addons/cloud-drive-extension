@@ -18,6 +18,36 @@
  */
 package org.exoplatform.clouddrive.dropbox;
 
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.Item;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.v2.files.DeletedMetadata;
 import com.dropbox.core.v2.files.FileMetadata;
@@ -54,39 +84,8 @@ import org.exoplatform.clouddrive.viewer.CloudFileContent;
 import org.exoplatform.clouddrive.viewer.ContentReader;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.jcr.InvalidItemStateException;
-import javax.jcr.Item;
-import javax.jcr.Node;
-import javax.jcr.NodeIterator;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.Property;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-
 /**
  * Local drive for Dropbox provider.<br>
- * 
  */
 public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserTokenRefreshListener {
 
@@ -102,8 +101,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   protected interface Changes {
 
     /**
-     * Process locally applied file (it can be any extra operations including the gathering of effected
-     * files/stats or chunk saving in JCR).
+     * Process locally applied file (it can be any extra operations including
+     * the gathering of effected files/stats or chunk saving in JCR).
      *
      * @param changedFile {@link JCRLocalCloudFile} changed file
      * @throws RepositoryException the repository exception
@@ -125,8 +124,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Adds the removed path to the scope of changes. For a command {@link AbstractCommand} it effectively
-     * should add the path to its removed list.
+     * Adds the removed path to the scope of changes. For a command
+     * {@link AbstractCommand} it effectively should add the path to its removed
+     * list.
      *
      * @param path the path
      * @return true, if successful
@@ -139,11 +139,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Answers if given file ID under its parent (by ID) already applied locally.
+     * Answers if given file ID under its parent (by ID) already applied
+     * locally.
      * 
      * @param parentId {@link String}
      * @param fileId {@link String}
-     * @return boolean, <code>true</code> if file was already applied, <code>false</code> otherwise.
+     * @return boolean, <code>true</code> if file was already applied,
+     *         <code>false</code> otherwise.
      */
     default boolean canApply(String parentId, String fileId) {
       return true; // can apply any by default
@@ -177,7 +179,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       // Obtain initial cursor before the actual fetch of cloud files,
       // this will provide us a proper cursor to start sync from later.
-      // We need a recursive cursor to use later with /list_folder/continue in EventsSync
+      // We need a recursive cursor to use later with /list_folder/continue in
+      // EventsSync
       String driveCursor = api.getLatestCursor(DropboxAPI.ROOT_PATH_V2, true);
       // Make initial list and then fetch the subtree
       ListFolder ls = fetchSubtree(api, DropboxAPI.ROOT_PATH_V2, driveNode, iterators, this);
@@ -187,7 +190,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // sync stream
         setChangeId(changeId);
         driveNode.setProperty("dropbox:cursor", driveCursor);
-        driveNode.setProperty("dropbox:version", DropboxAPI.VERSION); // used since upgrade to V2
+        driveNode.setProperty("dropbox:version", DropboxAPI.VERSION); // used
+                                                                      // since
+                                                                      // upgrade
+                                                                      // to V2
         updateState(ls.getCursor());
       }
     }
@@ -205,7 +211,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       super.exec();
 
-      // at this point we know all changes already applied - we don't need history anymore
+      // at this point we know all changes already applied - we don't need
+      // history anymore
       fileHistory.clear();
       try {
         jcrListener.disable();
@@ -273,7 +280,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     protected MovedFile(String jcrPath) {
       super();
       this.jcrPath = jcrPath;
-      // XXX 10sec to outdate - it is actually a nasty thing that may cause troubles, but we don't have a
+      // XXX 10sec to outdate - it is actually a nasty thing that may cause
+      // troubles, but we don't have a
       // better solution as for now (May 7, 2018 15sec -> 10sec)
       this.expirationTime = System.currentTimeMillis() + 10000;
     }
@@ -318,8 +326,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * {@inheritDoc}
      */
     @Override
-    public CloudFile createFile(Node fileNode, Calendar created, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
-                                                                                                                          RepositoryException {
+    public CloudFile createFile(Node fileNode,
+                                Calendar created,
+                                Calendar modified,
+                                String mimeType,
+                                InputStream content) throws CloudDriveException, RepositoryException {
       normalizeName(fileNode);
 
       // Create means upload a new file
@@ -386,8 +397,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * {@inheritDoc}
      */
     @Override
-    public CloudFile updateFileContent(Node fileNode, Calendar modified, String mimeType, InputStream content) throws CloudDriveException,
-                                                                                                               RepositoryException {
+    public CloudFile updateFileContent(Node fileNode,
+                                       Calendar modified,
+                                       String mimeType,
+                                       InputStream content) throws CloudDriveException, RepositoryException {
       // Update means upload of a new content
       return uploadFile(fileNode, null, modified, mimeType, content, true);
     }
@@ -409,7 +422,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       MetadataInfo item = copy(srcFolderNode, destFolderNode);
       JCRLocalCloudFile localFile = updateItem(api, item, null, destFolderNode);
       if (localFile.isFolder()) {
-        // need reset locally copied sub-tree for right Dropbox properties (sharing etc.)
+        // need reset locally copied sub-tree for right Dropbox properties
+        // (sharing etc.)
         updateSubtree(localFile.getNode());
       }
       return localFile;
@@ -438,7 +452,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean trashFile(String id) throws CloudDriveException, RepositoryException {
-      return removeFile(id); // remove in Dropbox, it will be possible to restore by file rev
+      return removeFile(id); // remove in Dropbox, it will be possible to
+                             // restore by file rev
     }
 
     /**
@@ -446,7 +461,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean trashFolder(String id) throws CloudDriveException, RepositoryException {
-      return removeFolder(id); // remove in Dropbox, it will be possible to restore folder file by file
+      return removeFolder(id); // remove in Dropbox, it will be possible to
+                               // restore folder file by file
     }
 
     /**
@@ -466,32 +482,43 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public CloudFile untrashFolder(Node folderNode) throws CloudDriveException, RepositoryException {
-      // Untrash folder from local state and do recursively. This seems cannot work for empty folders.
-      // Traverse over the folder children nodes (files and folders recursively) and restore file by file.
+      // Untrash folder from local state and do recursively. This seems cannot
+      // work for empty folders.
+      // Traverse over the folder children nodes (files and folders recursively)
+      // and restore file by file.
 
-      // Get the parent folder from cloud side, then untrash its subtree from local state
+      // Get the parent folder from cloud side, then untrash its subtree from
+      // local state
       JCRLocalCloudFile localFile;
       String id = getId(folderNode);
-      // Try get the folder from Dropbox, fetch deleted also to know if it was deleted remotely
+      // Try get the folder from Dropbox, fetch deleted also to know if it was
+      // deleted remotely
       MetadataInfo item = itemInfo(api.get(id, true));
-      // For Deleted and existing Folder, all deleted childs will be restored in for-loop below
+      // For Deleted and existing Folder, all deleted childs will be restored in
+      // for-loop below
       if (item.isDeleted()) {
         // re-create this folder in Dropbox and untrash its childs recursively
         item = itemInfo(api.createFolder(item.getParentPath(), getTitle(folderNode)));
         localFile = updateItem(api, item.asItem(), null, folderNode);
       } else if (item.isFolder()) {
-        // folder already exists remotely, just update it locally (dbxPath, dates etc) then untrash its childs
+        // folder already exists remotely, just update it locally (dbxPath,
+        // dates etc) then untrash its childs
         localFile = updateItem(api, item.asItem(), null, folderNode);
       } else if (item.isFile()) {
-        // Unexpected & unreal state: it's not deleted and not folder, but a file with the folder ID.
-        // But we want stay consistent with a cloud side, thus restore from the remote state
+        // Unexpected & unreal state: it's not deleted and not folder, but a
+        // file with the folder ID.
+        // But we want stay consistent with a cloud side, thus restore from the
+        // remote state
         LOG.warn("Found file with an ID of untrahsed folder: " + id + " path: " + item.getPath());
-        // updateItem will replace the folder node with a file according the item type
+        // updateItem will replace the folder node with a file according the
+        // item type
         localFile = updateItem(api, item.asFile(), null, folderNode);
       } else {
-        // This should not happen in theory, but we keep local drive in sync with the remote state - this ex
+        // This should not happen in theory, but we keep local drive in sync
+        // with the remote state - this ex
         // will remove the local node
-        LOG.warn("Found unrecognized item type with ID of untrahsed folder: " + id + " path: " + item.getPath() + " item: " + item);
+        LOG.warn("Found unrecognized item type with ID of untrahsed folder: " + id + " path: " + item.getPath() + " item: "
+            + item);
         throw new NotFoundException("Unrecognized item with ID of untrahsed folder");
       }
 
@@ -520,10 +547,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      */
     @Override
     public boolean isTrashSupported() {
-      // FYI Dropbox doesn't have a traditional trash, but it has revisions for the files and each file can be
-      // restored to some revision. Their UI allows to see removed folders and files on the site, but the API
+      // FYI Dropbox doesn't have a traditional trash, but it has revisions for
+      // the files and each file can be
+      // restored to some revision. Their UI allows to see removed folders and
+      // files on the site, but the API
       // allows only files restoration.
-      // This feature considered as not complete, as for traditional trash, and not used for trashing in eXo.
+      // This feature considered as not complete, as for traditional trash, and
+      // not used for trashing in eXo.
       // To be reviewed in future.
       return true;
     }
@@ -534,7 +564,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     @Override
     public CloudFile restore(String id, String nodePath) throws CloudDriveException, RepositoryException {
 
-      // FYI info build on lower-case path (name and/or parent path can be inaccurate)
+      // FYI info build on lower-case path (name and/or parent path can be
+      // inaccurate)
       if (DropboxAPI.ROOT_PATH_V2.equals(id)) {
         // skip root node - this shouldn't happen
         if (LOG.isDebugEnabled()) {
@@ -566,25 +597,34 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       DropboxDrive localDrive = new DropboxDrive(api, rootNode());
       if (node != null) {
-        // it's restore of update (also move/rename) - we do w/o requesting remove side
-        // FYI but in this case we doesn't check the ID change between local and remote
+        // it's restore of update (also move/rename) - we do w/o requesting
+        // remove side
+        // FYI but in this case we doesn't check the ID change between local and
+        // remote
         node = localDrive.restore(node);
         if (node != null) {
-          restored = readFile(node); // note: this cloud file will be with *not changed* flag!
+          restored = readFile(node); // note: this cloud file will be with *not
+                                     // changed* flag!
         }
       } else {
-        // It's restore of removal - we need request remote side for actual state.
-        // But first, try find this ID nodes in the local drive by JCR search (at other subtrees).
-        // In normal work, this search should find nothing. And it will only if some inconsistency was
+        // It's restore of removal - we need request remote side for actual
+        // state.
+        // But first, try find this ID nodes in the local drive by JCR search
+        // (at other subtrees).
+        // In normal work, this search should find nothing. And it will only if
+        // some inconsistency was
         // introduced by this or previous sync.
         Collection<Node> nodes = findNodes(Arrays.asList(id));
         for (Node n : nodes) {
           if (restored == null) {
-            // if nothing restored yet, we move this first found to a required location if its Dropbox path
-            // already matches - it's a case of something unexpected, but we have a chance to fix it.
+            // if nothing restored yet, we move this first found to a required
+            // location if its Dropbox path
+            // already matches - it's a case of something unexpected, but we
+            // have a chance to fix it.
             n = localDrive.restore(n);
             if (n != null) {
-              restored = readFile(n); // note: this cloud file will be with *not changed* flag!
+              restored = readFile(n); // note: this cloud file will be with *not
+                                      // changed* flag!
             }
           } else {
             // everything else should not found
@@ -597,7 +637,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           node = localNode.fetch(new Changes() {
             /* everything by default */ });
           if (node != null) {
-            restored = readFile(node); // note: this cloud file will be with *not changed* flag!
+            restored = readFile(node); // note: this cloud file will be with
+                                       // *not changed* flag!
           } // otherwise, related item already removed at Dropbox
         }
       }
@@ -644,20 +685,25 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       try {
         file = itemInfo(api.uploadFile(parentId, title, content, rev)).asFile();
       } catch (ConflictException e) {
-        MetadataInfo item = itemInfo(api.get(api.filePath(parentId, title))); // was fileNode.getName()
+        MetadataInfo item = itemInfo(api.get(api.filePath(parentId, title))); // was
+                                                                              // fileNode.getName()
         if (item.isFile()) {
           // ignore local file in favor of remote existing at this path
           file = item.asFile();
           // and erase local file data here
           if (fileNode.hasNode("jcr:content")) {
-            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty data by default
+            fileNode.getNode("jcr:content").setProperty("jcr:data", DUMMY_DATA); // empty
+                                                                                 // data
+                                                                                 // by
+                                                                                 // default
           }
         } else {
           throw e; // we cannot do anything at this level
         }
       }
 
-      // Dates, created and modified, ignored here and will be set to ones from Dropdown side
+      // Dates, created and modified, ignored here and will be set to ones from
+      // Dropdown side
       JCRLocalCloudFile localFile = updateItem(api, file, null, fileNode);
       return localFile;
     }
@@ -682,19 +728,26 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                            NotFoundException,
                                            NotAcceptableException,
                                            RetryLaterException {
-      // Use move for renaming: given node should be moved (incl renamed) to its new parent
+      // Use move for renaming: given node should be moved (incl renamed) to its
+      // new parent
 
-      // XXX file when moved in ECMS, can produce several session saves (actual move and then properties
-      // updated on the dest) and so it will be several SyncFiles commands, each may be recognized as an
-      // update. So, we need refresh the node with other JCR sessions to see its actual state and don't try to
+      // XXX file when moved in ECMS, can produce several session saves (actual
+      // move and then properties
+      // updated on the dest) and so it will be several SyncFiles commands, each
+      // may be recognized as an
+      // update. So, we need refresh the node with other JCR sessions to see its
+      // actual state and don't try to
       // repeat a move op.
       node.getSession().refresh(true);
 
       // Source file ID
       String id = getId(node);
-      // Note: since 1.5.1 (1.6.0) the core JCR listener will merge node rename and title property in a
-      // single update, at the same time move to different parent will go with a delay but in single update
-      // also, thus we don't need tracking moved here (at least for move/rename usecases described above).
+      // Note: since 1.5.1 (1.6.0) the core JCR listener will merge node rename
+      // and title property in a
+      // single update, at the same time move to different parent will go with a
+      // delay but in single update
+      // also, thus we don't need tracking moved here (at least for move/rename
+      // usecases described above).
       // Ensure node name follows lower-case rule we use for Dropbox local files
       normalizeName(node);
 
@@ -714,10 +767,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       boolean isMove;
       if (!srcParentPath.equals(destParentPath)) {
-        // Locally saved Dropbox path's parent isn't the same as file's current parent - it's moved file
+        // Locally saved Dropbox path's parent isn't the same as file's current
+        // parent - it's moved file
         isMove = true;
       } else if (!srcPath.endsWith(destName)) {
-        // dbxPath of the file has other than current file name (lower-case!) - it's renamed file
+        // dbxPath of the file has other than current file name (lower-case!) -
+        // it's renamed file
         isMove = true;
       } else {
         // otherwise file wasn't changed in meaning of Dropbox structure
@@ -766,8 +821,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Reset Dropbox file direct/shared link to force generation of a new one within new dbxPath. It is a
-     * required step when copying or moving file - Dropbox maintains links respectively the file location.
+     * Reset Dropbox file direct/shared link to force generation of a new one
+     * within new dbxPath. It is a required step when copying or moving file -
+     * Dropbox maintains links respectively the file location.
      *
      * @param fileNode the file node
      * @throws RepositoryException the repository exception
@@ -822,8 +878,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
-   * An implementation of {@link SyncCommand} based on an abstract deltas queue proposed and maintained by the
-   * cloud service.
+   * An implementation of {@link SyncCommand} based on an abstract deltas queue
+   * proposed and maintained by the cloud service.
    */
   protected class EventsSync extends SyncCommand implements Changes {
 
@@ -857,7 +913,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         doSync = false;
       }
       if (doSync) {
-        // run changes sync: sync algorithm based on list_folder/continue from Dropbox API
+        // run changes sync: sync algorithm based on list_folder/continue from
+        // Dropbox API
         long changeId = System.currentTimeMillis(); // time of the begin
 
         // It should be a recursive cursor!
@@ -867,13 +924,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           ListFolder ls = api.listFolderContinued(DropboxAPI.ROOT_PATH_V2, cursor);
           iterators.add(ls);
 
-          // FYI we use lower-case rule for Dropbox local file names, it was applied by Connect command
+          // FYI we use lower-case rule for Dropbox local file names, it was
+          // applied by Connect command
           DropboxDrive localDrive = new DropboxDrive(api, driveNode);
 
-          // Analyze changes to recognize move/rename pairs of Deleted + File/Folder metadata
+          // Analyze changes to recognize move/rename pairs of Deleted +
+          // File/Folder metadata
           // List of changes (aka buffer to recognize move/rename)
           List<MetadataInfo> changes = new LinkedList<>();
-          // Tree of found deleted paths, mapping by ordered path of indexes in changes list
+          // Tree of found deleted paths, mapping by ordered path of indexes in
+          // changes list
           NavigableMap<String, MetadataInfo> deletedPathTree = new TreeMap<>();
           // IDs of items deleted remotely but found locally, mapping by item ID
           Map<String, MetadataInfo> deletedIdMap = new LinkedHashMap<>();
@@ -886,17 +946,20 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               Node node = change.localItem.getNode();
               change.index = changes.size();
               if (node != null) {
-                // We'll apply deletes on a new item change (update/create) or end of the changes (see below)
+                // We'll apply deletes on a new item change (update/create) or
+                // end of the changes (see below)
                 change.localId = fileAPI.getId(node);
                 MetadataInfo prevDeleted = deletedIdMap.put(change.localId, change);
                 if (prevDeleted != null) {
-                  // this shouldn't happen if we'll remove it within a sub-tree as below
+                  // this shouldn't happen if we'll remove it within a sub-tree
+                  // as below
                   if (LOG.isDebugEnabled()) {
                     LOG.debug("Previous deleted found for deleted: " + change + " ID: " + change.localId);
                   }
                   // TODO run deletion of prevDeleted right now?
                 }
-                // Remove changes that will be done implicitly by the delete (or more/rename) operation
+                // Remove changes that will be done implicitly by the delete (or
+                // more/rename) operation
                 SortedMap<String, MetadataInfo> deletedSubtree = deletedPathTree.tailMap(deletedPath, false);
                 for (Iterator<Map.Entry<String, MetadataInfo>> diter = deletedSubtree.entrySet().iterator(); diter.hasNext();) {
                   // remove all the sub-tree from changes and deleted
@@ -910,16 +973,19 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                     break; // sub-tree ended
                   }
                 }
-                // Build deleted tree ordered by path, by a string, thus grouped by items hierarchy
+                // Build deleted tree ordered by path, by a string, thus grouped
+                // by items hierarchy
                 MetadataInfo prevChange = deletedPathTree.put(deletedPath, change);
                 if (prevChange != null) {
                   if (LOG.isDebugEnabled()) {
-                    LOG.debug("Path updated in deleted tree: " + change.getPath() + " " + prevChange.index + " -> " + change.index);
+                    LOG.debug("Path updated in deleted tree: " + change.getPath() + " " + prevChange.index + " -> "
+                        + change.index);
                   }
                   // TODO what to do with this change in changes list?
                 }
               } else {
-                // nothing to delete locally (this may happen when local-to-remote changes get back to us)
+                // nothing to delete locally (this may happen when
+                // local-to-remote changes get back to us)
                 if (LOG.isDebugEnabled()) {
                   LOG.debug("Item not found locally to delete: " + change);
                 }
@@ -935,8 +1001,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               // * if not move/rename, then just update the item locally
               MetadataInfo prevDeleted = deletedIdMap.get(item.getId());
               if (prevDeleted != null) {
-                // If same location item comes after its ID deletion, it's rename or move
-                // deletedPathTree.remove(prevDeleted.getPath(), prevDeleted.index);
+                // If same location item comes after its ID deletion, it's
+                // rename or move
+                // deletedPathTree.remove(prevDeleted.getPath(),
+                // prevDeleted.index);
                 prevDeleted.index = -1; // mark as ignored in changes list
                 change.prevDeleted = prevDeleted;
               }
@@ -952,7 +1020,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
             changes.add(change);
 
-            // If it's update need apply immediately as next change path should be found in the local storage!
+            // If it's update need apply immediately as next change path should
+            // be found in the local storage!
             // Check if need apply gathered changes:
             // * if it's item change currently (not deleted)
             // * if have no more changes
@@ -968,7 +1037,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                         LOG.debug("Move: " + item.prevDeleted.getPath() + " -> " + item);
                       }
                       item.prevDeleted.localItem.move(item, this);
-                      // XXX move should be immediately saved to allow set JCR properties on dest items
+                      // XXX move should be immediately saved to allow set JCR
+                      // properties on dest items
                       save();
                     } else {
                       // It's update of existing or creation of a new
@@ -978,7 +1048,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                       item.localItem.update(item, this);
                     }
                   } else {
-                    // It's item deleted: remove not found or unknown item locally
+                    // It's item deleted: remove not found or unknown item
+                    // locally
                     if (LOG.isDebugEnabled()) {
                       LOG.debug("Delete: " + c);
                     }
@@ -999,7 +1070,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
           if (!Thread.currentThread().isInterrupted()) {
             setChangeId(changeId);
-            // save cursor explicitly to let use it in next sync even if nothing changed in this one
+            // save cursor explicitly to let use it in next sync even if nothing
+            // changed in this one
             Property cursorProp = driveNode.setProperty("dropbox:cursor", ls.getCursor());
             cursorProp.save();
             updateState(ls.getCursor());
@@ -1020,7 +1092,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
       if (!doSync) {
         // run re-connect command
-        // TODO we need special logic which will check local and remote IDs of files and remove not matched
+        // TODO we need special logic which will check local and remote IDs of
+        // files and remove not matched
         // something like a mix of fileAPI.restore() and Connect command.
         new Connect().execLocal();
       }
@@ -1030,8 +1103,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * {@inheritDoc}
      */
     public void apply(JCRLocalCloudFile local) throws RepositoryException, CloudDriveException {
-      // XXX we don't take in account changed status here to let returning changes on modifications from this
-      // local drive to appear in list of changed in client script and so let refresh the page to reflect
+      // XXX we don't take in account changed status here to let returning
+      // changes on modifications from this
+      // local drive to appear in list of changed in client script and so let
+      // refresh the page to reflect
       // rename/move modifications and name normalization (done by move).
       // if (local.isChanged()) {
       removeRemoved(local.getPath());
@@ -1218,15 +1293,18 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     /** The ID of this item found locally. Used when syncing folder changes. */
     String       localId     = null;
 
-    /** The previously deleted change associated with this item. Used when syncing folder changes. */
+    /**
+     * The previously deleted change associated with this item. Used when
+     * syncing folder changes.
+     */
     MetadataInfo prevDeleted = null;
 
     /**
      * Split given Dropbox path on parent path and a name.
      *
      * @param path the path
-     * @return the arrays of strings with parent path and name, parent can be <code>null</code> if it's
-     *         root
+     * @return the arrays of strings with parent path and name, parent can be
+     *         <code>null</code> if it's root
      */
     protected String[] splitPath(String path) {
       String parentPath, name;
@@ -1238,7 +1316,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         int parentEndIndex = path.lastIndexOf('/');
         int endIndex;
         if (parentEndIndex > 0 && parentEndIndex == path.length() - 1) {
-          // for cases with ending slash (e.g. '/my/path/' and we need '/my' parent)
+          // for cases with ending slash (e.g. '/my/path/' and we need '/my'
+          // parent)
           endIndex = parentEndIndex;
           parentEndIndex = path.lastIndexOf('/', endIndex - 1);
         } else {
@@ -1257,7 +1336,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           parentPath = DropboxAPI.ROOT_PATH_V2;
           name = path.substring(parentEndIndex + 1, endIndex);
         } else {
-          // This should not happen as path has '/', but: we guess it's root node as parent and given
+          // This should not happen as path has '/', but: we guess it's root
+          // node as parent and given
           // path is a name
           parentPath = DropboxAPI.ROOT_PATH_V2;
           name = path;
@@ -1291,7 +1371,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Gets the name (in lower case as in SDK path). It can differ with {@link #getTitle()}.
+     * Gets the name (in lower case as in SDK path). It can differ with
+     * {@link #getTitle()}.
      *
      * @return the name
      */
@@ -1303,9 +1384,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Return a location of this item parent (but w/o item ID). This method should be used with limitation,
-     * only for back-lookup purpose where searching existing local ancestor node by Dropbox path.
-     * This {@link ItemInfo} cannot be used for saving in local storage!
+     * Return a location of this item parent (but w/o item ID). This method
+     * should be used with limitation, only for back-lookup purpose where
+     * searching existing local ancestor node by Dropbox path. This
+     * {@link ItemInfo} cannot be used for saving in local storage!
      *
      * @see EventsSync#readNode(MetadataInfo)
      * @return the {@link ParentInfo} instance
@@ -1848,7 +1930,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   /**
    * The Class JCRLocalDropboxFile.
    */
-  @Deprecated // lazy-loading has no sense as we return CloudFile from connect/sync command after env/session
+  @Deprecated // lazy-loading has no sense as we return CloudFile from
+              // connect/sync command after env/session
               // closing and so delayed JCR read will fail.
   public class JCRLocalDropboxFile extends JCRLocalCloudFile {
 
@@ -1858,9 +1941,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
     protected transient AtomicReference<Calendar> createdDate, modifiedDate;
 
-    // XXX we need these fields declared in the class to let eXo WS JSON serializer work correct and don't
+    // XXX we need these fields declared in the class to let eXo WS JSON
+    // serializer work correct and don't
     // invoke/add such related methods.
-    // FYI transient fields will not appear in serialized forms like JSON object on client side
+    // FYI transient fields will not appear in serialized forms like JSON object
+    // on client side
 
     /** The node. */
     @SuppressWarnings("unused")
@@ -2126,9 +2211,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       /**
-       * Gets the local node of this item. If local item doesn't exist, then this method returns
-       * <code>null</code> and it's possible to call {@link #fetch(Changes)} to fetch the item state from
-       * cloud side or apply existing state from metadata in {@link #update(ItemInfo, Changes)}.
+       * Gets the local node of this item. If local item doesn't exist, then
+       * this method returns <code>null</code> and it's possible to call
+       * {@link #fetch(Changes)} to fetch the item state from cloud side or
+       * apply existing state from metadata in
+       * {@link #update(ItemInfo, Changes)}.
        *
        * @return the node, can be <code>null</code>
        */
@@ -2137,8 +2224,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       /**
-       * Removes the item node and return its path in local storage (JCR) or <code>null</code> if nothing
-       * found.
+       * Removes the item node and return its path in local storage (JCR) or
+       * <code>null</code> if nothing found.
        *
        * @return the string or <code>null</code> if nothing removed
        * @throws RepositoryException the repository exception
@@ -2181,7 +2268,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       /**
-       * Move this local item to a location reflecting given remote item and update its state.
+       * Move this local item to a location reflecting given remote item and
+       * update its state.
        *
        * @param toItem the to item
        * @param changes the changes
@@ -2196,18 +2284,26 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           JCRLocalCloudFile local;
           // check if Dropbox path doesn't match for src and dest locally
           if (toPath.equals(dbxPath)) {
-            // Local item node already at the right path in JCR - update it instead of moving
-            local = updateItem(api, toItem, parent, fromNode); // pass existing src node
+            // Local item node already at the right path in JCR - update it
+            // instead of moving
+            local = updateItem(api, toItem, parent, fromNode); // pass existing
+                                                               // src node
           } else {
-            // Check if dest place free or it's not the same node already there (possible due to name
-            // normalization - it can remove some characters, e.g. title 'file (5).jpg' will be node name
+            // Check if dest place free or it's not the same node already there
+            // (possible due to name
+            // normalization - it can remove some characters, e.g. title 'file
+            // (5).jpg' will be node name
             // 'file 5.jpg' what is the same as for title 'file 5.jpg').
             LocalItem toLocalItem = toItem.localItem != null ? toItem.localItem : getItem(toPath);
             if (toLocalItem.exists() && hasSameId(toLocalItem.getNode(), toItem)) {
-              // Indeed, dest item node already on its place in JCR - update it instead of moving
-              local = updateItem(api, toItem, parent, toLocalItem.getNode()); // pass existing node
+              // Indeed, dest item node already on its place in JCR - update it
+              // instead of moving
+              local = updateItem(api, toItem, parent, toLocalItem.getNode()); // pass
+                                                                              // existing
+                                                                              // node
             } else {
-              // Check for a weird case when source not yet a cloud file but same as the destination
+              // Check for a weird case when source not yet a cloud file but
+              // same as the destination
               toLocalItem.removeNode(); // It should not exist here otherwise
               try {
                 fromNode.refresh(true);
@@ -2221,16 +2317,20 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               LocalItem toParent = getItem(toItem.getParentPath());
               Node parent = toParent.getNode();
               if (parent == null) {
-                // This should not happen, but if it does we fetch it from the cloud side
+                // This should not happen, but if it does we fetch it from the
+                // cloud side
                 LOG.warn("Move's destination parent not found and will be fetched from cloud side: " + toItem.getParentPath());
                 parent = toParent.fetch(changes);
               }
               String srcJcrPath = fromNode.getPath();
-              // destAbsPath it's path in JCR, thus should be with lower-case dest item name
+              // destAbsPath it's path in JCR, thus should be with lower-case
+              // dest item name
               String destJcrPath = api.filePath(parent.getPath(), nodeName(toItem.getName()));
               fromNode.getSession().move(srcJcrPath, destJcrPath);
-              local = updateItem(api, toItem, parent, null); // will read the node inside
-              changes.removed(srcJcrPath); // track source removal to inform the client to refresh the view
+              local = updateItem(api, toItem, parent, null); // will read the
+                                                             // node inside
+              changes.removed(srcJcrPath); // track source removal to inform the
+                                           // client to refresh the view
             }
           }
           updated = local.getNode();
@@ -2244,11 +2344,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
 
       /**
-       * Fetch the item state from remote side. Method returns a node of the local cloud item at the path
-       * or <code>null</code> if node not found remotely or its dbxPath was changed.
+       * Fetch the item state from remote side. Method returns a node of the
+       * local cloud item at the path or <code>null</code> if node not found
+       * remotely or its dbxPath was changed.
        *
-       * @param changes the changes command related to the operation, not <code>null</code>
-       * @return the {@link Node} instance of local cloud file or <code>null</code> if no node updated.
+       * @param changes the changes command related to the operation, not
+       *          <code>null</code>
+       * @return the {@link Node} instance of local cloud file or
+       *         <code>null</code> if no node updated.
        * @throws RepositoryException the repository exception
        * @throws CloudDriveException the cloud drive exception
        */
@@ -2258,7 +2361,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         }
         Node node = null;
         Node theParent = parent; // starting from existing local parent
-        StringBuilder mapPath = new StringBuilder(getDropboxPath(theParent)); // path in Dropbox
+        StringBuilder mapPath = new StringBuilder(getDropboxPath(theParent)); // path
+                                                                              // in
+                                                                              // Dropbox
         for (Iterator<String> eiter = relPath.iterator(); eiter.hasNext();) {
           String name = eiter.next();
           mapPath.append('/').append(name);
@@ -2266,10 +2371,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           node = pathNodes.get(itemPath);
           MetadataInfo item = itemInfo(api.get(itemPath, true));
           if (item.isItem()) {
-            // Here we have a situation where existing hierarchy may be build from other (but same
-            // name) items and so, by deleting local item (w/ different ID), we'll lose its shared links.
-            // But as it's an another file or folder (by ID), it looks that it should be shared by an user
-            // again. This seems will happen for restored via API items (they may change ID for folders on the
+            // Here we have a situation where existing hierarchy may be build
+            // from other (but same
+            // name) items and so, by deleting local item (w/ different ID),
+            // we'll lose its shared links.
+            // But as it's an another file or folder (by ID), it looks that it
+            // should be shared by an user
+            // again. This seems will happen for restored via API items (they
+            // may change ID for folders on the
             // dbxPath).
             JCRLocalCloudFile local = updateItem(api, item, theParent, node);
             changes.apply(local);
@@ -2277,7 +2386,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             pathNodes.put(itemPath, node);
             if (item.isFolder()) {
               if (eiter.hasNext() && node.isNew()) {
-                // if it's intermediary ancestor on 'not found' path and not found locally, we create it
+                // if it's intermediary ancestor on 'not found' path and not
+                // found locally, we create it
                 // changes.apply(updateItemV2(api, item, theParent, node));
                 // fetch whole sub-tree and should finish here
                 fetchSubtree(api, item.asFolder().getId(), theParent, null, changes);
@@ -2294,8 +2404,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
               }
             } else {
               if (eiter.hasNext()) {
-                // it's not last element in 'not found' subtree path, obviously this item should be a
-                // folder, but we have a file from remote side. Thus we stop the loop and tell target node
+                // it's not last element in 'not found' subtree path, obviously
+                // this item should be a
+                // folder, but we have a file from remote side. Thus we stop the
+                // loop and tell target node
                 // doesn't exist (return null).
                 removePaths(itemPath);
                 node = null;
@@ -2356,7 +2468,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       for (Iterator<Map.Entry<String, Node>> pniter = pathNodes.entrySet().iterator(); pniter.hasNext();) {
         Map.Entry<String, Node> pne = pniter.next();
         if (pne.getValue().getPath().startsWith(dbxPath)) {
-          removeLinks(pne.getValue()); // explicitly remove file links outside the drive
+          removeLinks(pne.getValue()); // explicitly remove file links outside
+                                       // the drive
           pniter.remove();
         }
       }
@@ -2394,11 +2507,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Find local item by its path in the storage (JCR). If given path outside the drive root node then
-     * <code>null</code> will be returned.
+     * Find local item by its path in the storage (JCR). If given path outside
+     * the drive root node then <code>null</code> will be returned.
      *
      * @param jcrPath the JCR path
-     * @return the local item or <code>null</code> of path outside the drive root node
+     * @return the local item or <code>null</code> of path outside the drive
+     *         root node
      * @throws RepositoryException the repository exception
      */
     public LocalItem findByLocalPath(String jcrPath) throws RepositoryException {
@@ -2459,10 +2573,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           if (fileAPI.isFolder(node)) {
             parent = node;
           } else {
-            // if we have more elements in the dbxPath, but current one isn't a folder - it's subtree
+            // if we have more elements in the dbxPath, but current one isn't a
+            // folder - it's subtree
             // inconsistency with a remote state.
             // we consider this as 'not found' item with existing parent,
-            // later, if location's create() will be called, this node will updated to actual state
+            // later, if location's create() will be called, this node will
+            // updated to actual state
             node = null;
             // we break the loop here as no next parent exists
             break;
@@ -2506,10 +2622,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     }
 
     /**
-     * Restore given node at a Dropbox path saved in it or remove the node if it's a connected cloud file.
+     * Restore given node at a Dropbox path saved in it or remove the node if
+     * it's a connected cloud file.
      *
      * @param node the node
-     * @return the node or <code>null</code> if node cannot be found or was removed
+     * @return the node or <code>null</code> if node cannot be found or was
+     *         removed
      * @throws RepositoryException the repository exception
      */
     public Node restore(Node node) throws RepositoryException {
@@ -2656,7 +2774,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
   /**
    * {@inheritDoc}
-   * 
    */
   @Override
   public void onUserTokenRemove() throws CloudDriveException {
@@ -2722,14 +2839,21 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   public void shareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
-    // Standard Dropbox account can share file publicly only. We cannot set per-user permissions here.
+    // Standard Dropbox account can share file publicly only. We cannot set
+    // per-user permissions here.
 
-    // TODO Implement Team sharing according Dropbox API https://www.dropbox.com/developers/core/docs#shares
-    // Dropbox for Business users can set restrictions on shared links; the visibility field indicates
-    // what (if any) restrictions are set on this particular link. Possible values include: "PUBLIC" (anyone
-    // can view), "TEAM_ONLY" (only the owner's team can view), "PASSWORD" (a password is required),
-    // "TEAM_AND_PASSWORD" (a combination of "TEAM_ONLY" and "PASSWORD" restrictions), or "SHARED_FOLDER_ONLY"
-    // (only members of the enclosing shared folder can view). Note that other values may be added at any
+    // TODO Implement Team sharing according Dropbox API
+    // https://www.dropbox.com/developers/core/docs#shares
+    // Dropbox for Business users can set restrictions on shared links; the
+    // visibility field indicates
+    // what (if any) restrictions are set on this particular link. Possible
+    // values include: "PUBLIC" (anyone
+    // can view), "TEAM_ONLY" (only the owner's team can view), "PASSWORD" (a
+    // password is required),
+    // "TEAM_AND_PASSWORD" (a combination of "TEAM_ONLY" and "PASSWORD"
+    // restrictions), or "SHARED_FOLDER_ONLY"
+    // (only members of the enclosing shared folder can view). Note that other
+    // values may be added at any
     // time.
 
     createSharedLink(fileNode);
@@ -2797,7 +2921,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   protected void refreshAccess() throws CloudDriveException {
-    // Dropbox token renewal will be done on RefreshAccessException raised from the DropboxAPI methods
+    // Dropbox token renewal will be done on RefreshAccessException raised from
+    // the DropboxAPI methods
   }
 
   /**
@@ -2815,16 +2940,17 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   protected void fixNameConflict(Node file) throws RepositoryException {
     super.fixNameConflict(file);
 
-    // ensure we follow the rule or lower-case path in JCR for lookup in DropboxDrive
+    // ensure we follow the rule or lower-case path in JCR for lookup in
+    // DropboxDrive
     normalizeName(file);
   }
 
   /**
-   * Ensure the Dropbox file node has name in lower-case. If name requires change it will be renamed in the
-   * current session.<br>
+   * Ensure the Dropbox file node has name in lower-case. If name requires
+   * change it will be renamed in the current session.<br>
    * This step required for {@link DropboxDrive} work.<br>
-   * NOTE: this method does't check if it is a cloud file and doesn't respect JCR namespaces and will check
-   * against the whole name of the file.
+   * NOTE: this method does't check if it is a cloud file and doesn't respect
+   * JCR namespaces and will check against the whole name of the file.
    *
    * @param fileNode {@link Node}
    * @throws RepositoryException the repository exception
@@ -2861,7 +2987,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * Initialize Dropbox folder.
    *
    * @param localNode {@link Node}
-   * @param cursor String a cursor of last synchronization, if <code>null</code> it will be ignored
+   * @param cursor String a cursor of last synchronization, if <code>null</code>
+   *          it will be ignored
    * @throws RepositoryException the repository exception
    * @throws DropboxException the dropbox exception
    */
@@ -2887,8 +3014,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
-   * Get Dropbox path saved in local item. If this path not found in the item, a <code>null</code> will
-   * be returned.
+   * Get Dropbox path saved in local item. If this path not found in the item, a
+   * <code>null</code> will be returned.
    *
    * @param localNode the local node
    * @return the Dropbox path or <code>null</code>
@@ -2899,9 +3026,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   }
 
   /**
-   * Update, create or delete a local node of Cloud File. If the node is <code>null</code> then it will be
-   * open on the given parent and created if not already exists. If item metadata is not file or folder
-   * type, then CloudDriveException will be thrown.
+   * Update, create or delete a local node of Cloud File. If the node is
+   * <code>null</code> then it will be open on the given parent and created if
+   * not already exists. If item metadata is not file or folder type, then
+   * CloudDriveException will be thrown.
    *
    * @param api {@link DropboxAPI}
    * @param update the update
@@ -2909,8 +3037,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * @param node {@link Node}, can be <code>null</code> if parent given
    * @return {@link JCRLocalCloudFile}
    * @throws RepositoryException for storage errors
-   * @throws CloudDriveException for drive or format errors, or if item metadata not of existing file or
-   *           folder
+   * @throws CloudDriveException for drive or format errors, or if item metadata
+   *           not of existing file or folder
    */
   protected JCRLocalCloudFile updateItem(DropboxAPI api, MetadataInfo update, Node parent, Node node) throws RepositoryException,
                                                                                                       CloudDriveException {
@@ -2918,7 +3046,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       ItemInfo item = update.asItem();
 
       String id = item.getId();
-      String title = item.getTitle(); // title as natural item name in Dropbox (case preserved)
+      String title = item.getTitle(); // title as natural item name in Dropbox
+                                      // (case preserved)
 
       Calendar created, modified;
       String createdBy, modifiedBy;
@@ -2930,15 +3059,19 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       String link;
       String type;
       JCRLocalCloudFile localFile;
-      // FYI we apply lower-case rule for Dropbox local file names, it will be used for a lookup by
+      // FYI we apply lower-case rule for Dropbox local file names, it will be
+      // used for a lookup by
       // DropboxDrive class
       if (item.isFolder()) {
         FolderInfo folder = item.asFolder();
         // read/create local node if not given
         // Dropbox docs say:
-        // If the new entry is a folder, check what your local state has at path. If it's a file, replace
-        // it with the new entry. If it's a folder, apply the new metadata to the folder, but don't modify
-        // the folder's children. If your local state doesn't yet include this dbxPath, create it as a folder.
+        // If the new entry is a folder, check what your local state has at
+        // path. If it's a file, replace
+        // it with the new entry. If it's a folder, apply the new metadata to
+        // the folder, but don't modify
+        // the folder's children. If your local state doesn't yet include this
+        // dbxPath, create it as a folder.
         if (node == null) {
           if (parent != null) {
             node = readNode(parent, folder.getName(), id);
@@ -2958,11 +3091,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         if (node.isNew() || hasLocationChanged(node, folder)) {
           changed = true;
           if (node.isNew()) {
-            created = modified = Calendar.getInstance(); // XXX Dropbox SDK doesn't have folder's dates
+            created = modified = Calendar.getInstance(); // XXX Dropbox SDK
+                                                         // doesn't have
+                                                         // folder's dates
           } else {
             modified = Calendar.getInstance();
             try {
-              // if 'created' date exists - don't change it, otherwise the same as modified
+              // if 'created' date exists - don't change it, otherwise the same
+              // as modified
               fileAPI.getCreated(node);
               created = null;
             } catch (PathNotFoundException e) {
@@ -2973,17 +3109,29 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
           initFolder(node, id, title, type, link, createdBy, modifiedBy, created, modified);
           initDropboxPath(node, folder.getPath());
         } else {
-          // only "changed" set here, others will read on-demand by the file instance
+          // only "changed" set here, others will read on-demand by the file
+          // instance
           changed = false;
           created = modified = null; // will not change stored locally
           link = null;
         }
-        localFile = new JCRLocalCloudFile(node.getPath(), id, title, link, type, modifiedBy, createdBy, created, modified, node, changed);
+        localFile = new JCRLocalCloudFile(node.getPath(),
+                                          id,
+                                          title,
+                                          link,
+                                          type,
+                                          modifiedBy,
+                                          createdBy,
+                                          created,
+                                          modified,
+                                          node,
+                                          changed);
       } else {
         FileInfo file = item.asFile();
         // read/create local node if not given
         // Dropbox docs say:
-        // If the new entry is a file, replace whatever your local state has at path with the new entry.
+        // If the new entry is a file, replace whatever your local state has at
+        // path with the new entry.
         if (node == null) {
           if (parent != null) {
             node = readNode(parent, file.getName(), id);
@@ -3024,7 +3172,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                    type,
                    link,
                    null, // see previewLink()
-                   null, // thumbnailLink, TODO use eXo Thumbnails services in conjunction with Dropbox thumbs
+                   null, // thumbnailLink, TODO use eXo Thumbnails services in
+                         // conjunction with Dropbox thumbs
                    createdBy,
                    modifiedBy,
                    created,
@@ -3056,8 +3205,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                           changed);
       }
       if (LOG.isDebugEnabled()) {
-        LOG.debug("Updated item: " + localFile.getPath() + " [" + localFile.getId() + ", " + item.getPath() + "] changed: " + localFile.isChanged()
-            + " folder: " + localFile.isFolder());
+        LOG.debug("Updated item: " + localFile.getPath() + " [" + localFile.getId() + ", " + item.getPath() + "] changed: "
+            + localFile.isChanged() + " folder: " + localFile.isFolder());
       }
       return localFile;
     } else if (update.isDeleted()) {
@@ -3092,9 +3241,11 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
       Property dleProp = fileNode.setProperty("dropbox:sharedLinkExpires", sharedLinkExpires);
       if (dlProp.isNew()) {
-        if (!fileNode.isNew() && !fileNode.isModified()) { // save only if node was already saved
+        if (!fileNode.isNew() && !fileNode.isModified()) { // save only if node
+                                                           // was already saved
           fileNode.save();
-        } // otherwise, it should be saved where the node added/modified (by the owner)
+        } // otherwise, it should be saved where the node added/modified (by the
+          // owner)
       } else {
         // save only direct link properties for!
         dlProp.save();
@@ -3111,8 +3262,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   protected String link(Node fileNode) throws RepositoryException {
-    // check is it a drive owner or does the file already shared to outside the owner's
-    // Personal Docs, and if not owner and shared already - we return shared link, otherwise return default
+    // check is it a drive owner or does the file already shared to outside the
+    // owner's
+    // Personal Docs, and if not owner and shared already - we return shared
+    // link, otherwise return default
     // (home-based) URL.
 
     String currentUser = currentUserName();
@@ -3128,13 +3281,18 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     if (isNotOwner) {
       // Here we assume the following:
       // * file or folder was shared to other users by the drive owner
-      // * owner of the drive agreed that he/she shares the file to others as Dropbox does for standard
+      // * owner of the drive agreed that he/she shares the file to others as
+      // Dropbox does for standard
       // account
-      // * if owner will decide to remove the link (revoke the sharing), then this link will not be valid and
-      // others will not be able to access the file. To share the file again, the owner needs to copy-paste
-      // the file to its shared destination again or set such permission in Cloud File Sharing menu.
+      // * if owner will decide to remove the link (revoke the sharing), then
+      // this link will not be valid and
+      // others will not be able to access the file. To share the file again,
+      // the owner needs to copy-paste
+      // the file to its shared destination again or set such permission in
+      // Cloud File Sharing menu.
 
-      // Shared link expires on Dropbox (as for Aug 11, 2015 all expirations at Jan 1 2030), respect this fact
+      // Shared link expires on Dropbox (as for Aug 11, 2015 all expirations at
+      // Jan 1 2030), respect this fact
       String sharedLink;
       boolean acquireNew = false;
       try {
@@ -3143,22 +3301,28 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         if (expires == -1 || expires > System.currentTimeMillis()) {
           return sharedLink;
         } else {
-          // re-acquire a new shared link (this seems should happen after Jan 1 2030)
+          // re-acquire a new shared link (this seems should happen after Jan 1
+          // 2030)
           acquireNew = true;
         }
       } catch (PathNotFoundException e) {
         // shared link not saved locally, it may mean several things:
-        // * it is a file in shared folder and need acquire a shared link for this file
+        // * it is a file in shared folder and need acquire a shared link for
+        // this file
         Node parent = fileNode.getParent();
         if (fileAPI.isFolder(parent) && parent.hasProperty("dropbox:sharedLink")) {
           // if folder already shared...
-          // in case of sub-folder in shared folder, a shared link for the sub-folder will be acquired
-          // naturally in result of navigation in Documents explorer (except of explicit path pointing what
+          // in case of sub-folder in shared folder, a shared link for the
+          // sub-folder will be acquired
+          // naturally in result of navigation in Documents explorer (except of
+          // explicit path pointing what
           // is not possible for human usecases)
           acquireNew = true;
         }
-        // * the file wasn't shared via symlink but access somehow by other user (e.g. by root user, system
-        // session) - in this case we don't want do anything and return default link
+        // * the file wasn't shared via symlink but access somehow by other user
+        // (e.g. by root user, system
+        // session) - in this case we don't want do anything and return default
+        // link
       }
 
       if (acquireNew) {
@@ -3166,7 +3330,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         try {
           Node node;
           if (isNotOwner) {
-            // if not owner need use system session to have rights to save the sharedLink in the node
+            // if not owner need use system session to have rights to save the
+            // sharedLink in the node
             node = (Node) systemSession().getItem(fileNode.getPath());
           } else {
             node = fileNode;
@@ -3177,7 +3342,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         }
       }
     }
-    // by default, we show saved locally link build respectively the Home page of current (owner) user
+    // by default, we show saved locally link build respectively the Home page
+    // of current (owner) user
     return super.link(fileNode);
   }
 
@@ -3202,7 +3368,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       directLink = getUser().api().getDirectLink(id);
       jcrListener.disable();
       Node node;
-      // if not owner and not new node need use system session to have rights to save the directLink in the
+      // if not owner and not new node need use system session to have rights to
+      // save the directLink in the
       // node
       String currentUser = currentUserName();
       String driveOwner = rootNode().getProperty("ecd:localUserName").getString();
@@ -3211,11 +3378,14 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       } else {
         node = fileNode;
       }
-      // properties should be saved within the drive node (e.g. in sync files command)
+      // properties should be saved within the drive node (e.g. in sync files
+      // command)
       Property dlProp = node.setProperty("dropbox:directLink", directLink);
-      Property dleProp = node.setProperty("dropbox:directLinkExpires", System.currentTimeMillis() + DropboxAPI.TEMP_LINK_EXPIRATION);
+      Property dleProp = node.setProperty("dropbox:directLinkExpires",
+                                          System.currentTimeMillis() + DropboxAPI.TEMP_LINK_EXPIRATION);
       if (dlProp.isNew()) {
-        if (!node.isNew() && !node.isModified()) { // this should work for only already saved nodes
+        if (!node.isNew() && !node.isModified()) { // this should work for only
+                                                   // already saved nodes
           node.save();
         } // otherwise, it should be saved where the node added/modified
       } else {
@@ -3240,7 +3410,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       jcrListener.enable();
     }
     // by default, we'll stream the file content via eXo REST service link
-    // FIXME in case of non-viewable document this may do bad UX (a download popup will appear)
+    // FIXME in case of non-viewable document this may do bad UX (a download
+    // popup will appear)
     return ContentService.contentLink(rootWorkspace, fileNode.getPath(), id);
   }
 
@@ -3294,8 +3465,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    * @param item the item metadata
    * @param parentId the parent ID
    * @param parentNode the parent node
-   * @param iterators the iterators for progress tracking, can be <code>null</code>
-   * @param changes the changes command (e.g. connect, sync or restore), never <code>null</code>
+   * @param iterators the iterators for progress tracking, can be
+   *          <code>null</code>
+   * @param changes the changes command (e.g. connect, sync or restore), never
+   *          <code>null</code>
    * @throws RepositoryException the repository exception
    * @throws NotFoundException the not found exception
    * @throws CloudDriveException the cloud drive exception
@@ -3327,7 +3500,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
             fetchItem(api, childItem, localItem.getId(), localItem.getNode(), iterators, changes);
           }
         } catch (NotFoundException e) {
-          // may have a place if folder was just removed after the list request (during this fetching)
+          // may have a place if folder was just removed after the list request
+          // (during this fetching)
           removeNode(localItem.getNode());
           changes.undo(localItem);
         }
@@ -3340,7 +3514,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         changes.apply(localItem);
       }
     } else if (item.isDeleted()) {
-      // FYI as for Connect command this should not happen except if deleted during fetching
+      // FYI as for Connect command this should not happen except if deleted
+      // during fetching
       Node node = readNode(parentNode, item.getName(), null);
       if (node != null) {
         JCRLocalCloudFile localItem = readFile(node);
@@ -3381,7 +3556,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   // * Clean expired moved.
   // */
   // protected void cleanExpiredMoved() {
-  // for (Iterator<MovedFile> fiter = moved.values().iterator(); fiter.hasNext();) {
+  // for (Iterator<MovedFile> fiter = moved.values().iterator();
+  // fiter.hasNext();) {
   // MovedFile file = fiter.next();
   // if (file.isOutdated()) {
   // fiter.remove();
@@ -3394,8 +3570,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   protected String nodeName(String title) {
-    // All node names lower-case for Dropbox files to make lookup by Dropbox path possible in DropboxDrive.
-    // This done on node creation phase when we use not title but name from Dropbox and it is already
+    // All node names lower-case for Dropbox files to make lookup by Dropbox
+    // path possible in DropboxDrive.
+    // This done on node creation phase when we use not title but name from
+    // Dropbox and it is already
     // lower-case
     // return super.nodeName(getUser().api().lowerCase(title)); // TODO
     return super.nodeName(title);
@@ -3432,9 +3610,13 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   protected boolean hasLocationChanged(Node node, ItemInfo item) throws RepositoryException {
     try {
-      return !getDropboxPath(node).equals(item.getPath()) /* || hasDifferentId(node, item) */;
+      return !getDropboxPath(node).equals(item.getPath()) /*
+                                                           * || hasDifferentId(
+                                                           * node, item)
+                                                           */;
     } catch (PathNotFoundException e) {
-      // if path property not found - it's not yet cloud file or ignored, in this context we assume it's
+      // if path property not found - it's not yet cloud file or ignored, in
+      // this context we assume it's
       // location change, i.e. new file.
       return true;
     }
@@ -3452,7 +3634,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     try {
       return fileAPI.getId(node).equals(item.getId());
     } catch (PathNotFoundException e) {
-      // if ID property not found - it's not yet cloud file or ignored, in this context we assume it's
+      // if ID property not found - it's not yet cloud file or ignored, in this
+      // context we assume it's
       // different IDs, i.e. new file.
       return false;
     }
@@ -3470,7 +3653,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     try {
       return !node.getProperty("dropbox:rev").getString().equals(file.getRev());
     } catch (PathNotFoundException e) {
-      // if rev property not found - it's not yet cloud file or ignored, in this context we assume it's
+      // if rev property not found - it's not yet cloud file or ignored, in this
+      // context we assume it's
       // different revisions, i.e. new file.
       return true;
     }

@@ -18,15 +18,15 @@
  */
 package org.exoplatform.clouddrive.PROVIDER_ID;
 
+import javax.jcr.RepositoryException;
+
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.services.jcr.RepositoryService;
 
-import javax.jcr.RepositoryException;
-
 /**
- * Template provider. TODO it actually copies GoogleDrive provider by the code because of OAuth2.
- * 
+ * Template provider. TODO it actually copies GoogleDrive provider by the code
+ * because of OAuth2.
  */
 public class TemplateProvider extends CloudProvider {
 
@@ -48,11 +48,7 @@ public class TemplateProvider extends CloudProvider {
    * @param redirectURL the redirect URL
    * @param jcrService the jcr service
    */
-  public TemplateProvider(String id,
-                          String name,
-                          String authURL,
-                          String redirectURL,
-                          RepositoryService jcrService) {
+  public TemplateProvider(String id, String name, String authURL, String redirectURL, RepositoryService jcrService) {
     super(id, name);
     this.authURL = authURL;
     this.redirectURL = redirectURL;
