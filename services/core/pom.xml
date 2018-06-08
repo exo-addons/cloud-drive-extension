@@ -19,13 +19,12 @@
     02110-1301 USA, or see the FSF site: http://www.fsf.org.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>exo-clouddrive-services</artifactId>
-    <version>1.5.x-SNAPSHOT</version>
+    <version>1.5.1</version>
   </parent>
   <artifactId>exo-clouddrive-services-core</artifactId>
   <packaging>jar</packaging>
@@ -262,7 +261,7 @@
                 <exo.test.type>integration</exo.test.type><!-- to separate HSQL and Indexer files in JCR -->
                 <maven.exoplatform.dir>${project.build.directory}</maven.exoplatform.dir>
                 <exo.conf.dir.name>test-classes/conf</exo.conf.dir.name>
-                <!-- exo.shared.dir>${project.build.directory}</exo.shared.dir  -->
+                <!-- exo.shared.dir>${project.build.directory}</exo.shared.dir -->
                 <java.security.auth.login.config>${project.build.directory}/test-classes/conf/jaas.conf</java.security.auth.login.config>
               </systemPropertyVariables>
               <includes>
