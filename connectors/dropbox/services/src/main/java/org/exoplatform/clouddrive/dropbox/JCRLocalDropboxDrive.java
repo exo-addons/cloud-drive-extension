@@ -51,6 +51,7 @@ import javax.jcr.query.QueryResult;
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.v2.files.DeletedMetadata;
 import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.FileSharingInfo;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.sharing.SharedLinkMetadata;
@@ -1733,6 +1734,16 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     protected Date getServerModified() {
       return file.getServerModified();
     }
+    
+    /**
+     * Gets the last modifier.
+     *
+     * @return the last modifier
+     */
+    protected String getModifiedBy() {
+      FileSharingInfo sinfo = file.getSharingInfo();
+      return sinfo != null ? sinfo.getModifiedBy() : null;
+    }
   }
 
   /**
@@ -3128,6 +3139,10 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
                                           changed);
       } else {
         FileInfo file = item.asFile();
+        String fileModifiedBy = file.getModifiedBy();
+        if (fileModifiedBy != null && fileModifiedBy.length() > 0) {
+          modifiedBy = fileModifiedBy;
+        }
         // read/create local node if not given
         // Dropbox docs say:
         // If the new entry is a file, replace whatever your local state has at
