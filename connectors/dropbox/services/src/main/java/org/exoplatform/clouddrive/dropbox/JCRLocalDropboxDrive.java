@@ -72,7 +72,6 @@ import org.exoplatform.clouddrive.SyncNotSupportedException;
 import org.exoplatform.clouddrive.dropbox.DropboxAPI.ListFolder;
 import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.clouddrive.dropbox.JCRLocalDropboxDrive.DropboxDrive.LocalItem;
-import org.exoplatform.clouddrive.dropbox.JCRLocalDropboxDrive.MetadataInfo;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
 import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
@@ -1390,7 +1389,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
      * searching existing local ancestor node by Dropbox path. This
      * {@link ItemInfo} cannot be used for saving in local storage!
      *
-     * @see EventsSync#readNode(MetadataInfo)
      * @return the {@link ParentInfo} instance
      */
     protected ParentInfo parent() {
@@ -1734,7 +1732,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     protected Date getServerModified() {
       return file.getServerModified();
     }
-    
+
     /**
      * Gets the last modifier.
      *
@@ -2224,9 +2222,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       /**
        * Gets the local node of this item. If local item doesn't exist, then
        * this method returns <code>null</code> and it's possible to call
-       * {@link #fetch(Changes)} to fetch the item state from cloud side or
-       * apply existing state from metadata in
-       * {@link #update(ItemInfo, Changes)}.
+       * fetch(Changes) to fetch the item state from cloud side or apply
+       * existing state from metadata in update(ItemInfo, Changes).
        *
        * @return the node, can be <code>null</code>
        */
