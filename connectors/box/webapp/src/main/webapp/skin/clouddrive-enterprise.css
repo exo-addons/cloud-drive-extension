@@ -1,21 +1,20 @@
 /* Enterprise Skin styles */
-
 .uiIcon16x16CloudDrive-box:before {
 	left: -17px;
-    top: 2px;
+	top: 2px;
 }
 
 .uiIcon64x64CloudDrive-box:before {
 	left: -50px;
-    top: -4px;
+	top: -4px;
 }
 
 /*
  * Responsive styles
  */
-@media (min-width: 481px) and (max-width: 1024px) {
+@media ( min-width : 481px) and (max-width: 1024px) {
 	.uiIcon64x64CloudDrive-box:before {
 		left: -57px;
-    	top: -8px;
+		top: -8px;
 	}
 }

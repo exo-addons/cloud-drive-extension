@@ -5,6 +5,7 @@
 	height: 14px !important;
 	width: 14px !important;
 }
+
 .uiIconEcmsConnectCMIS:before {
 	content: url("icons/cmis-logo-gray-14x14.png");
 }
@@ -24,6 +25,7 @@
 .uiIcon16x16CloudFile-cmis {
 	top: 3px;
 }
+
 .uiIcon16x16CloudFile-cmis:before {
 	content: url("icons/cmis-logo-gray-14x14.png");
 }
@@ -50,7 +52,7 @@
  */
 .uiIcon24x24CloudDrive-cmis:before {
 	left: 3px;
-    top: -21px;
+	top: -21px;
 	width: 20px;
 	height: 20px;
 	position: relative !important;
@@ -60,7 +62,8 @@
 	-o-transform: scale(0.8);
 	-ms-transform: scale(0.8);
 	transform: scale(0.8);
-	content: url("icons/cmis-logo-gray-16x16.png");}
+	content: url("icons/cmis-logo-gray-16x16.png");
+}
 
 /*
  * Drive icon in Icon view.
@@ -77,17 +80,15 @@
 /*
  * Responsive styles
  */
-@media (min-width: 481px) and (max-width: 1024px) {
+@media ( min-width : 481px) and (max-width: 1024px) {
 	.uiIcon16x16CloudDrive-cmis:before {
 		left: -17px;
 		top: 2px;
 	}
-	
 	.uiIcon24x24CloudDrive-cmis:before {
 		left: 6px;
-    	top: -30px;
+		top: -30px;
 	}
-	
 	.uiIcon64x64CloudDrive-cmis:before {
 		left: -57px;
 		top: -8px;

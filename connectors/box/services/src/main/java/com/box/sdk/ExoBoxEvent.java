@@ -22,6 +22,7 @@ package com.box.sdk;
 import com.eclipsesource.json.JsonObject;
 
 /**
+ * Extensions to Box Content SDK v1.
  * Original {@link BoxEvent} extended to get an access to its constructor based
  * on {@link JsonObject}.<br>
  * Created by The eXo Platform SAS

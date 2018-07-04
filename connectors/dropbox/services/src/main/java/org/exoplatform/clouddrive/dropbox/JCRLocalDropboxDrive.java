@@ -2839,7 +2839,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   public boolean isSharingSupported() {
-    return true;
+    return false;
   }
 
   /**
@@ -2864,7 +2864,9 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     // values may be added at any
     // time.
 
-    createSharedLink(fileNode);
+    // Need refine ideas of Dropbox and eXo sharing and make clear for end user
+    // createSharedLink(fileNode);
+    throw new CloudDriveException("Sharing not supported");
   }
 
   /**
@@ -3253,8 +3255,8 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       }
       Property dleProp = fileNode.setProperty("dropbox:sharedLinkExpires", sharedLinkExpires);
       if (dlProp.isNew()) {
-        if (!fileNode.isNew() && !fileNode.isModified()) { // save only if node
-                                                           // was already saved
+        // save only if node was already saved
+        if (!fileNode.isNew() && !fileNode.isModified()) {
           fileNode.save();
         } // otherwise, it should be saved where the node added/modified (by the
           // owner)
@@ -3275,16 +3277,12 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
   @Override
   protected String link(Node fileNode) throws RepositoryException {
     // check is it a drive owner or does the file already shared to outside the
-    // owner's
-    // Personal Docs, and if not owner and shared already - we return shared
-    // link, otherwise return default
-    // (home-based) URL.
+    // owner's Personal Docs, and if not owner and shared already - we return
+    // shared link, otherwise return default (home-based) URL.
 
-    String currentUser = currentUserName();
     boolean isNotOwner;
     try {
-      String driveOwner = rootNode().getProperty("ecd:localUserName").getString();
-      isNotOwner = !driveOwner.equals(currentUser);
+      isNotOwner = !getLocalUser().equals(currentUserName());
     } catch (DriveRemovedException e) {
       LOG.warn("Cannot read drive owner: " + e.getMessage());
       isNotOwner = false;
@@ -3294,22 +3292,24 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       // Here we assume the following:
       // * file or folder was shared to other users by the drive owner
       // * owner of the drive agreed that he/she shares the file to others as
-      // Dropbox does for standard
-      // account
+      // Dropbox does for standard account
       // * if owner will decide to remove the link (revoke the sharing), then
-      // this link will not be valid and
-      // others will not be able to access the file. To share the file again,
-      // the owner needs to copy-paste
+      // this link will not be valid and others will not be able to access the
+      // file. To share the file again, the owner needs to copy-paste
       // the file to its shared destination again or set such permission in
-      // Cloud File Sharing menu.
+      // Sharing menu.
+
+      // if not owner need use system session to have rights to read and save
+      // the node
+      Node snode = (Node) systemSession().getItem(fileNode.getPath());
 
       // Shared link expires on Dropbox (as for Aug 11, 2015 all expirations at
       // Jan 1 2030), respect this fact
       String sharedLink;
       boolean acquireNew = false;
       try {
-        sharedLink = fileNode.getProperty("dropbox:sharedLink").getString();
-        long expires = fileNode.getProperty("dropbox:sharedLinkExpires").getLong();
+        sharedLink = snode.getProperty("dropbox:sharedLink").getString();
+        long expires = snode.getProperty("dropbox:sharedLinkExpires").getLong();
         if (expires == -1 || expires > System.currentTimeMillis()) {
           return sharedLink;
         } else {
@@ -3321,36 +3321,26 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // shared link not saved locally, it may mean several things:
         // * it is a file in shared folder and need acquire a shared link for
         // this file
-        Node parent = fileNode.getParent();
+        Node parent = snode.getParent();
         if (fileAPI.isFolder(parent) && parent.hasProperty("dropbox:sharedLink")) {
           // if folder already shared...
           // in case of sub-folder in shared folder, a shared link for the
-          // sub-folder will be acquired
-          // naturally in result of navigation in Documents explorer (except of
-          // explicit path pointing what
-          // is not possible for human usecases)
+          // sub-folder will be acquired naturally in result of navigation in
+          // Documents explorer (except of explicit path pointing what is not
+          // possible for human usecases)
           acquireNew = true;
         }
         // * the file wasn't shared via symlink but access somehow by other user
-        // (e.g. by root user, system
-        // session) - in this case we don't want do anything and return default
-        // link
+        // (e.g. by root user, system session) - in this case we don't want do
+        // anything and return default link
       }
 
       if (acquireNew) {
         // get a shared link from Dropbox here
         try {
-          Node node;
-          if (isNotOwner) {
-            // if not owner need use system session to have rights to save the
-            // sharedLink in the node
-            node = (Node) systemSession().getItem(fileNode.getPath());
-          } else {
-            node = fileNode;
-          }
-          return createSharedLink(node);
+          return createSharedLink(snode);
         } catch (CloudDriveException e) {
-          LOG.error("Error creating shared link of Dropbox file " + fileAPI.getId(fileNode), e);
+          LOG.error("Error creating shared link of Dropbox file " + fileAPI.getId(snode), e);
         }
       }
     }

@@ -10,6 +10,7 @@
 	height: 14px !important;
 	width: 14px !important;
 }
+
 .uiIconEcmsConnectDropbox:before {
 	content: url("icons/dropbox-gray-14x14.png");
 }
@@ -31,6 +32,7 @@
 .uiIcon16x16CloudFile-dropbox {
 	top: 3px;
 }
+
 .uiIcon16x16CloudFile-dropbox:before {
 	content: url("icons/dropbox-gray-14x14.png");
 }
@@ -48,7 +50,7 @@
 	-moz-transform: scale(0.5);
 	-o-transform: scale(0.5);
 	-ms-transform: scale(0.5);
-	transform: scale(0.5);	
+	transform: scale(0.5);
 	content: url("icons/dropbox-lightgray-16x16.png");
 }
 
@@ -57,7 +59,7 @@
  */
 .uiIcon24x24CloudDrive-dropbox:before {
 	left: 3px;
-    top: -21px;
+	top: -21px;
 	width: 20px;
 	height: 20px;
 	position: relative !important;
@@ -85,22 +87,20 @@
 /*
  * Responsive styles
  */
-@media (min-width: 481px) and (max-width: 1024px) {
+@media ( min-width : 481px) and (max-width: 1024px) {
 	.uiIcon16x16CloudDrive-dropbox:before {
 		left: -17px;
 		top: 2px;
 	}
-	
 	.uiIcon24x24CloudDrive-dropbox:before {
 		left: 6px;
-    	top: -30px;
-	  	/*-webkit-transform: scale(1);
+		top: -30px;
+		/*-webkit-transform: scale(1);
 		-moz-transform: scale(1);
 		-o-transform: scale(1);
 		-ms-transform: scale(1);
 		transform: scale(1);*/
 	}
-	
 	.uiIcon64x64CloudDrive-dropbox:before {
 		left: -57px;
 		top: -8px;

@@ -73,6 +73,8 @@ import com.dropbox.core.v2.sharing.ListSharedLinksErrorException;
 import com.dropbox.core.v2.sharing.ListSharedLinksResult;
 import com.dropbox.core.v2.sharing.SharedLinkMetadata;
 import com.dropbox.core.v2.sharing.SharedLinkSettingsError;
+import com.dropbox.core.v2.sharing.SharingUserError;
+import com.dropbox.core.v2.sharing.UnshareFileErrorException;
 import com.dropbox.core.v2.users.FullAccount;
 
 import org.exoplatform.clouddrive.CloudDriveException;
@@ -880,6 +882,61 @@ public class DropboxAPI {
         throw new DropboxException(msg);
       } catch (DbxException e) {
         String msg = "Error requesting shared link: " + idPath;
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ". " + e.getMessage(), e);
+        }
+        throw new DropboxException(msg);
+      }
+    }
+  }
+
+  /**
+   * Removes the shared link by unsharing the file (Remove all members).
+   *
+   * @param idPath the id path
+   * @throws RefreshAccessException the refresh access exception
+   * @throws DropboxException the dropbox exception
+   * @throws RetryLaterException the retry later exception
+   * @throws NotFoundException the not found exception
+   * @throws NotAcceptableException the not acceptable exception
+   * @throws UnauthorizedException the unauthorized exception
+   */
+  void removeSharedLink(String idPath) throws RefreshAccessException,
+                                                     DropboxException,
+                                                     RetryLaterException,
+                                                     NotFoundException,
+                                                     NotAcceptableException,
+                                                     UnauthorizedException {
+    if (!ROOT_PATH_V2.equals(idPath)) {
+      try {
+        client.sharing().unshareFile(idPath);
+      } catch (UnshareFileErrorException e) {
+        if (e.errorValue.isUserError()) {
+          throw new NotAcceptableException("User account had a problem preventing deletion of shared link: " + idPath, e);
+        } else if (e.errorValue.isAccessError()) {
+          throw new UnauthorizedException("Access to the requested file is forbidden: " + idPath, e);
+        }
+        throw new DropboxException("Failed to unshare file: " + idPath, e);
+      } catch (InvalidAccessTokenException e) {
+        String msg = "Invalid access credentials";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + " (access token) : " + e.getMessage(), e);
+        }
+        throw new RefreshAccessException(msg + ". Please authorize to Dropbox");
+      } catch (RetryException e) {
+        String msg = "Dropbox overloaded or hit rate exceeded";
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ": " + e.getMessage(), e);
+        }
+        throw new RetryLaterException(msg + ". Please try again later (" + e.getBackoffMillis() + ")", e.getBackoffMillis());
+      } catch (BadResponseCodeException e) {
+        String msg = "Error unsharing the file: " + idPath;
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(msg + ". " + e.getMessage(), e);
+        }
+        throw new DropboxException(msg);
+      } catch (DbxException e) {
+        String msg = "Error unsharing the file: " + idPath;
         if (LOG.isDebugEnabled()) {
           LOG.debug(msg + ". " + e.getMessage(), e);
         }

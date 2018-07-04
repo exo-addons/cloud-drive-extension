@@ -9,17 +9,19 @@
 }
 
 #cmis-login-error .uiIconError {
-  background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat scroll left top transparent;
-  padding-left: 20px;
+	background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat scroll left top transparent;
+	padding-left: 20px;
 }
+
 #cmis-login-error .uiIconError:before {
 	content: none;
 }
 
 #cmis-login-error .uiIconWarning {
-  background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat -20px top transparent;
-  padding-left: 20px;
+	background: url("/eXoSkin/skin/images/themes/default/Icons/uiIconsColor.png") no-repeat -20px top transparent;
+	padding-left: 20px;
 }
+
 #cmis-login-error .uiIconWarning:before {
 	content: none;
 }
@@ -31,10 +33,10 @@
 	padding: 0;
 	color: #c09853;
 	width: 420px;
-  margin: 0 auto;
+	margin: 0 auto;
 }
 
-#cmis-login-error .alert > i {
+#cmis-login-error .alert>i {
 	margin-top: 0px;
 }
 
@@ -73,7 +75,7 @@ button.btn.dropdown-toggle {
 }
 
 div.form-buttons {
-	margin-top : 10px;
+	margin-top: 10px;
 }
 
 #cmis-login-wrapper .input-append {
@@ -92,7 +94,7 @@ div.form-buttons {
 	margin-bottom: 0;
 }
 
-@media (max-width: 1024px) and (min-width: 481px) {
+@media ( max-width : 1024px) and (min-width: 481px) {
 	#cmis-login-wrapper .btn.dropdown-toggle {
 		height: 32px;
 	}

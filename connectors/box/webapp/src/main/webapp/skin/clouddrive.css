@@ -2,6 +2,7 @@
 	height: 14px !important;
 	width: 14px !important;
 }
+
 .uiIconEcmsConnectBox:before {
 	content: url("icons/box-gray-14x14.png");
 }
@@ -13,6 +14,7 @@
 .uiIcon16x16CloudFile-box {
 	top: 3px;
 }
+
 .uiIcon16x16CloudFile-box:before {
 	content: url("icons/box-gray-14x14.png");
 }
@@ -33,7 +35,7 @@
 
 .uiIcon24x24CloudDrive-box:before {
 	left: 3px;
-    top: -21px;
+	top: -21px;
 	width: 20px;
 	height: 20px;
 	position: relative !important;
@@ -55,17 +57,15 @@
 	content: url("icons/box-gray-32x32.png");
 }
 
-@media (min-width: 481px) and (max-width: 1024px) {
+@media ( min-width : 481px) and (max-width: 1024px) {
 	.uiIcon16x16CloudDrive-box:before {
 		left: -17px;
 		top: 2px;
 	}
-	
 	.uiIcon24x24CloudDrive-box:before {
 		left: 6px;
-    	top: -30px;
+		top: -30px;
 	}
-	
 	.uiIcon64x64CloudDrive-box:before {
 		left: -57px;
 		top: -8px;
@@ -73,9 +73,6 @@
 }
 
 /*************************** NodeType Icons for Box documents ***********************/
-
-/* TODO for PLF5 we need uiBgd64x64* classes for activity stream icons (shared cloud files) */
-
 .uiIcon16x16applicationx-exoboxwebdoc:before {
 	content: url("icons/box-webdoc-16x16.png");
 }
@@ -88,6 +85,10 @@
 	content: url("icons/box-webdoc-64x64.png");
 }
 
+.uiBgd64x64applicationvndgoogle-exoboxwebdoc {
+	background-image: url("icons/box-webdoc-64x64.png");
+}
+
 .uiIcon16x16applicationx-exoboxnote:before {
 	content: url("icons/box-note-16x16.png");
 }
@@ -98,4 +99,8 @@
 
 .uiIcon64x64applicationx-exoboxnote:before {
 	content: url("icons/box-note-64x64.png");
+}
+
+.uiBgd64x64applicationvndgoogle-exoboxnote {
+	background-image: url("icons/box-note-64x64.png");
 }
