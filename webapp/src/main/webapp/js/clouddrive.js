@@ -35,7 +35,8 @@
 	 * Connector core class.
 	 */
 	function CloudDrive() {
-
+		var self = this;
+		
 		var prefixUrl = utils.pageBaseUrl(location);
 
 		// Node workspace and path currently open in ECMS explorer view
@@ -930,6 +931,22 @@
 				}
 			}
 		};
+		
+		var initClientContext = function() {
+			// invoke custom initialization of all registered providers
+			for (var pid in providers) {
+				if (providers.hasOwnProperty(pid)) {
+					var provider = providers[pid];
+					if (provider) {
+						provider.clientModule.done(function(client) {
+							if (client && client.initContext && client.hasOwnProperty("initContext")) {
+								client.initContext(provider);
+							}
+						});
+					}
+				}
+			}
+		};
 
 		/**
 		 * Synchronize documents view.
@@ -1024,15 +1041,25 @@
 		this.init = function(nodeWorkspace, nodePath) {
 			try {
 				// currently open node (or last open node, e.g. in activity stream)
-				currentNode = {
-					workspace : nodeWorkspace,
-					path : nodePath
-				};
+				if (nodeWorkspace && nodePath) {
+					currentNode = {
+						workspace : nodeWorkspace,
+						path : nodePath
+					};
+				} else {
+					currentNode = null;
+				}
 				cloudDrive.initContext(nodeWorkspace, nodePath);
-				// and on-page-ready initialization of Cloud Drive UI
+				
 				$(function() {
 					try {
-						cloudDriveUI.init();
+						if (nodeWorkspace && nodePath) {
+							// and on-page-ready initialization of Cloud Drive UI
+							cloudDriveUI.init();
+						} else {
+							// on-page-ready initialization of global Cloud Drive UI only
+							cloudDriveUI.initGlobal();
+						}
 					} catch(e) {
 						utils.log("Error initializing Cloud Drive UI " + e, e);
 					}
@@ -1044,30 +1071,22 @@
 
 		/**
 		 * Initialize context node and optionally a drive. Method works synchronously and when complete the context is
-		 * initialized.
+		 * initialized. If given workspace and path are undefined (or null or empty) then context will be reset.
 		 */
 		this.initContext = function(workspace, path) {
 			//utils.log("Init context node: " + workspace + ":" + path
 			//    + (contextDrive ? " (current drive: " + contextDrive.path + ")" : "") + " excluded: " + isExcluded(nodePath));
-
-			contextNode = {
-				workspace : workspace,
-				path : path
-			};
+			if (workspace && path) {
+				contextNode = {
+					workspace : workspace,
+					path : path
+				};
+			} else {
+				contextNode = null;
+			}
 
 			// invoke custom initialization of all registered providers
-			for (var pid in providers) {
-				if (providers.hasOwnProperty(pid)) {
-					var provider = providers[pid];
-					if (provider) {
-						provider.clientModule.done(function(client) {
-							if (client && client.initContext && client.hasOwnProperty("initContext")) {
-								client.initContext(provider);
-							}
-						});
-					}
-				}
-			}
+			initClientContext();
 
 			if (isExcluded(path)) {
 				// already cached as not in drive
@@ -1116,6 +1135,8 @@
 			}
 			return null;
 		};
+		
+		this.getFile = getFile;
 
 		this.getCurrentNode = function() {
 			return currentNode;
@@ -1228,6 +1249,8 @@
 	 * Cloud Drive WebUI integration.
 	 */
 	function CloudDriveUI() {
+		var self = this;
+		
 		var NOTICE_WIDTH = "380px";
 
 		// Menu items managed via uiRightClickPopupMenu menu interception
@@ -1888,6 +1911,98 @@
 			}
 		};
 		
+		var findMappedText = function(key, text) {
+			var regex = new RegExp(key + "[ ]*:[ ]*'([^']*)'", "g");
+			var res = regex.exec(text);
+			return res[1];
+		}
+		
+		var findItemInfo = function(jsCode) {
+			var path = findMappedText("path", jsCode);
+			var openUrl = findMappedText("openUrl", jsCode);
+			var workspace = findMappedText("workspace", jsCode);
+			//var repository = findMappedText("repository", jsCode);
+			if (workspace && path && openUrl) {
+				return {
+					workspace : workspace, 
+					path : path,
+					openUrl : openUrl,
+				};				
+			} else {
+				return null;
+			}
+		}
+		
+		var initSearch = function() {
+			function initRes($res, item) {
+				if (!$res.data("cd-init")) {
+					$res.data("cd-init", true);
+					var $link = $res.children("a");
+					var jsClick = $link.attr("href");
+					var onClick = false;
+					if (!jsClick || jsClick.indexOf("javascript:void(") == 0) {
+						jsClick = $link.attr("onclick");
+						onClick = true;
+					}
+					if (jsClick) {
+						var item = findItemInfo(jsClick);
+						if (item) {
+							cloudDrive.getFile(item.workspace, item.path).done(function(file) {
+								// if here then it's cloud file - we want open it on Documents page w/o preview
+								if (onClick) {
+									$link.removeAttr("onclick");
+								}
+								$link.attr("href", item.openUrl);
+							}).fail(function(err, status) {
+								if (status != 404) {
+									$link.attr("href", "#");
+									utils.log("ERROR getting cloud file: " + item.workspace + ":" + item.path + ". " + err.message);
+								} // otherwise it's not cloud file
+							});
+						}
+					}
+				}
+			}
+			
+			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+			
+			// init Quick Search
+			var $searchToolbar = $("#ToolBarSearch");
+			var $quickSearchResult = $searchToolbar.find(".uiQuickSearchResult");
+			if ($quickSearchResult.length > 0) {
+				// run DOM listener to know when results will be populated to fix the urls
+				var observer = new MutationObserver(function(mutations) {
+					$quickSearchResult.find(".quickSearchResult").each(function() {
+						initRes($(this));
+					});
+				});
+				observer.observe($quickSearchResult.get(0), {
+					subtree : false,
+					childList : true,
+					attributes : false,
+					characterData : false
+				});
+			}
+			
+			// init Unified Search (also CSS for icons)
+			var $searchPortlet = $("#searchPortlet");
+			var $result = $searchPortlet.find("#resultPage #result");
+			if ($result.length > 0) {
+				// run DOM listener to know when results will be populated to fix the urls
+				var observer = new MutationObserver(function(mutations) {
+					$result.children(".resultBox").each(function() {
+						initRes($(this));
+					});
+				});
+				observer.observe($result.get(0), {
+					subtree : false,
+					childList : true,
+					attributes : false,
+					characterData : false
+				});
+			}
+		};
+		
 		/**
 		 * Find link to open Personal Documents view in WCM. Can return nothing if current page doesn't
 		 * contain such element.
@@ -2246,9 +2361,23 @@
 		};
 
 		/**
+		 * Init only global UI (search etc).
+		 */
+		var initGlobal = true;
+		this.initGlobal = function() {
+			if (initGlobal) {
+				initGlobal = false;
+				initSearch();
+			}
+		};
+		
+		/**
 		 * Init all UI (dialogs, menus, views etc).
 		 */
 		this.init = function() {
+			// Global things first
+			self.initGlobal();
+			
 			// Add Connect Drive action
 			// init CloudDriveConnectDialog popup
 			$("i[class*='uiIconEcmsConnect']").each(function() {
