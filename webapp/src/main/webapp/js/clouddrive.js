@@ -35,7 +35,8 @@
 	 * Connector core class.
 	 */
 	function CloudDrive() {
-
+		var self = this;
+		
 		var prefixUrl = utils.pageBaseUrl(location);
 
 		// Node workspace and path currently open in ECMS explorer view
@@ -234,6 +235,20 @@
 			});
 			return initRequest(request);
 		};
+		
+		var getDocument = function(workspace, path) {
+			var request = $.ajax({
+				async : false,
+				type : "GET",
+				url : prefixUrl + "/portal/rest/clouddrive/document/file",
+				dataType : "json",
+				data : {
+					workspace : workspace,
+					path : path
+				}
+			});
+			return initRequest(request);
+		}; 
 
 		var getState = function(workspace, path) {
 			var request = $.ajax({
@@ -930,6 +945,22 @@
 				}
 			}
 		};
+		
+		var initClientContext = function() {
+			// invoke custom initialization of all registered providers
+			for (var pid in providers) {
+				if (providers.hasOwnProperty(pid)) {
+					var provider = providers[pid];
+					if (provider) {
+						provider.clientModule.done(function(client) {
+							if (client && client.initContext && client.hasOwnProperty("initContext")) {
+								client.initContext(provider);
+							}
+						});
+					}
+				}
+			}
+		};
 
 		/**
 		 * Synchronize documents view.
@@ -1024,15 +1055,25 @@
 		this.init = function(nodeWorkspace, nodePath) {
 			try {
 				// currently open node (or last open node, e.g. in activity stream)
-				currentNode = {
-					workspace : nodeWorkspace,
-					path : nodePath
-				};
+				if (nodeWorkspace && nodePath) {
+					currentNode = {
+						workspace : nodeWorkspace,
+						path : nodePath
+					};
+				} else {
+					currentNode = null;
+				}
 				cloudDrive.initContext(nodeWorkspace, nodePath);
-				// and on-page-ready initialization of Cloud Drive UI
+				
 				$(function() {
 					try {
-						cloudDriveUI.init();
+						if (nodeWorkspace && nodePath) {
+							// and on-page-ready initialization of Cloud Drive UI
+							cloudDriveUI.init();
+						} else {
+							// on-page-ready initialization of global Cloud Drive UI only
+							cloudDriveUI.initGlobal();
+						}
 					} catch(e) {
 						utils.log("Error initializing Cloud Drive UI " + e, e);
 					}
@@ -1044,47 +1085,37 @@
 
 		/**
 		 * Initialize context node and optionally a drive. Method works synchronously and when complete the context is
-		 * initialized.
+		 * initialized. If given workspace and path are undefined (or null or empty) then context will be reset.
 		 */
 		this.initContext = function(workspace, path) {
 			//utils.log("Init context node: " + workspace + ":" + path
 			//    + (contextDrive ? " (current drive: " + contextDrive.path + ")" : "") + " excluded: " + isExcluded(nodePath));
-
-			contextNode = {
-				workspace : workspace,
-				path : path
-			};
-
-			// invoke custom initialization of all registered providers
-			for (var pid in providers) {
-				if (providers.hasOwnProperty(pid)) {
-					var provider = providers[pid];
-					if (provider) {
-						provider.clientModule.done(function(client) {
-							if (client && client.initContext && client.hasOwnProperty("initContext")) {
-								client.initContext(provider);
-							}
-						});
-					}
-				}
-			}
-
-			if (isExcluded(path)) {
-				// already cached as not in drive
-				stopAutoSynchronize();
-			} else {
-				// XXX do this to support symlinks outside the drive
-				if (contextDrive && path.indexOf(contextDrive.path) == 0 && path != contextDrive.path) {
-					var file = contextDrive.files[path];
-					if (!file || isUpdating(path)) {
-						// file not cached or was syncing (updating), get the file from the server and cache it locally
-						readContextFile();
-					}
-					checkAutoSynchronize();
+			if (workspace && path) {
+				contextNode = {
+					workspace : workspace,
+					path : path
+				};
+				if (isExcluded(path)) {
+					// already cached as not in drive
+					stopAutoSynchronize();
 				} else {
-					readContextDrive();
+					// XXX do this to support symlinks outside the drive
+					if (contextDrive && path.indexOf(contextDrive.path) == 0 && path != contextDrive.path) {
+						var file = contextDrive.files[path];
+						if (!file || isUpdating(path)) {
+							// file not cached or was syncing (updating), get the file from the server and cache it locally
+							readContextFile();
+						}
+						checkAutoSynchronize();
+					} else {
+						readContextDrive();
+					}
 				}
+			} else {
+				contextNode = null;
 			}
+			// invoke custom initialization of all registered providers
+			initClientContext();
 		};
 
 		this.getContextDrive = function() {
@@ -1116,6 +1147,8 @@
 			}
 			return null;
 		};
+		
+		this.getDocument = getDocument;
 
 		this.getCurrentNode = function() {
 			return currentNode;
@@ -1228,6 +1261,8 @@
 	 * Cloud Drive WebUI integration.
 	 */
 	function CloudDriveUI() {
+		var self = this;
+		
 		var NOTICE_WIDTH = "380px";
 
 		// Menu items managed via uiRightClickPopupMenu menu interception
@@ -1638,56 +1673,13 @@
 			return syncingPaths.length;
 		};
 
-		var initDocument = function() {
+		var initFileViewer = function() {
 			var drive = cloudDrive.getContextDrive();
-			if (drive) {
-				// Fix Action Bar items
-				var classes;
-				if (cloudDrive.isContextFile()) {
-					// it's drive's file
-					classes = ALLOWED_DMS_MENU_COMMON_ACTION_CLASSES.concat(ALLOWED_DMS_MENU_FILE_ACTION_CLASSES);
-				} else if (cloudDrive.isContextDrive()) {
-					// it's drive in the context
-					classes = ALLOWED_DMS_MENU_COMMON_ACTION_CLASSES.concat(ALLOWED_DMS_MENU_DRIVE_ACTION_CLASSES);
-				} else {
-					// selected node not a cloud drive or its file
-					return;
-				}
-
-				var allowed = "";
-				$.each(classes, function(i, action) {
-					allowed += ( allowed ? ", ." : ".") + action;
-				});
-
-				var $actionBar = $("#uiActionsBarContainer ul");
-				// filter Action Bar items (depends on file/folder or the drive itself in the context)
-				$actionBar.find("li a.actionIcon i").not(allowed).each(function() {// div ul li
-					$(this).parent().css("display", "none");
-				});
-				if ($actionBar.find("li a:visible").length == 0) {
-					// hack to prevent empty menu bar
-					$actionBar.append("<li style='display: block;'><a class='actionIcon' style='height: 18px;'><i></i> </a></li>");
-				}
-
-				// add sync call to Refresh action
-				$("a.refreshIcon").click(function() {
-					var $refreshChanges = $("span.uiCloudDriveChanges");
-					if ($refreshChanges.length > 0) {
-						var currentDate = new Date();
-						var syncDate = $refreshChanges.data("timestamp");
-						if (syncDate && (currentDate.getMilliseconds() - syncDate.getMilliseconds() <= 60000)) {
-							return true;
-							// don't invoke sync if it was less a min ago
-						}
-					}
-					cloudDrive.synchronize();
-				});
-
-				// File Viewer
+			var file = cloudDrive.getContextFile();
+			if (drive && file) {
 				var $viewer = $("#CloudFileViewer");
 				if ($viewer.length > 0 && !$viewer.data("initialized")) {
 					var $vswitch = $("#ViewerSwitch");
-					var file = cloudDrive.getContextFile();
 					var openOnProvider = $viewer.attr("file-open-on");
 
 					var iconColor;
@@ -1706,12 +1698,13 @@
 					}
 
 					// fix activity file preview: Download icon, text and link
-					var $activityDownload = $("#UIDocumentPreview .downloadBtn>a");
+					var $activityDownload = $("#uiDocumentPreview .downloadBtn>a");
 					if ($activityDownload.length > 0) {
 						iconColor = "uiIconWhite";
 						openOnIcon.push($activityDownload.find("i.uiIconDownload"));
 						openOn.push($activityDownload);
 						$vswitch.removeClass("pull-right");
+						$vswitch.removeClass("btn");
 						$vswitch.addClass("pull-left");
 					}
 
@@ -1767,6 +1760,56 @@
 					$viewer.find(".file-content").show();
 					$viewer.data("initialized", true);
 				}
+			}
+		};
+		
+		var initDocument = function() {
+			var drive = cloudDrive.getContextDrive();
+			if (drive) {
+				// Fix Action Bar items
+				var classes;
+				if (cloudDrive.isContextFile()) {
+					// it's drive's file
+					classes = ALLOWED_DMS_MENU_COMMON_ACTION_CLASSES.concat(ALLOWED_DMS_MENU_FILE_ACTION_CLASSES);
+				} else if (cloudDrive.isContextDrive()) {
+					// it's drive in the context
+					classes = ALLOWED_DMS_MENU_COMMON_ACTION_CLASSES.concat(ALLOWED_DMS_MENU_DRIVE_ACTION_CLASSES);
+				} else {
+					// selected node not a cloud drive or its file
+					return;
+				}
+
+				var allowed = "";
+				$.each(classes, function(i, action) {
+					allowed += ( allowed ? ", ." : ".") + action;
+				});
+
+				var $actionBar = $("#uiActionsBarContainer ul");
+				// filter Action Bar items (depends on file/folder or the drive itself in the context)
+				$actionBar.find("li a.actionIcon i").not(allowed).each(function() {// div ul li
+					$(this).parent().css("display", "none");
+				});
+				if ($actionBar.find("li a:visible").length == 0) {
+					// hack to prevent empty menu bar
+					$actionBar.append("<li style='display: block;'><a class='actionIcon' style='height: 18px;'><i></i> </a></li>");
+				}
+
+				// add sync call to Refresh action
+				$("a.refreshIcon").click(function() {
+					var $refreshChanges = $("span.uiCloudDriveChanges");
+					if ($refreshChanges.length > 0) {
+						var currentDate = new Date();
+						var syncDate = $refreshChanges.data("timestamp");
+						if (syncDate && (currentDate.getMilliseconds() - syncDate.getMilliseconds() <= 60000)) {
+							return true;
+							// don't invoke sync if it was less a min ago
+						}
+					}
+					cloudDrive.synchronize();
+				});
+
+				// File Viewer
+				initFileViewer();
 
 				// init file listing (special handling for not cloud's and currently syncing files)
 				initFileList();
@@ -1868,8 +1911,8 @@
 					// five parents higher in DOM we  have ActivityContextBox div
 					var $media = $elem.parent().parent();
 					var isMediaContent = $media.is(".mediaContent");
-					$media.removeClass("mediaContent").removeAttr("onclick");
-					$media.children("a").removeAttr("href");
+					$media.removeClass("mediaContent").removeAttr("onclick").off("mouseenter");
+					$media.children("a").removeAttr("href").off("mouseenter");
 					$media.find("button.btn.doc-preview-thumbnail-footer").hide();
 					var $description = $media.siblings(".text").find(".descriptionText");
 					if ($description.text().length == 0) {
@@ -1885,6 +1928,132 @@
 				});
 			} catch(e) {
 				utils.log("Error initializing activity stream " + e, e);
+			}
+		};
+		
+		var findMappedText = function(key, text) {
+			var regex = new RegExp(key + "[ ]*:[ ]*'([^']*)'", "g");
+			var res = regex.exec(text);
+			return res[1];
+		}
+		
+		var findItemInfo = function(jsCode) {
+			var path = findMappedText("path", jsCode);
+			var openUrl = findMappedText("openUrl", jsCode);
+			var workspace = findMappedText("workspace", jsCode);
+			var downloadUrl = findMappedText("downloadUrl", jsCode);
+			if (workspace && path && openUrl) {
+				return {
+					workspace : workspace, 
+					path : path,
+					openUrl : openUrl,
+					downloadUrl : downloadUrl
+				};				
+			} else {
+				return null;
+			}
+		};
+		
+		var initFileViewerWait = function(workspace, path) {
+			var attempts = 20;
+			function tryInit() {
+				var $viewer = $("#CloudFileViewer");
+				if ($viewer.length == 0 || !$viewer.is(":visible")) {
+					// wait for viewer
+					if (attempts > 0) {
+						attempts--;
+						setTimeout(tryInit, 250);
+					} else {
+						utils.log("Cannot initialize cloud file viewer (timeout): " + path);
+					}
+				} else {
+					utils.log("Initialize cloud file viewer: " + path);
+					cloudDrive.initContext(workspace, path);
+					initFileViewer();
+				}	
+			}
+			tryInit();
+		};
+		
+		var initSearch = function() {
+			function initRes($res) {
+				if (!$res.data("cd-init")) {
+					$res.data("cd-init", true);
+					var $link = $res.children("a");
+					var jsClick = $link.attr("href");
+					var onClick = false;
+					if (!jsClick || jsClick.indexOf("javascript:void(") == 0) {
+						jsClick = $link.attr("onclick");
+						onClick = true;
+					}
+					if (jsClick) {
+						var item = findItemInfo(jsClick);
+						if (item) {
+							cloudDrive.getDocument(item.workspace, item.path).done(function(file) {
+								if (file && file.openLink) {
+									jsClick = jsClick.replace("path:'" + item.path + "'", "path:'" + file.path + "'");
+									jsClick = jsClick.replace("openUrl:'" + item.openUrl + "'", "openUrl:'" + file.openLink + "'");
+									jsClick = jsClick.replace("downloadUrl:'" + item.downloadUrl + "'", "downloadUrl:'" + file.link + "'");
+									if (onClick) {
+										$link.attr("onclick", jsClick);
+									} else {
+										$link.attr("href", jsClick);
+									}
+									$link.click(function() {
+										initFileViewerWait(item.workspace, file.path);
+									});
+								}
+							}).fail(function(err, status) {
+								if (status != 404) {
+									$link.attr("href", "#");
+									utils.log("ERROR getting cloud file: " + item.workspace + ":" + item.path + ". " + err.message);
+								} // otherwise it's not cloud file
+							});
+						}
+					}
+				}
+			}
+			
+			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+			
+			// init Quick Search
+			var $searchToolbar = $("#ToolBarSearch");
+			var $quickSearchResult = $searchToolbar.find(".uiQuickSearchResult");
+			if ($quickSearchResult.length > 0) {
+				// run DOM listener to know when results will be populated to fix the urls
+				var observer = new MutationObserver(function(mutations) {
+					$quickSearchResult.find(".quickSearchResult").each(function() {
+						initRes($(this));
+					});
+				});
+				observer.observe($quickSearchResult.get(0), {
+					subtree : false,
+					childList : true,
+					attributes : false,
+					characterData : false
+				});
+			}
+			
+			// init Unified Search (also CSS for icons)
+			var $searchPortlet = $("#searchPortlet");
+			var $result = $searchPortlet.find("#resultPage #result");
+			if ($result.length > 0) {
+				function initSearchPage() {
+					$result.children(".resultBox").each(function() {
+						initRes($(this));
+					});
+				}
+				initSearchPage();
+				// run DOM listener to know when results will be populated to fix the urls
+				var observer = new MutationObserver(function(mutations) {
+					initSearchPage();	
+				});
+				observer.observe($result.get(0), {
+					subtree : false,
+					childList : true,
+					attributes : false,
+					characterData : false
+				});
 			}
 		};
 		
@@ -2246,9 +2415,23 @@
 		};
 
 		/**
+		 * Init only global UI (search etc).
+		 */
+		var initGlobal = true;
+		this.initGlobal = function() {
+			if (initGlobal) {
+				initGlobal = false;
+				initSearch();
+			}
+		};
+		
+		/**
 		 * Init all UI (dialogs, menus, views etc).
 		 */
 		this.init = function() {
+			// Global things first
+			self.initGlobal();
+			
 			// Add Connect Drive action
 			// init CloudDriveConnectDialog popup
 			$("i[class*='uiIconEcmsConnect']").each(function() {
@@ -2295,7 +2478,7 @@
 			// init doc view (list or file view)
 			initDocument();
 
-			// init file view fir text
+			// init file view for text
 			initTextViewer();
 			
 			// init activity stream

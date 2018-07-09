@@ -123,11 +123,10 @@ public class SharedCloudFileUIActivity extends SharedFileUIActivity {
   @Override
   public String getWebdavURL() throws Exception {
     // XXX we return link to Google Drive page here, but Google also can offer
-    // content download for some
-    // formats
+    // content download for some formats
     CloudFile file = cloudFile(getContentNode());
     if (file != null) {
-      return file.getLink();
+      return file.getLink(); // in fact it's page on GDrive site
     } else {
       return super.getWebdavURL();
     }
@@ -175,11 +174,10 @@ public class SharedCloudFileUIActivity extends SharedFileUIActivity {
   @Override
   public String getDownloadLink() {
     // XXX we return link to Google Drive page here, but Google also can offer
-    // content download for some
-    // formats
+    // content download for some formats
     CloudFile file = cloudFile(getContentNode());
     if (file != null) {
-      return new StringBuilder("javascript:window.open(\\'").append(file.getLink()).append("\\')").toString();
+      return file.getLink();
     } else {
       return super.getDownloadLink();
     }
