@@ -1357,10 +1357,10 @@
 
 				// Common context menu: add links to CD actions
 				$("#ECMContextMenu a[exo\\:attr='" + MENU_OPEN_FILE + "']").each(function() {
-					var text = $(this).data("cd_action_prefix");
+					var text = $(this).data("cd-action-prefix");
 					if (!text) {
 						text = $(this).text();
-						$(this).data("cd_action_prefix", text).click(function() {
+						$(this).data("cd-action-prefix", text).click(function() {
 							cloudDrive.openFile();
 							uiFileView.UIFileView.clearCheckboxes();
 						});
@@ -1376,10 +1376,10 @@
 					}
 				});
 				$("#ECMContextMenu a[exo\\:attr='" + MENU_PUSH_FILE + "']").each(function() {
-					var text = $(this).data("cd_action_prefix");
+					var text = $(this).data("cd-action-prefix");
 					if (!text) {
 						text = $(this).text();
-						$(this).data("cd_action_prefix", text);
+						$(this).data("cd-action-prefix", text);
 					}
 					var $i = $(this).find("i");
 					text = text + drive.provider.name;
@@ -1387,14 +1387,14 @@
 					$(this).prepend($i);
 				});
 				$("#ECMContextMenu a[exo\\:attr='" + MENU_REFRESH_DRIVE + "']").each(function() {
-					var text = $(this).data("cd_action_prefix");
+					var text = $(this).data("cd-action-prefix");
 					if (!text) {
 						$(this).click(function() {
 							cloudDrive.synchronize();
 							uiFileView.UIFileView.clearCheckboxes();
 						});
 						text = $(this).text();
-						$(this).data("cd_action_prefix", text);
+						$(this).data("cd-action-prefix", text);
 					}
 					var $i = $(this).find("i");
 					text = text + drive.provider.name;
@@ -1600,12 +1600,12 @@
 			if ($iconView.length > 0) {
 				$("#UIPopupContainer").on("DOMSubtreeModified propertychange", function() {
 					var $info = $("#UIViewInfoManager");
-					if ($info.length > 0 && !$info.data("cd_data_sizefixed")) {// avoid loops caused by text modification below
+					if ($info.length > 0 && !$info.data("cd-data-sizefixed")) {// avoid loops caused by text modification below
 						$info.find("td").filter("td:contains(' Byte(s)'), td:contains(' KB'), td:contains(' MB'), td:contains(' GB')").each(function() {
 							var file = cloudDrive.getContextFile();
 							if (file) {
 								var str = sizeString(file.size);
-								$info.data("cd_data_sizefixed", true);
+								$info.data("cd-data-sizefixed", true);
 								$(this).text(str);
 							}
 						});
@@ -1679,7 +1679,8 @@
 			var file = cloudDrive.getContextFile();
 			if (drive && file) {
 				var $viewer = $("#CloudFileViewer");
-				if ($viewer.length > 0 && !$viewer.data("initialized")) {
+				if ($viewer.length > 0 && !$viewer.data("cd-init")) {
+					$viewer.data("cd-init", true);
 					var $vswitch = $("#ViewerSwitch");
 					var openOnProvider = $viewer.attr("file-open-on");
 
@@ -1759,7 +1760,6 @@
 						$vswitch.remove();
 					}
 					$viewer.find(".file-content").show();
-					$viewer.data("initialized", true);
 				}
 			}
 		};
@@ -1844,7 +1844,6 @@
 				$viewer.css("cursor", "wait");
 
 				var contextFile = cloudDrive.getContextFile();
-				utils.log("contextFile: " + contextFile.path + " " + contextFile.typeMode);
 				if (!codeURL && contextFile) {
 					codeURL = contextFile.previewLink;
 				}
@@ -1991,10 +1990,17 @@
 						var item = findItemInfo(jsClick);
 						if (item) {
 							cloudDrive.getDocument(item.workspace, item.path).done(function(file) {
-								if (file && file.openLink) {
+								if (file) {
 									jsClick = jsClick.replace("path:'" + item.path + "'", "path:'" + file.path + "'");
-									jsClick = jsClick.replace("openUrl:'" + item.openUrl + "'", "openUrl:'" + file.openLink + "'");
 									jsClick = jsClick.replace("downloadUrl:'" + item.downloadUrl + "'", "downloadUrl:'" + file.link + "'");
+									if (file.openLink) {
+										jsClick = jsClick.replace("openUrl:'" + item.openUrl + "'", "openUrl:'" + file.openLink + "'");
+										// content div exists on Unified Search page
+										var $content = $res.children(".content");
+										if ($content.length > 0) {
+											$content.find("a").attr("href", file.openLink);
+										}
+									}
 									if (onClick) {
 										$link.attr("onclick", jsClick);
 									} else {
@@ -2035,7 +2041,7 @@
 				});
 			}
 			
-			// init Unified Search (also CSS for icons)
+			// init Unified Search
 			var $searchPortlet = $("#searchPortlet");
 			var $result = $searchPortlet.find("#resultPage #result");
 			if ($result.length > 0) {

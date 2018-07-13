@@ -55,6 +55,9 @@ import org.exoplatform.clouddrive.DriveRemovedException;
 import org.exoplatform.clouddrive.NotCloudDriveException;
 import org.exoplatform.clouddrive.ThreadExecutor;
 import org.exoplatform.clouddrive.jcr.NodeFinder;
+import org.exoplatform.container.ExoContainer;
+import org.exoplatform.container.ExoContainerContext;
+import org.exoplatform.container.component.RequestLifeCycle;
 import org.exoplatform.services.cms.BasePath;
 import org.exoplatform.services.cms.CmsService;
 import org.exoplatform.services.cms.documents.TrashService;
@@ -145,9 +148,8 @@ public class CloudFileActionService implements Startable {
               String identity = removedShared.get(cloudFileUUID);
               if (identity != null) {
                 // was marked by RemoveCloudFileLinkAction
-                Session session = systemSession();
                 try {
-                  Node fileNode = session.getNodeByUUID(cloudFileUUID);
+                  Node fileNode = systemSession().getNodeByUUID(cloudFileUUID);
                   CloudDrive localDrive = cloudDrive.findDrive(fileNode);
                   if (localDrive != null) {
                     if (getCloudFileLinks(fileNode, identity, true).getSize() == 0) {
@@ -182,8 +184,6 @@ public class CloudFileActionService implements Startable {
                   LOG.warn("Cloud File unsharing not possible for not cloud drives: " + e.getMessage() + ". Path: " + eventPath);
                 } catch (Throwable e) {
                   LOG.error("Cloud File unsharing error: " + e.getMessage() + ". Path: " + eventPath, e);
-                } finally {
-                  session.logout();
                 }
               }
             }
@@ -212,8 +212,7 @@ public class CloudFileActionService implements Startable {
         Event event = events.nextEvent();
         try {
           final String eventPath = event.getPath();
-          Session session = systemSession();
-          Item linkItem = session.getItem(eventPath);
+          Item linkItem = systemSession().getItem(eventPath);
           if (linkItem.isNode() && linkManager.isLink(linkItem)) {
             try {
               Node fileNode = linkManager.getTarget((Node) linkItem, true);
@@ -230,21 +229,27 @@ public class CloudFileActionService implements Startable {
                     removedLinks.values().remove(cloudFileUUID);
                     removedLinks.put(eventPath, cloudFileUUID);
                     // remove symlink with a delay in another thread
+                    final ExoContainer container = ExoContainerContext.getCurrentContainer();
                     workerExecutor.submit(new Runnable() {
                       @Override
                       public void run() {
                         try {
                           Thread.sleep(1000 * 2); // wait a bit for ECMS actions
-
-                          Item linkItem = systemSession().getItem(eventPath);
-                          if (linkItem.isNode()) {
-                            Node linkNode = (Node) linkItem;
-                            Node parent = linkNode.getParent();
-                            linkNode.remove();
-                            parent.save();
-                            if (LOG.isDebugEnabled()) {
-                              LOG.debug("Cloud File link '" + linkItem.getName() + "' successfully removed from the Trash.");
+                          ExoContainerContext.setCurrentContainer(container);
+                          RequestLifeCycle.begin(container);
+                          try {
+                            Item linkItem = systemSession().getItem(eventPath);
+                            if (linkItem.isNode()) {
+                              Node linkNode = (Node) linkItem;
+                              Node parent = linkNode.getParent();
+                              linkNode.remove();
+                              parent.save();
+                              if (LOG.isDebugEnabled()) {
+                                LOG.debug("Cloud File link '" + linkItem.getName() + "' successfully removed from the Trash.");
+                              }
                             }
+                          } finally {
+                            RequestLifeCycle.end();
                           }
                         } catch (PathNotFoundException e) {
                           // node already deleted
@@ -439,7 +444,7 @@ public class CloudFileActionService implements Startable {
   public DriveData getGroupDrive(String groupId) throws Exception {
     return documentDrives.getDriveByName(groupId.replace("/", "."));
   }
-  
+
   /**
    * Gets the user drive.
    *
@@ -478,10 +483,22 @@ public class CloudFileActionService implements Startable {
    * @throws Exception the exception
    */
   public Node getUserPublicNode(String userName) throws Exception {
+    Node profileNode = getUserProfileNode(userName);
+    String userPublic = hierarchyCreator.getJcrPath("userPublic");
+    return profileNode.getNode(userPublic != null ? userPublic : "Public");
+  }
+
+  /**
+   * Gets the user profile node (a node where /Private and /Public nodes live).
+   *
+   * @param userName the user name
+   * @return the user profile node
+   * @throws Exception the exception
+   */
+  public Node getUserProfileNode(String userName) throws Exception {
     SessionProvider ssp = sessionProviders.getSystemSessionProvider(null);
     if (ssp != null) {
-      String userPublic = hierarchyCreator.getJcrPath("userPublic");
-      return hierarchyCreator.getUserNode(ssp, userName).getNode(userPublic != null ? userPublic : "Public");
+      return hierarchyCreator.getUserNode(ssp, userName);
     }
     throw new RepositoryException("Cannot get session provider.");
   }
