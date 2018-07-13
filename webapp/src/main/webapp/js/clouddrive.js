@@ -1149,6 +1149,7 @@
 		};
 		
 		this.getDocument = getDocument;
+		this.getFile = getFile;
 
 		this.getCurrentNode = function() {
 			return currentNode;
