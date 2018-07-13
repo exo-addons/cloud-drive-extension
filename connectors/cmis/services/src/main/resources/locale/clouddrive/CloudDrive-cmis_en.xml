@@ -50,12 +50,4 @@
     <login>Login</login>
     <cancel>Cancel</cancel>
   </CMISLoginController>
-  <File>
-    <view>
-      <label>
-        <sourceview>View source code</sourceview>
-        <webview>View as Web page</webview>
-      </label>
-    </view>
-  </File>
 </bundle>
