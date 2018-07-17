@@ -717,6 +717,11 @@ public class CloudFileActionService implements Startable {
         return null;
       }
     });
+    // unshare file in cloud provider (if applicable)
+    CloudDriveSecurity srcSecurity = (CloudDriveSecurity) cloudDrive;
+    if (srcSecurity.isSharingSupported()) {
+      srcSecurity.unshareFile(fileNode, identities);
+    }
   }
 
   /**

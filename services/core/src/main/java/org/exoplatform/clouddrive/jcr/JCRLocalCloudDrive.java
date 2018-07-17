@@ -4222,6 +4222,14 @@ public abstract class JCRLocalCloudDrive extends CloudDrive implements CloudDriv
   public void shareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
     throw new CloudDriveException("Sharing not supported");
   }
+  
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void unshareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
+    throw new CloudDriveException("Sharing not supported");
+  }
 
   /**
    * {@inheritDoc}

@@ -1934,24 +1934,25 @@
 		var findMappedText = function(key, text) {
 			var regex = new RegExp(key + "[ ]*:[ ]*'([^']*)'", "g");
 			var res = regex.exec(text);
-			return res[1];
+			return res && res.length > 0 ? res[1] : null;
 		}
 		
 		var findItemInfo = function(jsCode) {
-			var path = findMappedText("path", jsCode);
-			var openUrl = findMappedText("openUrl", jsCode);
-			var workspace = findMappedText("workspace", jsCode);
-			var downloadUrl = findMappedText("downloadUrl", jsCode);
-			if (workspace && path && openUrl) {
-				return {
-					workspace : workspace, 
-					path : path,
-					openUrl : openUrl,
-					downloadUrl : downloadUrl
-				};				
-			} else {
-				return null;
+			if (jsCode.indexOf("javascript") == 0) {
+				var path = findMappedText("path", jsCode);
+				var openUrl = findMappedText("openUrl", jsCode);
+				var workspace = findMappedText("workspace", jsCode);
+				var downloadUrl = findMappedText("downloadUrl", jsCode);
+				if (workspace && path && openUrl && downloadUrl) {
+					return {
+						workspace : workspace, 
+						path : path,
+						openUrl : openUrl,
+						downloadUrl : downloadUrl
+					};
+				}
 			}
+			return null;
 		};
 		
 		var initFileViewerWait = function(workspace, path) {

@@ -140,9 +140,11 @@ public class SharedCloudFileUIActivity extends SharedFileUIActivity {
     // when showing Cloud Drive icons, need load them by the JS client
     try {
       Node node = getContentNode();
-      String path = node.getPath();
-      String workspace = node.getSession().getWorkspace().getName();
-      CloudDriveContext.init(WebuiRequestContext.getCurrentInstance(), workspace, path);
+      if (node != null) {
+        String path = node.getPath();
+        String workspace = node.getSession().getWorkspace().getName();
+        CloudDriveContext.init(WebuiRequestContext.getCurrentInstance(), workspace, path);
+      }
     } catch (Throwable e) {
       LOG.error("Error initializing current node for shared cloud file link: " + fileName, e);
     }
@@ -242,31 +244,32 @@ public class SharedCloudFileUIActivity extends SharedFileUIActivity {
    * @return the cloud file
    */
   protected CloudFile cloudFile(Node node) {
-    try {
-      String workspace = node.getSession().getWorkspace().getName();
-      String path = node.getPath();
-      CloudDrive drive = cloudDrives.findDrive(workspace, path);
-      if (drive != null) {
-        try {
-          return drive.getFile(path);
-        } catch (NotYetCloudFileException e) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Not yet cloud file " + workspace + ":" + path, e);
+    if (node != null) {
+      try {
+        String workspace = node.getSession().getWorkspace().getName();
+        String path = node.getPath();
+        CloudDrive drive = cloudDrives.findDrive(workspace, path);
+        if (drive != null) {
+          try {
+            return drive.getFile(path);
+          } catch (NotYetCloudFileException e) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Not yet cloud file " + workspace + ":" + path, e);
+            }
+          } catch (NotCloudFileException e) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Not cloud file " + workspace + ":" + path, e);
+            }
+          } catch (DriveRemovedException e) {
+            LOG.warn("Cloud drive removed " + workspace + ":" + path, e);
+          } catch (NotCloudDriveException e) {
+            LOG.warn("Not cloud drive " + workspace + ":" + path, e);
           }
-        } catch (NotCloudFileException e) {
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Not cloud file " + workspace + ":" + path, e);
-          }
-        } catch (DriveRemovedException e) {
-          LOG.warn("Cloud drive removed " + workspace + ":" + path, e);
-        } catch (NotCloudDriveException e) {
-          LOG.warn("Not cloud drive " + workspace + ":" + path, e);
         }
+      } catch (RepositoryException e) {
+        // TODO use global workspace, docPath
+        LOG.error("Error getting cloud file node " + node, e);
       }
-    } catch (RepositoryException e) {
-      LOG.error("Error getting cloud file node " + node, e); // TODO use global
-                                                             // workspace,
-                                                             // docPath
     }
     return null;
   }

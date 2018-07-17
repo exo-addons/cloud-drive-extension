@@ -363,8 +363,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
       String thumbnailLink = api.getThumbnailLink(file);
-      String createdBy = file.getCreatedBy().getLogin();
-      String modifiedBy = file.getModifiedBy().getLogin();
+      String createdBy = file.getCreatedBy().getName();
+      String modifiedBy = file.getModifiedBy().getName();
       long size = Math.round(file.getSize());
 
       initFile(fileNode,
@@ -431,8 +431,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String name = folder.getName();
       String type = BoxAPI.FOLDER_TYPE;
       String link = api.getLink(folder);
-      String createdBy = folder.getCreatedBy().getLogin();
-      String modifiedBy = folder.getModifiedBy().getLogin();
+      String createdBy = folder.getCreatedBy().getName();
+      String modifiedBy = folder.getModifiedBy().getName();
 
       initFolder(folderNode,
                  id,
@@ -472,12 +472,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
       String thumbnailLink = api.getThumbnailLink(file);
-      String createdBy = file.getCreatedBy().getLogin();
+      String createdBy = file.getCreatedBy().getName();
       Calendar created = Calendar.getInstance();
       created.setTime(file.getCreatedAt());
       modified = Calendar.getInstance();
       modified.setTime(file.getModifiedAt());
-      String modifiedBy = file.getModifiedBy().getLogin();
+      String modifiedBy = file.getModifiedBy().getName();
       long size = Math.round(file.getSize());
 
       initFile(fileNode,
@@ -524,12 +524,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String name = folder.getName();
       String link = api.getLink(folder);
       String type = BoxAPI.FOLDER_TYPE;
-      String createdBy = folder.getCreatedBy().getLogin();
+      String createdBy = folder.getCreatedBy().getName();
       Calendar created = Calendar.getInstance();
       created.setTime(folder.getCreatedAt());
       modified = Calendar.getInstance();
       modified.setTime(folder.getModifiedAt());
-      String modifiedBy = folder.getModifiedBy().getLogin();
+      String modifiedBy = folder.getModifiedBy().getName();
 
       initFolder(folderNode,
                  id,
@@ -572,12 +572,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
       String thumbnailLink = api.getThumbnailLink(file);
-      String createdBy = file.getCreatedBy().getLogin();
+      String createdBy = file.getCreatedBy().getName();
       Calendar created = Calendar.getInstance();
       created.setTime(file.getCreatedAt());
       modified = Calendar.getInstance();
       modified.setTime(file.getModifiedAt());
-      String modifiedBy = file.getModifiedBy().getLogin();
+      String modifiedBy = file.getModifiedBy().getName();
       long size = Math.round(file.getSize());
 
       initFile(fileNode,
@@ -624,8 +624,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String link = api.getLink(file);
       String embedLink = api.getEmbedLink(file);
       String thumbnailLink = api.getThumbnailLink(file);
-      String createdBy = file.getCreatedBy().getLogin();
-      String modifiedBy = file.getModifiedBy().getLogin();
+      String createdBy = file.getCreatedBy().getName();
+      String modifiedBy = file.getModifiedBy().getName();
       Calendar created = Calendar.getInstance();
       created.setTime(file.getCreatedAt());
       Calendar modified = Calendar.getInstance();
@@ -674,8 +674,8 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
       String name = folder.getName();
       String type = BoxAPI.FOLDER_TYPE;
       String link = api.getLink(folder);
-      String createdBy = folder.getCreatedBy().getLogin();
-      String modifiedBy = folder.getModifiedBy().getLogin();
+      String createdBy = folder.getCreatedBy().getName();
+      String modifiedBy = folder.getModifiedBy().getName();
       Calendar created = Calendar.getInstance();
       created.setTime(folder.getCreatedAt());
       Calendar modified = Calendar.getInstance();
@@ -756,12 +756,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         String link = api.getLink(file);
         String embedLink = api.getEmbedLink(file);
         String thumbnailLink = api.getThumbnailLink(file);
-        String createdBy = file.getCreatedBy().getLogin();
+        String createdBy = file.getCreatedBy().getName();
         Calendar created = Calendar.getInstance();
         created.setTime(file.getCreatedAt());
         Calendar modified = Calendar.getInstance();
         modified.setTime(file.getModifiedAt());
-        String modifiedBy = file.getModifiedBy().getLogin();
+        String modifiedBy = file.getModifiedBy().getName();
         long size = Math.round(file.getSize());
 
         initFile(fileNode,
@@ -810,12 +810,12 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
         name = folder.getName();
         String link = api.getLink(folder);
         String type = BoxAPI.FOLDER_TYPE;
-        String createdBy = folder.getCreatedBy().getLogin();
+        String createdBy = folder.getCreatedBy().getName();
         Calendar created = Calendar.getInstance();
         created.setTime(folder.getCreatedAt());
         Calendar modified = Calendar.getInstance();
         modified.setTime(folder.getModifiedAt());
-        String modifiedBy = folder.getModifiedBy().getLogin();
+        String modifiedBy = folder.getModifiedBy().getName();
 
         initFolder(folderNode,
                    id,
@@ -1885,7 +1885,7 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
 
     // properties below not actually used by the Cloud Drive,
     // they are just for information available to PLF user
-    localNode.setProperty("box:ownedBy", item.getOwnedBy().getLogin());
+    localNode.setProperty("box:ownedBy", item.getOwnedBy().getName());
     localNode.setProperty("box:description", item.getDescription());
 
     BoxSharedLink shared = item.getSharedLink();
@@ -1953,11 +1953,11 @@ public class JCRLocalBoxDrive extends JCRLocalCloudDrive implements UserTokenRef
     created.setTime(item.getCreatedAt());
     Calendar modified = Calendar.getInstance();
     modified.setTime(item.getModifiedAt());
-    String createdBy = item.getCreatedBy().getLogin();
+    String createdBy = item.getCreatedBy().getName();
     String modifiedBy;
     com.box.sdk.BoxUser.Info modifier = item.getModifiedBy();
     if (modifier != null) {
-      modifiedBy = modifier.getLogin();
+      modifiedBy = modifier.getName();
     } else {
       modifiedBy = createdBy; // XXX when item shared by other user it may not
                               // have a modifier - use the

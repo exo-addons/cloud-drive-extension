@@ -51,5 +51,15 @@ public interface CloudDriveSecurity {
    * @see #isSharingSupported()
    */
   void shareFile(Node fileNode, String... identities) throws RepositoryException, CloudDriveException;
+  
+  /**
+   * Unshare cloud file in cloud provider API.
+   *
+   * @param fileNode the file node
+   * @param users the users
+   * @throws RepositoryException the repository exception
+   * @throws CloudDriveException the cloud drive exception
+   */
+  void unshareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException;
 
 }
