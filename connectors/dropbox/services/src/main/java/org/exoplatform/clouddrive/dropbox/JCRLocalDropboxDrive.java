@@ -2839,7 +2839,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   public boolean isSharingSupported() {
-    return false;
+    return true;
   }
 
   /**
@@ -2847,9 +2847,6 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
    */
   @Override
   public void shareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
-    // Standard Dropbox account can share file publicly only. We cannot set
-    // per-user permissions here.
-
     // TODO Implement Team sharing according Dropbox API
     // https://www.dropbox.com/developers/core/docs#shares
     // Dropbox for Business users can set restrictions on shared links; the
@@ -2864,9 +2861,28 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     // values may be added at any
     // time.
 
-    // Need refine ideas of Dropbox and eXo sharing and make clear for end user
-    // createSharedLink(fileNode);
-    throw new CloudDriveException("Sharing not supported");
+    // FYI Standard Dropbox account can share file publicly only. We cannot set
+    // per-user permissions here.
+    createSharedLink(fileNode);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void unshareFile(Node fileNode, String... users) throws RepositoryException, CloudDriveException {
+    // Unsharing means we forget the link in eXo, but actual shared link stays
+    // in Dropbox and user can unshare the file on the Dropbox site.
+    boolean canSave = !fileNode.isNew() && !fileNode.isModified();
+    try {
+      fileNode.getProperty("dropbox:sharedLink").remove();
+      fileNode.getProperty("dropbox:sharedLinkExpires").remove();
+    } catch (PathNotFoundException e) {
+      // then ok
+    }
+    if (canSave) {
+      fileNode.save();
+    }
   }
 
   /**
@@ -3246,6 +3262,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     jcrListener.disable();
     try {
       String link = metadata.getUrl();
+      boolean canSave = !fileNode.isNew() && !fileNode.isModified();
       Property dlProp = fileNode.setProperty("dropbox:sharedLink", link);
       long sharedLinkExpires;
       if (metadata.getExpires() != null) {
@@ -3256,7 +3273,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       Property dleProp = fileNode.setProperty("dropbox:sharedLinkExpires", sharedLinkExpires);
       if (dlProp.isNew()) {
         // save only if node was already saved
-        if (!fileNode.isNew() && !fileNode.isModified()) {
+        if (canSave) {
           fileNode.save();
         } // otherwise, it should be saved where the node added/modified (by the
           // owner)
