@@ -3103,9 +3103,13 @@ public abstract class JCRLocalCloudDrive extends CloudDrive implements CloudDriv
         }
         for (FileChange c : fileChanges.values()) {
           if (c != this && c.filePath.startsWith(lockedPath)) {
-            LOG.info(">>> Waiting for child " + c.filePath);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(">>> Waiting for child " + c.filePath);
+            }
             c.await();
-            LOG.info("<<< Done for child " + c.filePath);
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("<<< Done for child " + c.filePath);
+            }
           }
         }
       }
