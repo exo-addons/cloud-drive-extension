@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>exo-clouddrive-parent</artifactId>
-    <version>1.5.x-SNAPSHOT</version>
+    <version>1.5.4</version>
   </parent>
   <artifactId>exo-clouddrive-packaging</artifactId>
   <packaging>pom</packaging>
