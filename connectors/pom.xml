@@ -37,5 +37,6 @@
     <module>box</module>
     <module>dropbox</module>
     <module>cmis</module>
+    <module>onedrive</module>
   </modules>
 </project>
