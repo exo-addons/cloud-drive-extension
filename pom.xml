@@ -158,6 +158,18 @@
         <version>${project.version}</version>
         <type>war</type>
       </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
+        <artifactId>exo-clouddrive-onedrive-services</artifactId>
+        <version>${project.version}</version>
+        <type>jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.exoplatform.addons.clouddrive</groupId>
+        <artifactId>exo-clouddrive-onedrive-webapp</artifactId>
+        <version>${project.version}</version>
+        <type>war</type>
+      </dependency>
       
       <!-- dependencies -->
       <dependency>
@@ -194,6 +206,11 @@
         <groupId>org.apache.chemistry.opencmis</groupId>
         <artifactId>chemistry-opencmis-client-impl</artifactId>
         <version>${org.apache.chemistry.opencmis.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.graph</groupId>
+        <artifactId>microsoft-graph</artifactId>
+        <version>1.3.0</version>
       </dependency>
 
       <!-- for tests -->

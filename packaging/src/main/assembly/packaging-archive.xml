@@ -16,6 +16,14 @@
          <fileMode>0644</fileMode>
       </fileSet>
    </fileSets>
+
+    <!--<files>-->
+        <!--<file>-->
+            <!--<source>/microsoft-graph-1.2.0.jar</source>-->
+            <!--<outputDirectory>/</outputDirectory>-->
+        <!--</file>-->
+    <!--</files>-->
+
    <dependencySets>
      <dependencySet>
        <outputDirectory>webapps</outputDirectory>
@@ -62,6 +70,27 @@
        <scope>provided</scope>
        <fileMode>0644</fileMode>
      </dependencySet>
+
+     <dependencySet>
+     <outputDirectory>webapps</outputDirectory>
+           <includes>
+               <include>org.exoplatform.addons.clouddrive:exo-clouddrive-onedrive-webapp:war</include>
+           </includes>
+           <outputFileNameMapping>cloud-drive-onedrive.war</outputFileNameMapping>
+           <scope>provided</scope>
+           <fileMode>0644</fileMode>
+       </dependencySet>
+
+    <dependencySet>
+    <outputDirectory>lib</outputDirectory>
+        <useTransitiveDependencies>true</useTransitiveDependencies>
+    <includes>
+        <include>com.microsoft.graph:microsoft-graph<!--:jar:--></include>
+    </includes>
+    <scope>provided</scope>
+    <fileMode>0644</fileMode>
+    </dependencySet>
+
      <dependencySet>
        <!-- Dependencies for deployment to Platform 4.0 instance -->
        <outputDirectory>lib</outputDirectory>
