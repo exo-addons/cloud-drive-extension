@@ -58,7 +58,9 @@
 
     <!-- Box API -->
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
-    
+    <!--One Drive API-->
+    <com.microsoft.graph.version>1.3.0</com.microsoft.graph.version>
+
     <!-- Dropbox SDK -->
     <com.dropbox.core.version>3.0.7</com.dropbox.core.version>
     
@@ -210,7 +212,7 @@
       <dependency>
         <groupId>com.microsoft.graph</groupId>
         <artifactId>microsoft-graph</artifactId>
-        <version>1.3.0</version>
+        <version>${com.microsoft.graph.version}</version>
       </dependency>
 
       <!-- for tests -->
