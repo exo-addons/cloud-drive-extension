@@ -85,11 +85,20 @@
     <outputDirectory>lib</outputDirectory>
         <useTransitiveDependencies>true</useTransitiveDependencies>
     <includes>
-        <include>com.microsoft.graph:microsoft-graph<!--:jar:--></include>
+        <include>com.microsoft.graph:microsoft-graph</include>
     </includes>
     <scope>provided</scope>
     <fileMode>0644</fileMode>
     </dependencySet>
+       <dependencySet>
+           <outputDirectory>lib</outputDirectory>
+           <useTransitiveDependencies>true</useTransitiveDependencies>
+           <includes>
+               <include>com.google.code.gson:gson</include>
+           </includes>
+           <scope>provided</scope>
+           <fileMode>0644</fileMode>
+       </dependencySet>
 
      <dependencySet>
        <!-- Dependencies for deployment to Platform 4.0 instance -->
