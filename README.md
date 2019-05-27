@@ -115,6 +115,25 @@ Enable Box API
 - Sample configuration of Box connector by the [link](https://github.com/exo-addons/cloud-drive-extension/tree/master/connectors#box)
 - You also can use Box SSO, see instructions provided below.
 
+Enable Onedrive API
+-------------
+
+To connect with Microsoft Graph, you'll need a Microsoft account.
+- Go to https://apps.dev.microsoft.com/.
+- Find My applications and click Add an app.
+- Enter your app's name and click Create application.
+- After you've completed these steps, new app's properties page will open.
+
+In the opened page you need the following: 
+
+- generate new password In the 'application secret' section.
+- add web-platform and assign redirect uri (notice that it should be https for all hosts except localhost, and the path must be /portal/rest/clouddrive/connect/onedrive).
+- add scopes like in the screen below.
+
+![OneDrive APP Settings](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/onedrive-app-settings.png)
+
+
+ 
 CMIS repositories
 -----------------
 
@@ -143,6 +162,8 @@ Add the two following variables:
     clouddrive.google.client.secret=XXXXXXX
     clouddrive.box.client.id=YYYYYY
     clouddrive.box.client.secret=ZZZZZZ
+    clouddrive.onedrive.client.id=AAAAAA
+    clouddrive.onedrive.client.secret=BBBBBB
 
 The `clouddrive.google.client.id` parameter is the `Client ID` of the service account (available in your Google console, see previous screenshot).
 The `clouddrive.google.client.secret` parameter is `Client Secret` of the service account (available in your Google console, see above).
