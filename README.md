@@ -130,7 +130,7 @@ In the opened page you need the following:
 - add web-platform and assign redirect uri (notice that it should be https for all hosts except localhost, and the path must be /portal/rest/clouddrive/connect/onedrive).
 - add scopes like in the screen below.
 
-![OneDrive APP Settings](https://raw.github.com/exo-addons/cloud-drive-extension/master/documentation/readme/onedrive-app-settings.png)
+![OneDrive APP Settings](https://raw.githubusercontent.com/pnedonosko/cloud-drive-extension/feature/onedrive/documentation/readme/onedrive-app-settings.png)
 
 
  
