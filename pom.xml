@@ -58,6 +58,7 @@
 
     <!-- Box API -->
     <com.box.boxjavasdk.version>1.1.0</com.box.boxjavasdk.version>
+
     <!--One Drive API-->
     <com.microsoft.graph.version>1.4.0</com.microsoft.graph.version>
     <!-- GSON -->
@@ -65,6 +66,7 @@
 
     <!-- Dropbox SDK -->
     <com.dropbox.core.version>3.0.11</com.dropbox.core.version>
+
     <!-- Apache Chemistry (OpencCMIS) API -->
     <org.apache.chemistry.opencmis.version>1.1.0</org.apache.chemistry.opencmis.version>
 
@@ -220,7 +222,6 @@
         <artifactId>gson</artifactId>
         <version>${com.google.code.gson.version}</version>
       </dependency>
-
 
       <!-- for tests -->
       <dependency>
