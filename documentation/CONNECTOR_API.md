@@ -487,29 +487,29 @@ It is an example how a connector module can looks (simplified Template connector
  */
 (function($, cloudDrive, utils) {
 
-	/**
-	 * My Cloud connector class.
-	 */
-	function MyCloud() {
-		// Provider Id for Template provider
-		var PROVIDER_ID = "mycloud";
+  /**
+   * My Cloud connector class.
+   */
+  function MyCloud() {
+    // Provider Id for Template provider
+    var PROVIDER_ID = "mycloud";
 
-		var prefixUrl = utils.pageBaseUrl(location);
+    var prefixUrl = utils.pageBaseUrl(location);
 
-		/**
-		 * Renew drive state object.
-		 */
-		var renewState = function(process, drive) {
-			var newState = cloudDrive.getState(drive);
-			newState.done(function(res) {
-				drive.state = res;
-				process.resolve(); // this will cause sync also
-			});
-			newState.fail(function(response, status, err) {
-				process.reject("Error getting drive state. " + err + " (" + status + ")");
-			});
-			return newState;
-		};
+    /**
+     * Renew drive state object.
+     */
+    var renewState = function(process, drive) {
+      var newState = cloudDrive.getState(drive);
+      newState.done(function(res) {
+        drive.state = res;
+        process.resolve(); // this will cause sync also
+      });
+      newState.fail(function(response, status, err) {
+        process.reject("Error getting drive state. " + err + " (" + status + ")");
+      });
+      return newState;
+    };
 
     /**
      * Initialize provider client in context of current file.
@@ -524,60 +524,57 @@ It is an example how a connector module can looks (simplified Template connector
         }
       });
     };
-      
-		/**
-		 * Check if given drive has remote changes. Return jQuery Promise object that will be resolved
-		 * when some change will appear, or rejected on error. It is a method that Cloud Drive core
-		 * client will look for when loading the connector module.
-		 * 
-		 * Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an
-		 * actual change will happen in the drive.
-		 */
-		this.onChange = function(drive) {
-			var process = $.Deferred();
 
-			if (drive) {
-				if (drive.state) {
-					// Drive supports state - thus we can send connector specific data via it from Java API
-					// State it is a POJO in JavaAPI. Here it is a JSON object.
-					// For an example here we assume that cloud provider has events long-polling service that
-					// return OK when changes happen (this logic based on Box connector client - replace
-					// response content and logic according your cloud service).
-					var changes = cloudDrive.ajaxGet(drive.state.url);
-					changes.done(function(info, status) {
-						if (info.message == "new_change") {
-							process.resolve();
-						} else if (info.message == "reconnect") {
-							renewState(process, drive);
-						}
-					});
-					changes.fail(function(response, status, err) {
-				    process.reject("Changes request failed. " + err + " (" + status + ") "
-						        + JSON.stringify(response));
-			    });
-				} else {
-					process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
-				}
-			} else {
-				process.reject("Null drive in onChange()");
-			}
-
-			return process.promise();
-		};
-    
     /**
-		 * Initialize MyDrive drive in the page context. This method will be called when drive initializes 
-     * on the page by cloudDrive.initContext() method, once per page load.
-		 */
+     * Check if given drive has remote changes. Return jQuery Promise object that will be resolved when some change will appear,
+     * or rejected on error. It is a method that Cloud Drive core client will look for when loading the connector module.
+     * Thanks to use of jQuery Promise drive state synchronization runs asynchronously, only when an actual change will happen in
+     * the drive.
+     */
+    this.onChange = function(drive) {
+      var process = $.Deferred();
+
+      if (drive) {
+        if (drive.state) {
+          // Drive supports state - thus we can send connector specific data via it from Java API
+          // State it is a POJO in JavaAPI. Here it is a JSON object.
+          // For an example here we assume that cloud provider has events long-polling service that
+          // return OK when changes happen (this logic based on Box connector client - replace
+          // response content and logic according your cloud service).
+          var changes = cloudDrive.ajaxGet(drive.state.url);
+          changes.done(function(info, status) {
+            if (info.message == "new_change") {
+              process.resolve();
+            } else if (info.message == "reconnect") {
+              renewState(process, drive);
+            }
+          });
+          changes.fail(function(response, status, err) {
+            process.reject("Changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+          });
+        } else {
+          process.reject("Cannot check for changes. No state object for Cloud Drive on " + drive.path);
+        }
+      } else {
+        process.reject("Null drive in onChange()");
+      }
+
+      return process.promise();
+    };
+
+    /**
+     * Initialize MyDrive drive in the page context. This method will be called when drive initializes on the page by
+     * cloudDrive.initContext() method, once per page load.
+     */
     this.initDrive = function(drive) {
       // TODO do something specific to your use case, e.g. login in social network
-      // Here we can customize the drive object, or how this provider drive looks (CSS etc) or 
-      // add extra logic (Javascript) to its controls. 
+      // Here we can customize the drive object, or how this provider drive looks (CSS etc) or
+      // add extra logic (Javascript) to its controls.
       // It's also possible to perform any other related custom operations on this phase.
       TheSocialNetwork.init({
-        appId : "{your-app-id}"  
+        appId : "{your-app-id}"
       });
-      TheSocialNetwork.getLoginStatus( function(status) {
+      TheSocialNetwork.getLoginStatus(function(status) {
         if (status !== "connected") {
           TheSocialNetwork.login();
         }
@@ -585,37 +582,38 @@ It is an example how a connector module can looks (simplified Template connector
     };
 
     /**
-		 * Initialize MyDrive file in the page context. This method will be called in following cases: 
-     * 1) when drive initializes on the page by cloudDrive.initContext() method (once per page load for each file existing at this moment); 
-     * 2) on cloudDrive.synchronize() for each affected file;
-     * 3) on file lazy reading and by the cloudDrive.getFile() or cloudDrive.getContextFile()
-		 */
-		this.initFile = function(file) {
-      // Here we can customize this file object and/or how this file looks (CSS etc) or 
+     * Initialize MyDrive file in the page context. This method will be called in following cases: 1) when drive initializes on
+     * the page by cloudDrive.initContext() method (once per page load for each file existing at this moment); 2) on
+     * cloudDrive.synchronize() for each affected file; 3) on file lazy reading and by the cloudDrive.getFile() or
+     * cloudDrive.getContextFile()
+     */
+    this.initFile = function(file) {
+      // Here we can customize this file object and/or how this file looks (CSS etc) or
       // add extra logic (Javascript) to its controls.
-      // Any other operations can be possible here, but take in account that this method may be 
+      // Any other operations can be possible here, but take in account that this method may be
       // called many times and heavy calculations here may affect the performance of the client.
-			if (file && file.link && !file.previewLink) {
-				// For example: if file has not preview link we construct an one from its link and current user social preferences.
+      if (file && file.link && !file.previewLink) {
+        // For example: if file has not preview link we construct an one from its link and current user social preferences.
         var tsnProfile = TheSocialNetwork.api("/me"); // TODO here your call to the user social profile
         file.previewLink = file.link + "/preview?" + "tsnId=" + tsnProfile.id; // set preview link to the file instance
-			}
-		};
-	}
+      }
+    };
+  }
 
-	var client = new MyCloud();
+  var client = new MyCloud();
 
-	// apply per-app customization (e.g. load global styles or images), see also onLoad() above
-	if (window == top) { // run only in window (not in iframe as gadgets may do)
-	  try {
-			// load custom/parties style
-			utils.loadStyle("/cloud-drive-mycloud/skin/thirparty-style.css");
-		} catch(e) {
-			utils.log("Error intializing mycloud client.", e);
-		}
-	}
+  // apply per-app customization (e.g. load global styles or images), see also onLoad() above
+  if (window == top) { // run only in window (not in iframe as gadgets may do)
+    try {
+      // load custom/parties style
+      utils.loadStyle("/cloud-drive-mycloud/skin/thirparty-style.css");
+    } catch (e) {
+      utils.log("Error intializing mycloud client.", e);
+    }
+  }
 
-	return client; })($, cloudDrive, cloudDriveUtils);
+  return client;
+})($, cloudDrive, cloudDriveUtils);
 ```
 
 Drive state monitoring
