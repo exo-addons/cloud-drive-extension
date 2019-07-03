@@ -8,10 +8,10 @@
  */
 (function($, cloudDrive, utils) {
 
-	/**
-	 * PROVIDER_ID connector class.
-	 */
-	function TemplateClient() {
+	/** 
+	 * PROVIDER_ID connector class. 
+	 */ 
+  function TemplateClient() {
 		// Provider Id for Template provider
 		var PROVIDER_ID = "YOUR PROVIDER_ID";
 
@@ -81,19 +81,19 @@
 							}
 						});
 						changes.fail(function(response, status, err) {
-							    clearTimeout(linkLive);
-							    // if not aborted by linkLive timer or browser
-							    if (err != "abort") {
-								    if ((typeof err === "string" && err.indexOf("max_retries") >= 0)
-								        || (response && response.error.indexOf("max_retries") >= 0)) {
-									    // need reconnect
-									    renewState(process, drive);
-								    } else {
-									    process.reject("Long-polling changes request failed. " + err + " (" + status + ") "
-									        + JSON.stringify(response));
-								    }
-							    }
-						    });
+					    clearTimeout(linkLive);
+					    // if not aborted by linkLive timer or browser
+					    if (err != "abort") {
+						    if ((typeof err === "string" && err.indexOf("max_retries") >= 0)
+						        || (response && response.error.indexOf("max_retries") >= 0)) {
+							    // need reconnect
+							    renewState(process, drive);
+						    } else {
+							    process.reject("Long-polling changes request failed. " + err + " (" + status + ") "
+							        + JSON.stringify(response));
+						    }
+					    }
+				    });
 						// long-polling can outdate, if request runs longer of the period - need start a new one
 						linkLive = setTimeout(function() {
 							changes.request.abort();
@@ -109,12 +109,57 @@
 
 			return process.promise();
 		};
-
+		
 		/**
+     * Initialize provider client in context of current file.
+     */
+    this.initContext = function(provider) {
+      $(function() {
+        // For example: we want use preview link as download link for not viewable files
+        var file = cloudDrive.getContextFile();
+        if (file) {
+          var $target = $(".PROVIDER_ID_preview_class");
+          $target.attr("href", file.previewLink);
+        }
+      });
+    };
+    
+    /**
+     * Init provider's connected drive in the page context. This method will be called when drive initializes 
+     * on the page by cloudDrive.initContext() method, thus once per page load. 
+     */
+    this.initDrive = function(drive) {
+      $(function() {
+        // Here we can customize the drive object, or how this provider drive looks (CSS etc) or 
+        // add extra logic (Javascript) to its controls. 
+        // It's also possible to perform any other related custom operations on this phase. 
+      });
+    };
+
+    /**
+     * Init provider's connected file in the page context. This method will be called in following cases: 
+     * 1) when drive initializes on the page by cloudDrive.initContext() method (once per page load for each file existing at this moment); 
+     * 2) on cloudDrive.synchronize() for each affected file;
+     * 3) on file lazy reading and by the cloudDrive.getFile() or cloudDrive.getContextFile()
+     */
+    this.initFile = function(file) {
+      $(function() {
+        // Here we can customize this file object and/or how this file looks (CSS etc) or 
+        // add extra logic (Javascript) to its controls.
+        // Any other operations can be possible here, but take in account that this method may be 
+        // called many times and heavy calculations here may affect the performance of the client.
+      });
+    };
+    
+    /**
+     * IT IS A CUSTOM METHOD OF THE CLIENT
+     * For internal use, see below in DOM-ready handler.
 		 * Read comments of a file. This method returns jQuery Promise of the asynchronous request.
+		 * It's fake method of the client to show how specific methods can be used.
 		 */
-		this.fileComments = function(workspace, path) {
-			return cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/PROVIDER_ID", {
+		this.myFileComments = function(workspace, path) {
+		  // This method only to show how API can be used, no such REST endpoint exists so far 
+			return cloudDrive.ajaxGet(prefixUrl + "/portal/rest/myservice/filecomments", {
 			  "workspace" : workspace,
 			  "path" : path
 			});
@@ -132,7 +177,7 @@
 					var drive = cloudDrive.getContextDrive();
 					var file = cloudDrive.getContextFile();
 					if (drive && file) {
-						var comments = client.readComments(drive.workspace, file.path);
+						var comments = client.myFileComments(drive.workspace, file.path);
 						comments.done(function(commentsArray, status) {
 							if (status != 204) { // NO CONTENT means no drive found or drive not connected
 								// Append comments to a some invisible div on the page and then show it
