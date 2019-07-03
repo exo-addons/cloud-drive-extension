@@ -512,34 +512,18 @@ It is an example how a connector module can looks (simplified Template connector
 		};
 
     /**
-     * Initialize this module on its load to the page (or page updated within a fragment). 
-     * This method will be invoked by Cloud Drive client on a page or its fragment loading to the browser.
+     * Initialize provider client in context of current file.
      */
-    this.onLoad = function(provider) {
-			$(function() {
-				// Add an action to some button "Show File Comments"
-				$("#file_comments_button").click(function() {
-					var drive = cloudDrive.getContextDrive();
-					var file = cloudDrive.getContextFile();
-					if (drive && file) {
-						var comments = client.readComments(drive.workspace, file.path);
-						comments.done(function(commentsArray, status) {
-							if (status != 204) { // NO CONTENT means no drive found or drive not connected
-								// Append comments to a some invisible div on the page and then show it
-								var container = $("#file_comments_div");
-								$.each(commentsArray, function(i, c) {
-									$("<div class='myCloudFileComment'>" + c + "</div>").appendTo(container);
-								});
-								container.show();
-							} // else do nothing
-						});
-						comments.fail(function(response, status, err) {
-							utils.log("Comments request failed. " + err + " (" + status + ") " + JSON.stringify(response));
-						});
-					}
-				});
-			});
-    });
+    this.initContext = function(provider) {
+      $(function() {
+        // For example: we want use preview link as download link for not viewable files
+        var file = cloudDrive.getContextFile();
+        if (file) {
+          var $target = $(".PROVIDER_ID_preview_class");
+          $target.attr("href", file.previewLink);
+        }
+      });
+    };
       
 		/**
 		 * Check if given drive has remote changes. Return jQuery Promise object that will be resolved
@@ -582,10 +566,14 @@ It is an example how a connector module can looks (simplified Template connector
 		};
     
     /**
-		 * Initialize MyDrive instance.
+		 * Initialize MyDrive drive in the page context. This method will be called when drive initializes 
+     * on the page by cloudDrive.initContext() method, once per page load.
 		 */
     this.initDrive = function(drive) {
       // TODO do something specific to your use case, e.g. login in social network
+      // Here we can customize the drive object, or how this provider drive looks (CSS etc) or 
+      // add extra logic (Javascript) to its controls. 
+      // It's also possible to perform any other related custom operations on this phase.
       TheSocialNetwork.init({
         appId : "{your-app-id}"  
       });
@@ -597,28 +585,25 @@ It is an example how a connector module can looks (simplified Template connector
     };
 
     /**
-		 * Initialize MyDrive file.
+		 * Initialize MyDrive file in the page context. This method will be called in following cases: 
+     * 1) when drive initializes on the page by cloudDrive.initContext() method (once per page load for each file existing at this moment); 
+     * 2) on cloudDrive.synchronize() for each affected file;
+     * 3) on file lazy reading and by the cloudDrive.getFile() or cloudDrive.getContextFile()
 		 */
 		this.initFile = function(file) {
+      // Here we can customize this file object and/or how this file looks (CSS etc) or 
+      // add extra logic (Javascript) to its controls.
+      // Any other operations can be possible here, but take in account that this method may be 
+      // called many times and heavy calculations here may affect the performance of the client.
 			if (file && file.link && !file.previewLink) {
 				// For example: if file has not preview link we construct an one from its link and current user social preferences.
         var tsnProfile = TheSocialNetwork.api("/me"); // TODO here your call to the user social profile
         file.previewLink = file.link + "/preview?" + "tsnId=" + tsnProfile.id; // set preview link to the file instance
 			}
 		};
-
-		/**
-		 * Read comments of a file. This method returns jQuery Promise of the asynchronous request.
-		 */
-		this.fileComments = function(workspace, path) {
-			return cloudDrive.ajaxGet(prefixUrl + "/portal/rest/clouddrive/drive/mycloud", {
-			  "workspace" : workspace,
-			  "path" : path
-			});
-		};
 	}
 
-	var client = new TemplateClient();
+	var client = new MyCloud();
 
 	// apply per-app customization (e.g. load global styles or images), see also onLoad() above
 	if (window == top) { // run only in window (not in iframe as gadgets may do)
@@ -630,8 +615,7 @@ It is an example how a connector module can looks (simplified Template connector
 		}
 	}
 
-	return client;
-})($, cloudDrive, cloudDriveUtils);
+	return client; })($, cloudDrive, cloudDriveUtils);
 ```
 
 Drive state monitoring
