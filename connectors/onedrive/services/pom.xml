@@ -111,10 +111,8 @@
     <dependency>
       <groupId>com.microsoft.graph</groupId>
       <artifactId>microsoft-graph</artifactId>
-      <!--<version>1.3.0</version>-->
       <scope>provided</scope>
       <type>jar</type>
-      <!--<scope>import</scope>-->
     </dependency>
 
     <!-- for tests -->
