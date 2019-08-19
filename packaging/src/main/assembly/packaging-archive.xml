@@ -1,122 +1,86 @@
-<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.1 http://maven.apache.org/xsd/assembly-1.1.1.xsd">
-   <id>packaging</id>
-   <includeBaseDirectory>false</includeBaseDirectory>
-   <formats>
-     <format>zip</format>
-   </formats>
-   <fileSets>
-      <!-- Catalina conext config -->
-      <fileSet>
-         <directory>src/main/resources/platform-tomcat/conf</directory>
-         <outputDirectory>/conf</outputDirectory>
-         <includes>
-           <include>**/**/*.xml</include>
-         </includes>
-         <fileMode>0644</fileMode>
-      </fileSet>
-   </fileSets>
-
-    <!--<files>-->
-        <!--<file>-->
-            <!--<source>/microsoft-graph-1.2.0.jar</source>-->
-            <!--<outputDirectory>/</outputDirectory>-->
-        <!--</file>-->
-    <!--</files>-->
-
-   <dependencySets>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>cloud-drive.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-gdrive-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>cloud-drive-gdrive.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-box-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>cloud-drive-box.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-dropbox-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>cloud-drive-dropbox.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-     <dependencySet>
-       <outputDirectory>webapps</outputDirectory>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-cmis-webapp:war</include>
-       </includes>
-       <outputFileNameMapping>cloud-drive-cmis.war</outputFileNameMapping>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-
-     <dependencySet>
-     <outputDirectory>webapps</outputDirectory>
-           <includes>
-               <include>org.exoplatform.addons.clouddrive:exo-clouddrive-onedrive-webapp:war</include>
-           </includes>
-           <outputFileNameMapping>cloud-drive-onedrive.war</outputFileNameMapping>
-           <scope>provided</scope>
-           <fileMode>0644</fileMode>
-       </dependencySet>
-
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.1 http://maven.apache.org/xsd/assembly-1.1.1.xsd">
+  <id>packaging</id>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <dependencySets>
     <dependencySet>
-    <outputDirectory>lib</outputDirectory>
-        <useTransitiveDependencies>true</useTransitiveDependencies>
-    <includes>
-        <include>com.microsoft.graph:microsoft-graph</include>
-    </includes>
-    <scope>provided</scope>
-    <fileMode>0644</fileMode>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
     </dependencySet>
-       <dependencySet>
-           <outputDirectory>lib</outputDirectory>
-           <useTransitiveDependencies>true</useTransitiveDependencies>
-           <includes>
-               <include>com.google.code.gson:gson</include>
-           </includes>
-           <scope>provided</scope>
-           <fileMode>0644</fileMode>
-       </dependencySet>
-
-     <dependencySet>
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-gdrive-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive-gdrive.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-box-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive-box.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-dropbox-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive-dropbox.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-cmis-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive-cmis.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+    <dependencySet>
+      <outputDirectory>webapps</outputDirectory>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-onedrive-webapp:war</include>
+      </includes>
+      <outputFileNameMapping>cloud-drive-onedrive.war</outputFileNameMapping>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+    
+    <dependencySet>
        <!-- Dependencies for deployment to Platform 4.0 instance -->
-       <outputDirectory>lib</outputDirectory>
-       <useTransitiveDependencies>true</useTransitiveDependencies>
-       <includes>
-         <include>org.exoplatform.addons.clouddrive:exo-clouddrive-*:jar</include>
-         <!-- include>com.google.*:*:jar</include -->
-         <include>com.box:*:jar</include>
-         <include>com.eclipsesource.minimal-json:*:jar</include>
-         <include>com.dropbox.core:*:jar</include>
-         <include>org.apache.chemistry.opencmis:*:jar</include>
-         <include>org.codehaus.woodstox:woodstox-core-asl:jar</include>
-         <!-- include>com.fasterxml.jackson.core:*:jar</include -->
-         <!-- include>org.apache.httpcomponents:*:jar</include -->
-       </includes>
-       <scope>provided</scope>
-       <fileMode>0644</fileMode>
-     </dependencySet>
-   </dependencySets>
+      <outputDirectory>lib</outputDirectory>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+      <includes>
+        <include>org.exoplatform.addons.clouddrive:exo-clouddrive-*:jar</include>
+        <!-- include>com.google.*:*:jar</include --><!-- Google Drive libs shaded in GDrive connector -->
+        <include>com.box:*:jar</include>
+        <include>com.eclipsesource.minimal-json:*:jar</include>
+        <include>com.dropbox.core:*:jar</include>
+        <include>org.apache.chemistry.opencmis:*:jar</include>
+        <include>org.codehaus.woodstox:woodstox-core-asl:jar</include>
+        <!-- include>com.fasterxml.jackson.core:*:jar</include -->
+        <!-- include>org.apache.httpcomponents:*:jar</include -->
+        <include>com.microsoft.graph:microsoft-graph</include>
+        <include>com.google.code.gson:gson</include><!-- TODO remove it -->
+      </includes>
+      <scope>provided</scope>
+      <fileMode>0644</fileMode>
+    </dependencySet>
+  </dependencySets>
 </assembly>
