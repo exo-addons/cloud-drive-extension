@@ -99,7 +99,7 @@
       <scope>provided</scope>
       <type>war</type>
     </dependency>
-    <dependency>
+    <!-- dependency>
       <groupId>org.exoplatform.addons.clouddrive</groupId>
       <artifactId>exo-clouddrive-onedrive-services</artifactId>
       <scope>provided</scope>
@@ -110,7 +110,7 @@
       <artifactId>exo-clouddrive-onedrive-webapp</artifactId>
       <scope>provided</scope>
       <type>war</type>
-    </dependency>
+    </dependency -->
   </dependencies>
 
   <build>
