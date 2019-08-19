@@ -190,10 +190,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
         // sync stream
         setChangeId(changeId);
         driveNode.setProperty("dropbox:cursor", driveCursor);
-        driveNode.setProperty("dropbox:version", DropboxAPI.VERSION); // used
-                                                                      // since
-                                                                      // upgrade
-                                                                      // to V2
+        driveNode.setProperty("dropbox:version", DropboxAPI.VERSION); // used since upgrade to V2
         updateState(ls.getCursor());
       }
     }
@@ -2680,6 +2677,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
       throws CloudDriveException, RepositoryException {
     super(user, driveNode, sessionProviders, finder, mimeTypes);
     getUser().api().getToken().addListener(this);
+    updateState(null); // initialize with null cursor
   }
 
   /**
