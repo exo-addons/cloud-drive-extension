@@ -18,17 +18,16 @@
  */
 package org.exoplatform.clouddrive.jcr;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 import javax.jcr.Node;
 
-import org.exoplatform.clouddrive.CloudFile;
+import org.exoplatform.clouddrive.LocalCloudFile;
 
 /**
  * A POJO providing information about a cloud file stored in JCR.
  */
-public class JCRLocalCloudFile implements CloudFile {
+public class JCRLocalCloudFile extends LocalCloudFile {
 
   /**
    * Folder size by default is -1.
@@ -86,16 +85,6 @@ public class JCRLocalCloudFile implements CloudFile {
   private final transient boolean  changed;
 
 
-  private final String modified;
-
-  public String formatDate(Calendar modifiedDate){
-    if (modifiedDate != null) {
-      SimpleDateFormat format = new SimpleDateFormat("dd.MM.yy");
-      return format.format(modifiedDate.getTime());
-    }
-    return "";
-  }
-
   /**
    * Local cloud file or folder (full internal constructor).
    *
@@ -151,7 +140,6 @@ public class JCRLocalCloudFile implements CloudFile {
     this.size = size;
     this.node = node;
     this.changed = changed;
-    this.modified = formatDate(modifiedDate);
   }
 
   /**
@@ -265,7 +253,7 @@ public class JCRLocalCloudFile implements CloudFile {
   /**
    * Local cloud folder (without edit, preview, thumbnail links, type mode and
    * size).
-   * 
+   *
    * @param path {@link String}
    * @param id {@link String}
    * @param title {@link String}
@@ -439,9 +427,10 @@ public class JCRLocalCloudFile implements CloudFile {
    * valid (not expired for example).<br>
    * Take in account that the node can be obtained via a system session and so
    * all changes over it will be done on behalf of system user.
-   * 
+   *
    * @return the node that represent this Cloud File in the storage.
    */
+  @Override
   public Node getNode() {
     return node;
   }
@@ -449,14 +438,11 @@ public class JCRLocalCloudFile implements CloudFile {
   /**
    * Indicate does this Cloud File was changed (<code>true</code>) or read
    * (<code>false</code>) from the storage. Used internally only!
-   * 
+   *
    * @return the changed flag
    */
   public boolean isChanged() {
     return changed;
   }
 
-  public String getModified() {
-    return modified;
-  }
 }

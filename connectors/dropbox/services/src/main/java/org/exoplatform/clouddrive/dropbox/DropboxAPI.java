@@ -73,7 +73,6 @@ import com.dropbox.core.v2.sharing.ListSharedLinksErrorException;
 import com.dropbox.core.v2.sharing.ListSharedLinksResult;
 import com.dropbox.core.v2.sharing.SharedLinkMetadata;
 import com.dropbox.core.v2.sharing.SharedLinkSettingsError;
-import com.dropbox.core.v2.sharing.SharingUserError;
 import com.dropbox.core.v2.sharing.UnshareFileErrorException;
 import com.dropbox.core.v2.users.FullAccount;
 

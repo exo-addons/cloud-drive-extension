@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import javax.annotation.security.RolesAllowed;
@@ -32,6 +33,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -41,22 +43,23 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
 import org.exoplatform.clouddrive.CloudDrive;
-import org.exoplatform.clouddrive.CloudDrive.Command;
 import org.exoplatform.clouddrive.CloudDriveException;
 import org.exoplatform.clouddrive.CloudDriveMessage;
 import org.exoplatform.clouddrive.CloudDriveService;
 import org.exoplatform.clouddrive.CloudFile;
 import org.exoplatform.clouddrive.CloudProvider;
 import org.exoplatform.clouddrive.DriveRemovedException;
+import org.exoplatform.clouddrive.LocalCloudFile;
 import org.exoplatform.clouddrive.NotCloudFileException;
 import org.exoplatform.clouddrive.NotConnectedException;
 import org.exoplatform.clouddrive.NotYetCloudFileException;
 import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.clouddrive.CloudDrive.Command;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.jcr.ext.common.SessionProvider;
@@ -65,8 +68,7 @@ import org.exoplatform.services.log.Log;
 import org.exoplatform.services.rest.resource.ResourceContainer;
 
 /**
- * REST service providing information about providers. Created by The eXo
- * Platform SAS.
+ * REST service providing information about providers. Created by The eXo Platform SAS.
  * 
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: DriveService.java 00000 Oct 22, 2012 pnedonosko $
@@ -113,11 +115,14 @@ public class DriveService implements ResourceContainer {
    */
   @GET
   @RolesAllowed("users")
-  public Response getDrive(@Context UriInfo uriInfo, @QueryParam("workspace") String workspace, @QueryParam("path") String path) {
-
+  public Response getDrive(@Context HttpServletRequest request,
+                           @Context UriInfo uriInfo,
+                           @QueryParam("workspace") String workspace,
+                           @QueryParam("path") String path) {
     if (workspace != null) {
       if (path != null) {
-        return readDrive(workspace, path, false);
+        Locale locale = request.getLocale();
+        return readDrive(workspace, path, locale, false);
       } else {
         return Response.status(Status.BAD_REQUEST).entity(ErrorEntiry.message("Null path")).build();
       }
@@ -127,8 +132,7 @@ public class DriveService implements ResourceContainer {
   }
 
   /**
-   * Synchronized cloud drive or its file/folder and return result for client
-   * refresh.
+   * Synchronized cloud drive or its file/folder and return result for client refresh.
    *
    * @param uriInfo {@link UriInfo}
    * @param workspace {@link String} Drive Node workspace
@@ -138,13 +142,15 @@ public class DriveService implements ResourceContainer {
   @POST
   @Path("/synchronize/")
   @RolesAllowed("users")
-  public Response synchronize(@Context UriInfo uriInfo,
+  public Response synchronize(@Context HttpServletRequest request,
+                              @Context UriInfo uriInfo,
                               @FormParam("workspace") String workspace,
                               @FormParam("path") String path) {
 
     if (workspace != null) {
       if (path != null) {
-        return readDrive(workspace, path, true);
+        Locale locale = request.getLocale();
+        return readDrive(workspace, path, locale, true);
       } else {
         return Response.status(Status.BAD_REQUEST).entity("Null path.").build();
       }
@@ -153,20 +159,17 @@ public class DriveService implements ResourceContainer {
     }
   }
 
-  // *********************************** internals
-  // *************************************
+  // *********************************** internals *************************************
 
   /**
-   * Read cloud drive and optionally synchronized it before. Drive will contain
-   * a file from it will asked,
+   * Read cloud drive and optionally synchronized it before. Drive will contain a file from it will asked,
    * 
    * @param workspace {@link String} Drive workspace
    * @param path {@link String} path of a Node in the Drive
-   * @param synchronize {@link Boolean} flag to synch before the read (true to
-   *          force sync)
+   * @param synchronize {@link Boolean} flag to synch before the read (true to force sync)
    * @return {@link Response} REST response
    */
-  protected Response readDrive(String workspace, String path, boolean synchronize) {
+  protected Response readDrive(String workspace, String path, Locale locale, boolean synchronize) {
     try {
       CloudDrive local = cloudDrives.findDrive(workspace, path);
       if (local != null) {
@@ -178,6 +181,7 @@ public class DriveService implements ResourceContainer {
             Command sync = local.synchronize();
             sync.await(); // wait for sync process
             files = sync.getFiles();
+            initModified(files, locale);
             removed = sync.getRemoved();
             messages = sync.getMessages();
           } catch (InterruptedException e) {
@@ -247,6 +251,7 @@ public class DriveService implements ResourceContainer {
                 // it's symlink, add it also
                 files.add(new LinkedCloudFile(file, path));
               }
+              initModified(file, locale);
             }
           } catch (NotYetCloudFileException e) {
             if (LOG.isDebugEnabled()) {
@@ -292,9 +297,8 @@ public class DriveService implements ResourceContainer {
   }
 
   /**
-   * Return file information. Returned file may be not yet created in cloud
-   * (accepted for creation), then this service response will be with status
-   * ACCEPTED, otherwise it's OK response.
+   * Return file information. Returned file may be not yet created in cloud (accepted for creation), then this service response
+   * will be with status ACCEPTED, otherwise it's OK response.
    *
    * @param uriInfo the uri info
    * @param workspace {@link String} Drive Node workspace
@@ -304,10 +308,14 @@ public class DriveService implements ResourceContainer {
   @GET
   @Path("/file/")
   @RolesAllowed("users")
-  public Response getFile(@Context UriInfo uriInfo, @QueryParam("workspace") String workspace, @QueryParam("path") String path) {
+  public Response getFile(@Context HttpServletRequest request,
+                          @Context UriInfo uriInfo,
+                          @QueryParam("workspace") String workspace,
+                          @QueryParam("path") String path) {
     if (workspace != null) {
       if (path != null) {
         try {
+          Locale locale = request.getLocale();
           CloudDrive local = cloudDrives.findDrive(workspace, path);
           if (local != null) {
             try {
@@ -315,6 +323,7 @@ public class DriveService implements ResourceContainer {
               if (!file.getPath().equals(path)) {
                 file = new LinkedCloudFile(file, path); // it's symlink
               }
+              initModified(file, locale);
               return Response.ok().entity(file).build();
             } catch (NotYetCloudFileException e) {
               return Response.status(Status.ACCEPTED).entity(new AcceptedCloudFile(path)).build();
@@ -354,11 +363,9 @@ public class DriveService implements ResourceContainer {
   }
 
   /**
-   * Return list of files in given folder. Returned files may be not yet created
-   * in cloud (accepted for creation), then this service response will be with
-   * status ACCEPTED, otherwise it's OK response. This service will not return
-   * files for nodes that do not belong to the cloud drive associated with this
-   * path.
+   * Return list of files in given folder. Returned files may be not yet created in cloud (accepted for creation), then this
+   * service response will be with status ACCEPTED, otherwise it's OK response. This service will not return files for nodes that
+   * do not belong to the cloud drive associated with this path.
    *
    * @param uriInfo the uri info
    * @param workspace {@link String} Drive Node workspace
@@ -368,10 +375,14 @@ public class DriveService implements ResourceContainer {
   @GET
   @Path("/files/")
   @RolesAllowed("users")
-  public Response getFiles(@Context UriInfo uriInfo, @QueryParam("workspace") String workspace, @QueryParam("path") String path) {
+  public Response getFiles(@Context HttpServletRequest request,
+                           @Context UriInfo uriInfo,
+                           @QueryParam("workspace") String workspace,
+                           @QueryParam("path") String path) {
     if (workspace != null) {
       if (path != null) {
         try {
+          Locale locale = request.getLocale();
           CloudDrive local = cloudDrives.findDrive(workspace, path);
           if (local != null) {
             String parentPath;
@@ -402,6 +413,7 @@ public class DriveService implements ResourceContainer {
                   if (!file.getPath().equals(filePath)) {
                     file = new LinkedCloudFile(file, filePath); // it's symlink
                   }
+                  initModified(file, locale);
                   files.add(file);
                 } // not a cloud file - skip it
               } catch (NotYetCloudFileException e) {
@@ -500,4 +512,20 @@ public class DriveService implements ResourceContainer {
     }
   }
 
+  private void initModified(Collection<CloudFile> files, Locale locale) {
+    for (CloudFile file : files) {
+      initModified(file, locale);
+    }
+  }
+
+  private void initModified(CloudFile file, Locale locale) {
+    if (file.isConnected()) {
+      try {
+        LocalCloudFile.class.cast(file).initModified(locale);
+      } catch (ClassCastException e) {
+        // safely ignore it, but let to know it was
+        LOG.warn("Cannot initialize cloud file modified field for {} due to error: {}", file.getPath(), e.getMessage());
+      }
+    }
+  }
 }

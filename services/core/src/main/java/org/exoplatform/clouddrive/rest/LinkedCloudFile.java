@@ -23,6 +23,7 @@ import java.util.Calendar;
 import javax.jcr.Node;
 
 import org.exoplatform.clouddrive.CloudFile;
+import org.exoplatform.clouddrive.LocalCloudFile;
 
 /**
  * Wraps fields from another {@link CloudFile} and replace its path with a path
@@ -34,7 +35,7 @@ import org.exoplatform.clouddrive.CloudFile;
  * @author <a href="mailto:pnedonosko@exoplatform.com">Peter Nedonosko</a>
  * @version $Id: LinkedCloudFile.java 00000 Jan 24, 2013 pnedonosko $
  */
-public class LinkedCloudFile implements CloudFile {
+public class LinkedCloudFile extends LocalCloudFile {
 
   /** The id. */
   private final String             id;
@@ -82,6 +83,7 @@ public class LinkedCloudFile implements CloudFile {
 
   /** The is symlink. */
   private final boolean            isSymlink;
+  private  Node node;
 
   /**
    * Instantiates a new linked cloud file.
@@ -106,8 +108,12 @@ public class LinkedCloudFile implements CloudFile {
     this.path = path;
     this.size = file.getSize();
     this.isSymlink = true;
-  }
+    if (file.isConnected()) {
+      this.node = LocalCloudFile.class.cast(file).getNode();
+    }
 
+  }
+  
   /**
    * Checks if is symlink.
    *
@@ -208,6 +214,8 @@ public class LinkedCloudFile implements CloudFile {
     return folder;
   }
 
+
+
   /**
    * {@inheritDoc}
    */
@@ -223,4 +231,8 @@ public class LinkedCloudFile implements CloudFile {
     return size;
   }
 
+  @Override
+  public Node getNode() {
+    return node;
+  }
 }
