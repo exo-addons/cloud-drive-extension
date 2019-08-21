@@ -76,8 +76,6 @@
         <include>org.codehaus.woodstox:woodstox-core-asl:jar</include>
         <!-- include>com.fasterxml.jackson.core:*:jar</include -->
         <!-- include>org.apache.httpcomponents:*:jar</include -->
-        <include>com.microsoft.graph:microsoft-graph</include>
-        <include>com.google.code.gson:gson</include><!-- TODO remove it -->
       </includes>
       <scope>provided</scope>
       <fileMode>0644</fileMode>
