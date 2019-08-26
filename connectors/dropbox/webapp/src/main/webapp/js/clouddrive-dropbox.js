@@ -54,43 +54,48 @@
 							changes.request.abort();
 						}
 					}
-					// get-and-wait longpoll folder listing from Dropbox
-					changes = cloudDrive.ajaxPost(changesUrl, 
-							JSON.stringify({
-								timeout : drive.state.timeout, 
-								cursor : drive.state.cursor 
-							}), 
-							"application/json");
-					changes.done(function(info, status) {
-						changes = null;
-						var backoff = null;
-						if (info.backoff && typeof info.backoff === "number") {
-							backoff = info.backoff * 1000; // changes w/ backoff (convert sec to ms)
-						}
-						if (info.changes) {
-							process.resolve(timeout);
-						} else {
-							timeout = backoff ? backoff : 30000; // next sync in 30 sec when changes w/o backoff or was a retry
-							pollChanges(process, drive, timeout); // continue with a timeout							
-						}
-					});
-					changes.fail(function(response, status, err) {
-						changes = null;
-						// if not aborted by backoffTimeout timer or browser
-						if (err != "abort") {
-							if (response && response.error) {
-								process.reject("Long-polling changes request error. " + response.error_summary + ". " + err + " (" + status + ")");
-								if (response.error[".tag"] == "reset") {
-									// TODO  Indicates that the cursor has been invalidated. 
-									// Tell eXo Dropbox provider to call list_folder to obtain a new cursor. 
-								}
-							} else {
-								process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
-							}
-						} else {
-							process.reject("Long-polling changes request aborted");
-						}
-					});
+					if (drive.state.cursor) {
+		         // get-and-wait longpoll folder listing from Dropbox
+	          changes = cloudDrive.ajaxPost(changesUrl, 
+	              JSON.stringify({
+	                timeout : drive.state.timeout, 
+	                cursor : drive.state.cursor 
+	              }), 
+	              "application/json");
+	          changes.done(function(info, status) {
+	            changes = null;
+	            var backoff = null;
+	            if (info.backoff && typeof info.backoff === "number") {
+	              backoff = info.backoff * 1000; // changes w/ backoff (convert sec to ms)
+	            }
+	            if (info.changes) {
+	              process.resolve(timeout);
+	            } else {
+	              timeout = backoff ? backoff : 30000; // next sync in 30 sec when changes w/o backoff or was a retry
+	              pollChanges(process, drive, timeout); // continue with a timeout              
+	            }
+	          });
+	          changes.fail(function(response, status, err) {
+	            changes = null;
+	            // if not aborted by backoffTimeout timer or browser
+	            if (err != "abort") {
+	              if (response && response.error) {
+	                process.reject("Long-polling changes request error. " + response.error_summary + ". " + err + " (" + status + ")");
+	                if (response.error[".tag"] == "reset") {
+	                  // TODO  Indicates that the cursor has been invalidated. 
+	                  // Tell eXo Dropbox provider to call list_folder to obtain a new cursor. 
+	                }
+	              } else {
+	                process.reject("Long-polling changes request failed. " + err + " (" + status + ") " + JSON.stringify(response));
+	              }
+	            } else {
+	              process.reject("Long-polling changes request aborted");
+	            }
+	          });
+					} else {
+					  // if no cursor yet (connect in progress), wait and try again
+					  pollChanges(process, drive, 30000); // try later in 30sec					  
+					}
 				});
 				newState.fail(function(response, status, err) {
 					process.reject("Error getting drive state. " + err + " (" + status + ")");
