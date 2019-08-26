@@ -484,13 +484,12 @@ public class CloudDriveServiceImpl implements CloudDriveService, Startable {
    */
   protected void registerDrive(CloudUser user, CloudDrive drive, String repoName) {
     // register in caches
-    Map<CloudUser, CloudDrive> drives = repositoryDrives.get(repoName);
-    if (drives == null) {
-      drives = new ConcurrentHashMap<CloudUser, CloudDrive>();
+    repositoryDrives.computeIfAbsent(repoName, rn -> { 
+      Map<CloudUser, CloudDrive> drives = new ConcurrentHashMap<CloudUser, CloudDrive>();
       repositoryDrives.put(repoName, drives);
       userDrives.put(user, drives);
-    }
-    drives.put(user, drive);
+      return drives;
+    }).put(user, drive);
 
     // add listeners
     for (CloudDriveListener listner : drivesListeners) {
@@ -520,12 +519,9 @@ public class CloudDriveServiceImpl implements CloudDriveService, Startable {
             NodeIterator r = q.execute().getNodes();
             while (r.hasNext()) {
               Node drive = r.nextNode();
-              // We're reading nodes directly here. Much pretty it would be to
-              // do this in connectors,
-              // but then it will cause more reads of the same items, thus will
-              // affects the
-              // performance a bit. So, to avoid reading of the same we do it
-              // here once.
+              // We're reading nodes directly here. Much pretty it would be to do this in connectors,
+              // but then it will cause more reads of the same items, thus will affects the
+              // performance a bit. So, to avoid reading of the same we do it here once.
               if (drive.getProperty("ecd:connected").getBoolean()) {
                 String providerId = drive.getProperty("ecd:provider").getString();
                 try {
