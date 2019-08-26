@@ -750,7 +750,18 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
 
       // Dropbox path of source item (at this moment it contains source path)
       String srcPath = getDropboxPath(node);
-      String srcParentPath = parentPath(srcPath);
+      //String srcParentPath = parentPath(srcPath);
+      int parentEndIndex = srcPath.lastIndexOf('/');
+      if (parentEndIndex > 0 && parentEndIndex == srcPath.length() - 1) {
+        // for cases with ending slash (e.g. /my/path/ and we need /my parent)
+        parentEndIndex = srcPath.lastIndexOf('/', parentEndIndex - 1);
+      }
+      String srcParentPath;
+      if (parentEndIndex > 0) {
+        srcParentPath = srcPath.substring(0, parentEndIndex);
+      } else {
+        srcParentPath = "/";
+      }
 
       Node parent = node.getParent();
       // Remote destination parent ID
