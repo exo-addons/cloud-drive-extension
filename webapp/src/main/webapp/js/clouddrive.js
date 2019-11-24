@@ -1567,14 +1567,25 @@
 				$listView.each(function() {
 					var objectId = decodeString($(this).attr("objectid"));
 					// find all info lines with 1K size and replace the size with real value
-					$(this).find("p.fileInfoBottom:contains('- 1 KB')").each(function() {
-						var file = cloudDrive.getFile(objectId);
-						if (file) {
-							var orig = $(this).text();
-							var str = sizeString(file.size);
-							$(this).text(orig.replace("- 1 KB", str.length > 0 ? "- " + str : str));
-						}
-					});
+          $(this).find("p.fileInfoBottom").each(function() {
+            var file = cloudDrive.getFile(objectId);
+            if (file) {
+              var orig = $(this).text();
+              if(orig.includes("- 1 KB")){
+                var str = sizeString(file.size);
+                var withUpdatedSize = orig.replace("- 1 KB", str.length > 0 ? "- " + str : str);
+                orig = withUpdatedSize;
+              }
+              // TODO better use if(file.connected) for this check.
+              if (file.modifiedRemote && file.modifiedLocal) {
+                var modifiedRemoteDate = file.modifiedRemote;
+                var modifiedLocalDate = file.modifiedLocal;
+                // var withUpdatedDate = updateDate(orig,  modifiedDate);
+                var withUpdatedDate = orig.replace(modifiedLocalDate,modifiedRemoteDate);
+                $(this).text(withUpdatedDate);                
+              }
+            }
+          });
 				});
 			}
 

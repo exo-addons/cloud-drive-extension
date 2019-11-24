@@ -382,21 +382,14 @@ public class CloudDriveServiceImpl implements CloudDriveService, Startable {
           if (localPath.equals(driveNode.getPath())) {
             // drive exists
             if (local.isConnected()) {
-              // and already connected
-              // it's the same user, this could happen if the access was revoked
-              // and user want to get this
-              // access again, thus we update access key from this new user
-              // instance.
-              // XXX this usecase based on GoogleDrive workflow and can be
-              // changed
+              // and already connected it's the same user, this could happen if the access was revoked and 
+              // user want to get this access again, thus we update access key from this new user instance.
+              // XXX this usecase based on GoogleDrive workflow and can be changed
               local.updateAccess(user);
-            } // else, local not null but not connected, just return it to the
-              // user
+            } // else, local not null but not connected, just return it to the user
             return local;
           } else {
-            // given user already connected to another node (possible if node
-            // was renamed in JCR), we cannot
-            // proceed
+            // given user already connected to another node (possible if node was renamed in JCR), we cannot proceed
             LOG.warn("User " + user.getEmail() + " already connected to another node " + localPath + ", cannot connect it to "
                 + driveNode.getPath());
             throw new UserAlreadyConnectedException("User " + user.getEmail() + " already connected to another node "
@@ -527,12 +520,9 @@ public class CloudDriveServiceImpl implements CloudDriveService, Startable {
             NodeIterator r = q.execute().getNodes();
             while (r.hasNext()) {
               Node drive = r.nextNode();
-              // We're reading nodes directly here. Much pretty it would be to
-              // do this in connectors,
-              // but then it will cause more reads of the same items, thus will
-              // affects the
-              // performance a bit. So, to avoid reading of the same we do it
-              // here once.
+              // We're reading nodes directly here. Much pretty it would be to do this in connectors,
+              // but then it will cause more reads of the same items, thus will affects the
+              // performance a bit. So, to avoid reading of the same we do it here once.
               if (drive.getProperty("ecd:connected").getBoolean()) {
                 String providerId = drive.getProperty("ecd:provider").getString();
                 try {
