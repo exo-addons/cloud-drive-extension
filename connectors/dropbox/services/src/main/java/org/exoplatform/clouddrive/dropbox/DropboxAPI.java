@@ -139,7 +139,7 @@ public class DropboxAPI {
      * @throws CloudDriveException the cloud drive exception
      */
     void store(String accessToken) throws CloudDriveException {
-      this.store(accessToken, null /* refreshToken */, -1/* expirationTime */);
+      this.store(accessToken, null /* refreshToken */, null/* expirationTime */);
     }
   }
 
@@ -396,7 +396,7 @@ public class DropboxAPI {
     this.client = new DbxClientV2(config, accessToken);
 
     this.token = new StoredToken();
-    this.token.load(accessToken, null /* refreshToken */, -1 /* expirationTime */);
+    this.token.load(accessToken, null /* refreshToken */, null /* expirationTime */);
 
     // init user (enterprise etc.)
     initUser();
