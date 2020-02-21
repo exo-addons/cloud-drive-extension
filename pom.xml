@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-    Copyright (C) 2019 eXo Platform SAS.
+    Copyright (C) 2020 eXo Platform SAS.
     
     This is free software; you can redistribute it and/or modify it
     under the terms of the GNU Lesser General Public License as
@@ -51,9 +51,9 @@
     <org.exoplatform.platform.version>5.3.0</org.exoplatform.platform.version>
 
     <!-- Google API -->
-    <com.google.api.client.version>1.29.0</com.google.api.client.version>
-    <com.google.http.client.jackson2.version>1.29.1</com.google.http.client.jackson2.version>
-    <com.google.api.services.drive.version>v2-rev360-1.25.0</com.google.api.services.drive.version>
+    <com.google.api.client.version>1.29.3</com.google.api.client.version>
+    <com.google.http.client.jackson2.version>1.29.2</com.google.http.client.jackson2.version>
+    <com.google.api.services.drive.version>v2-rev388-1.25.0</com.google.api.services.drive.version>
     <com.google.api.services.oauth2.version>v2-rev151-1.25.0</com.google.api.services.oauth2.version>
 
     <!-- Box API -->
