@@ -99,6 +99,33 @@
       <scope>provided</scope>
       <type>war</type>
     </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons.clouddrive</groupId>
+      <artifactId>exo-clouddrive-onedrive-services</artifactId>
+      <scope>provided</scope>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.exoplatform.addons.clouddrive</groupId>
+      <artifactId>exo-clouddrive-onedrive-webapp</artifactId>
+      <scope>provided</scope>
+      <type>war</type>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.graph</groupId>
+      <artifactId>microsoft-graph</artifactId>
+      <scope>provided</scope>
+      <type>jar</type>
+    </dependency>
+
+
+    <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <scope>provided</scope>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 
   <build>
