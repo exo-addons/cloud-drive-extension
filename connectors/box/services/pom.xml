@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 
-  Copyright (C) 2015 eXo Platform SAS.
+  Copyright (C) 2020 eXo Platform SAS.
   
   This is free software; you can redistribute it and/or modify it
   under the terms of the GNU Lesser General Public License as
@@ -94,13 +94,6 @@
     <dependency>
       <groupId>org.exoplatform.ecms</groupId>
       <artifactId>ecms-core-webui-explorer</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
-    <!-- we need this as *provided* to get Apache HTTP core and client dependencies from the Platform -->
-    <dependency>
-      <groupId>org.exoplatform.platform</groupId>
-      <artifactId>platform-component-common</artifactId>
       <scope>provided</scope>
       <type>jar</type>
     </dependency>
