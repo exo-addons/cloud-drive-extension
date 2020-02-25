@@ -48,7 +48,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>6.0.0-M16</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>6.0.0-M20</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.29.3</com.google.api.client.version>
@@ -89,10 +89,10 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- Import versions from platform project FIRST!!! -->
+      <!-- Import versions from Platform projects (ECMS) FIRST!!! -->
       <dependency>
-        <groupId>org.exoplatform.platform</groupId>
-        <artifactId>platform</artifactId>
+        <groupId>org.exoplatform.ecms</groupId>
+        <artifactId>ecms</artifactId>
         <version>${org.exoplatform.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
