@@ -74,10 +74,14 @@
         <include>com.dropbox.core:*:jar</include>
         <include>org.apache.chemistry.opencmis:*:jar</include>
         <include>org.codehaus.woodstox:woodstox-core-asl:jar</include>
-        <!-- include>com.fasterxml.jackson.core:*:jar</include -->
-        <!-- include>org.apache.httpcomponents:*:jar</include -->
+        <!-- Microsoft Graph SDK for Java - BEGIN >>> -->
         <include>com.microsoft.graph:microsoft-graph</include>
-        <include>com.google.code.gson:gson</include><!-- TODO remove it -->
+        <include>com.microsoft.graph:microsoft-graph-core</include>
+        <include>com.squareup.okhttp3:okhttp</include>
+        <include>com.squareup.okio:okio</include>
+        <include>org.apache.commons:commons-math3</include>
+        <include>com.google.code.gson:gson</include>
+        <!-- <<< END - Microsoft Graph SDK for Java -->
       </includes>
       <scope>provided</scope>
       <fileMode>0644</fileMode>
