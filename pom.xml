@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.exoplatform.addons</groupId>
     <artifactId>addons-parent-pom</artifactId>
-    <version>10</version>
+    <version>11</version>
   </parent>
 
   <groupId>org.exoplatform.addons.clouddrive</groupId>
