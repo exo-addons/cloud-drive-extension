@@ -54,10 +54,8 @@ public abstract class LocalCloudFile implements CloudFile {
    */
   public abstract Calendar getLocalModifiedDate();
 
-  /*
-   * Implementation taken from UIDocumentNodeList.getDatePropertyValue 13/08/2019
-   */
   private String formatLocalizedDate(Calendar date, Locale locale) {
+    // Implementation taken from UIDocumentNodeList.getDatePropertyValue 13/08/2019
     if (date != null && locale != null) {
       DateFormat dateFormat = SimpleDateFormat.getDateInstance(SimpleDateFormat.SHORT, locale);
       return dateFormat.format(date.getTime());
