@@ -47,3 +47,5 @@ dependency-reduced-pom.xml
 .groovy/
 transaction.log
 
+# dependencies
+node_modules/
