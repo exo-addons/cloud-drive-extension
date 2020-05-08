@@ -97,7 +97,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                  <object type="org.exoplatform.clouddrive.webui.filters.PersonalDocumentsFilter"></object>
                 </value>
               </collection>
             </field>

@@ -193,7 +193,7 @@ Since Cloud Drive version 1.3.1 and all 1.4, it's possible to disable a connecto
       <component-plugin>
         <name>remove.clouddriveprovider</name>
         <set-method>removePlugin</set-method>
-        <type>org.exoplatform.clouddrive.cmis.CMISConnector</type>
+        <type>CMISConnector</type>
         <init-params>
           <properties-param>
             <name>drive-configuration</name>

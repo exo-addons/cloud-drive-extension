@@ -32,7 +32,7 @@ Create eXo container configuration file and add _CloudDriveService_ component pl
     <component-plugin>
       <name>add.clouddriveprovider</name>
       <set-method>addPlugin</set-method>
-      <type>org.exoplatform.clouddrive.cmis.CMISConnector</type>
+      <type>CMISConnector</type>
       <init-params>
         <object-param>
           <name>predefined-services</name>
@@ -40,7 +40,7 @@ Create eXo container configuration file and add _CloudDriveService_ component pl
             <field name="services">
               <collection type="java.util.LinkedHashSet">
                 <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                  <object type="CMISProvider$AtomPub">
                     <field name="name">
                       <string>Product Team</string>
                     </field>
@@ -50,7 +50,7 @@ Create eXo container configuration file and add _CloudDriveService_ component pl
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                  <object type="CMISProvider$AtomPub">
                     <field name="name">
                       <string>Sales Team</string>
                     </field>
@@ -60,7 +60,7 @@ Create eXo container configuration file and add _CloudDriveService_ component pl
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                  <object type="CMISProvider$AtomPub">
                     <field name="name">
                       <string>BCG - US</string>
                     </field>

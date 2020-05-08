@@ -174,7 +174,7 @@ Example of Google Drive connector plugin, major provider _name_ and _ID there wi
     <component-plugin>
       <name>add.clouddriveprovider</name>
       <set-method>addPlugin</set-method>
-      <type>org.exoplatform.clouddrive.gdrive.GoogleDriveConnector</type>
+      <type>GoogleDriveConnector</type>
       <init-params>
         <properties-param>
           <name>drive-configuration</name>
@@ -449,12 +449,12 @@ eXo ECMS uses menu action names and respectively related internationalization re
               <string>ConnectBox</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.box.ecms.ConnectBoxActionComponent</string>
+              <string>ConnectBoxActionComponent</string>
             </field>
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                  <object type="org.exoplatform.clouddrive.webui.filters.PersonalDocumentsFilter"></object>
                 </value>
               </collection>
             </field>

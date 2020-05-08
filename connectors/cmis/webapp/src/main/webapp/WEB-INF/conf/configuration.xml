@@ -25,7 +25,7 @@
   xmlns="http://www.exoplatform.org/xml/ns/kernel_1_2.xsd">
 
   <component>
-    <type>org.exoplatform.clouddrive.cmis.login.CodeAuthentication</type>
+    <type>org.exoplatform.services.cms.clouddrives.cmis.login.CodeAuthentication</type>
   </component>
 
   <external-component-plugins>
@@ -45,11 +45,11 @@
 
   <!-- CMIS connector plugin -->
   <external-component-plugins>
-    <target-component>org.exoplatform.clouddrive.CloudDriveService</target-component>
+    <target-component>org.exoplatform.services.cms.clouddrives.CloudDriveService</target-component>
     <component-plugin>
       <name>add.clouddriveprovider</name>
       <set-method>addPlugin</set-method>
-      <type>org.exoplatform.clouddrive.cmis.CMISConnector</type>
+      <type>org.exoplatform.services.cms.clouddrives.cmis.CMISConnector</type>
       <init-params>
         <properties-param>
           <name>drive-configuration</name>
@@ -65,11 +65,11 @@
         </properties-param>
         <object-param>
           <name>predefined-services</name>
-          <object type="org.exoplatform.clouddrive.CloudDriveConnector$PredefinedServices">
+          <object type="org.exoplatform.services.cms.clouddrives.CloudDriveConnector$PredefinedServices">
             <field name="services">
               <collection type="java.util.LinkedHashSet">
                 <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                  <object type="org.exoplatform.services.cms.clouddrives.cmis.CMISProvider$AtomPub">
                     <field name="name">
                       <string>Public Alfresco Demo</string>
                     </field>
@@ -79,7 +79,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.clouddrive.cmis.CMISProvider$AtomPub">
+                  <object type="org.exoplatform.services.cms.clouddrives.cmis.CMISProvider$AtomPub">
                     <field name="name">
                       <string>Nuxeo Online</string>
                     </field>
@@ -116,12 +116,12 @@
               <string>ConnectCMIS</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.ConnectCMISActionComponent</string>
+              <string>org.exoplatform.services.cms.clouddrives.cmis.ecms.ConnectCMISActionComponent</string>
             </field>
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.PersonalDocumentsFilter"></object>
                 </value>
               </collection>
             </field>
@@ -137,7 +137,7 @@
               <string>ShowCmisText</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.TextViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.TextViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -148,7 +148,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -159,7 +159,7 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.FileTypeFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.FileTypeFilter">
                     <field name="mimeTypes">
                       <collection type="java.util.LinkedHashSet"> 
                         <!-- text/rtf, text/csv and others like that should be filtered by UI comp with lower rank! -->
@@ -232,7 +232,7 @@
               <string>ShowCmisImage</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.ImageViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.ImageViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -243,7 +243,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -304,7 +304,7 @@
               <string>ShowCmisPDF</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.PDFViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.PDFViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -315,7 +315,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -425,7 +425,7 @@
               <string>ShowCmisFlash</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.FlashViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.FlashViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -436,7 +436,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -471,7 +471,7 @@
               <string>ShowCmisH264Video</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.H264VideoViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.H264VideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -482,7 +482,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -565,7 +565,7 @@
               <string>ShowCmisMpegVideo</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.MpegVideoViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.MpegVideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -576,7 +576,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -614,7 +614,7 @@
               <string>ShowCmisVideoAudio</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.VideoAudioViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.webui.viewer.VideoAudioViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -625,7 +625,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -675,7 +675,7 @@
               <string>ShowCmisFile</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.cmis.ecms.viewer.DefaultFileViewer</string>
+              <string>org.exoplatform.services.cms.clouddrives.cmis.ecms.viewer.DefaultFileViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -686,7 +686,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
