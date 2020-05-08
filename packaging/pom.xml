@@ -111,14 +111,6 @@
       <scope>provided</scope>
       <type>war</type>
     </dependency>
-
-    <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
   </dependencies>
 
   <build>
