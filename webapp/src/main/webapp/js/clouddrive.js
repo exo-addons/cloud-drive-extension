@@ -1156,6 +1156,10 @@
 			return currentNode;
 		};
 
+		this.getProviders = function() {
+			return providers;
+		};
+
 		this.isContextSymlink = function() {
 			if (contextNode && contextDrive) {
 				var file = contextDrive.files[contextNode.path];
@@ -2224,6 +2228,7 @@
 			var progress = 0;
 			var task;
 			var hideTimeout;
+			var stack_topright = {"dir1": "down", "dir2": "left", "firstpos1": 5, "firstpos2": 5};
 
 			// pnotify notice
 			var notice = $.pnotify({
@@ -2459,7 +2464,8 @@
 			var h = 540;
 			var left = (screen.width / 2) - (w / 2);
 			var top = (screen.height / 2) - (h / 2);
-			return window.open(authURL, 'contacts', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left);
+			// return window.open(authURL, 'contacts', 'width=' + w + ',height=' + h + ',top=' + top + ',left=' + left);
+			return window.open(authURL, "_blank");
 		};
 
 		/**

@@ -24,6 +24,13 @@
     xsi:schemaLocation="http://www.gatein.org/xml/ns/gatein_resources_1_3 http://www.gatein.org/xml/ns/gatein_resources_1_3"
     xmlns="http://www.gatein.org/xml/ns/gatein_resources_1_3">
 
+  <javascript>
+    <param>
+      <js-module>сloudDrivePlugin</js-module>
+      <js-path>/vue-app/cloudDrivePlugin.js</js-path>
+    </param>
+  </javascript>
+
   <!-- Javascript for Cloud Drive UI support in WCM -->
   <module>
     <name>cloudDriveJqueryPnotify</name>
@@ -90,4 +97,39 @@
       <module>uiFileView</module>
     </depends>
   </module>
+  <module>
+    <name>cloudDriveApp</name>
+    <script>
+      <minify>false</minify>
+      <path>/js/cloud-drive.bundle.js</path>
+    </script>
+    <depends>
+      <module>vue</module>
+    </depends>
+    <depends>
+      <module>eXoVueI18n</module>
+    </depends>
+    <depends>
+      <module>vuetify</module>
+    </depends>
+    <depends>
+      <module>extensionRegistry</module>
+    </depends>
+    <depends>
+      <module>cloudDrive</module>
+    </depends>
+    <depends>
+      <module>cloudDriveUtils</module>
+    </depends>
+    <depends>
+      <module>jquery</module>
+    </depends>
+  </module>
+
+  <portal-skin>
+    <skin-name>Enterprise</skin-name>
+    <skin-module>customModuleCloudDrive</skin-module>
+    <css-path>/css/cloud-drive.css</css-path>
+    <css-priority>10</css-priority>
+  </portal-skin>
 </gatein-resources>
