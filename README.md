@@ -119,20 +119,39 @@ Enable Onedrive API
 -------------
 
 To connect with Microsoft Graph, you'll need a Microsoft account.
-- Go to https://apps.dev.microsoft.com/.
-- Find My applications and click Add an app.
-- Enter your app's name and click Create application.
+- Go to [app registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade).
+
+![App registrations](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-app-registration.png)
+
+- Click New registration.
+- Enter your app's name, select "Accounts in any organizational directory (Any Azure AD directory - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)" and click Register application.
+
+![Register an application](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-register-an-application.png)
+
 - After you've completed these steps, new app's properties page will open.
+
+![Application properties](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-application-properties.png)
+
 
 In the opened page you need the following: 
 
-- generate new password In the 'application secret' section.
-- add web-platform and assign redirect uri (notice that it should be https for all hosts except localhost, and the path must be /portal/rest/clouddrive/connect/onedrive).
-- add scopes like in the screen below.
+- generate new client secret In the 'Certificates & secrets' section. Secret will be hided after creation. Please, record or copy in the safe place.
 
-![OneDrive APP Settings](https://raw.githubusercontent.com/pnedonosko/cloud-drive-extension/feature/onedrive/documentation/readme/onedrive-app-settings.png)
+![Client secret](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-client-secret.png)
 
+- add web-platform ("Add a platform" > "Web") in "Authentication" and assign redirect uri (notice that it should be https for all hosts except localhost, and the path must be /portal/rest/clouddrive/connect/onedrive).
 
+![Redirect URL](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-redirect-url.png)
+
+- add API permissions in the screen below ("API permissions" > "Add a permission" > "Microsoft Graph" > "Delegated permissions" > select needed permissions from the list).
+
+Needed permissions: Files.Read, Files.Read.All, Files.ReadWrite, Files.ReadWrite.All, offline_access, profile, Sites.ReadWrite.All, User.Read
+
+![OneDrive API Permissions](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-api-permissions.png)
+
+Finally, you can use the "Application (client) ID" (Overview menu section) as clouddrive.onedrive.client.id and generated secret as clouddrive.onedrive.client.secret for Microsoft Graph
+
+![Application (client) ID](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-application-properties.png)
  
 CMIS repositories
 -----------------
