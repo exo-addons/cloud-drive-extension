@@ -123,8 +123,8 @@ To connect with Microsoft Graph, you'll need a Microsoft account.
 
 ![App registrations](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-app-registration.png)
 
-- Click New registration.
-- Enter your app's name, select "Accounts in any organizational directory (Any Azure AD directory - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)" and click Register application.
+- Click "New registration" button.
+- Enter your app's name, select "Accounts in any organizational directory (Any Azure AD directory - Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)" and click "Register application" button.
 
 ![Register an application](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-register-an-application.png)
 
@@ -143,13 +143,13 @@ In the opened page you need the following:
 
 ![Redirect URL](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-redirect-url.png)
 
-- add API permissions in the screen below ("API permissions" > "Add a permission" > "Microsoft Graph" > "Delegated permissions" > select needed permissions from the list).
+- add API permissions in the screen below ("API permissions" > "Add a permission" > "Microsoft Graph" > "Delegated permissions" > select needed permissions from the list and click "Add permissions" button).
 
 Needed permissions: Files.Read, Files.Read.All, Files.ReadWrite, Files.ReadWrite.All, offline_access, profile, Sites.ReadWrite.All, User.Read
 
 ![OneDrive API Permissions](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-api-permissions.png)
 
-Finally, you can use the "Application (client) ID" (Overview menu section) as clouddrive.onedrive.client.id and generated secret as clouddrive.onedrive.client.secret for Microsoft Graph
+Finally, you can use the "Application (client) ID" (Overview menu section) as `clouddrive.onedrive.client.id` and generated secret as `clouddrive.onedrive.client.secret` for Microsoft Graph
 
 ![Application (client) ID](https://raw.github.com/exo-addons/cloud-drive-extension/develop/documentation/readme/onedrive-application-properties.png)
  
