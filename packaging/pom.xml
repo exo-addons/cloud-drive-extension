@@ -35,36 +35,6 @@
   <dependencies>
     <dependency>
       <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-services-core</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-services-ecms</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-webapp</artifactId>
-      <scope>provided</scope>
-      <type>war</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-gdrive-services</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-gdrive-webapp</artifactId>
-      <scope>provided</scope>
-      <type>war</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
       <artifactId>exo-clouddrive-box-services</artifactId>
       <scope>provided</scope>
       <type>jar</type>
@@ -96,18 +66,6 @@
     <dependency>
       <groupId>org.exoplatform.addons.clouddrive</groupId>
       <artifactId>exo-clouddrive-cmis-webapp</artifactId>
-      <scope>provided</scope>
-      <type>war</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-onedrive-services</artifactId>
-      <scope>provided</scope>
-      <type>jar</type>
-    </dependency>
-    <dependency>
-      <groupId>org.exoplatform.addons.clouddrive</groupId>
-      <artifactId>exo-clouddrive-onedrive-webapp</artifactId>
       <scope>provided</scope>
       <type>war</type>
     </dependency>

@@ -18,8 +18,8 @@
  */
 package org.exoplatform.clouddrive.box;
 
-import org.exoplatform.clouddrive.CloudProvider;
-import org.exoplatform.clouddrive.CloudUser;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.CloudUser;
 
 /**
  * Created by The eXo Platform SAS.

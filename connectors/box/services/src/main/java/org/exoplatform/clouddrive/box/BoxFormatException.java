@@ -19,7 +19,7 @@
  */
 package org.exoplatform.clouddrive.box;
 
-import org.exoplatform.clouddrive.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
 
 /**
  * Error determining or parsing format of Box data (from Box service response).

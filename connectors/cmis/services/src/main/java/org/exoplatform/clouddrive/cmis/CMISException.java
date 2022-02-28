@@ -18,7 +18,7 @@
  */
 package org.exoplatform.clouddrive.cmis;
 
-import org.exoplatform.clouddrive.CloudProviderException;
+import org.exoplatform.services.cms.clouddrives.CloudProviderException;
 
 /**
  * Indicates a problem on provider side or communication problem.<br>

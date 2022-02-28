@@ -36,11 +36,11 @@ import javax.inject.Inject;
 
 import org.gatein.common.util.Base64;
 
-import org.exoplatform.clouddrive.CloudDriveAccessException;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudDriveService;
-import org.exoplatform.clouddrive.CloudProvider;
-import org.exoplatform.clouddrive.ProviderNotAvailableException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveAccessException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveService;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.ProviderNotAvailableException;
 import org.exoplatform.clouddrive.cmis.CMISException;
 import org.exoplatform.clouddrive.cmis.CMISUser;
 import org.exoplatform.clouddrive.cmis.WrongCMISProviderException;

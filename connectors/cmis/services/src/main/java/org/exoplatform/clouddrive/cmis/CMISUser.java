@@ -24,12 +24,12 @@ import javax.jcr.RepositoryException;
 
 import org.apache.chemistry.opencmis.client.api.Repository;
 
-import org.exoplatform.clouddrive.CloudDriveAccessException;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudProvider;
-import org.exoplatform.clouddrive.CloudUser;
-import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveAccessException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.CloudUser;
+import org.exoplatform.services.cms.clouddrives.DriveRemovedException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
 import org.exoplatform.clouddrive.cmis.CMISProvider.AtomPub;
 
 /**

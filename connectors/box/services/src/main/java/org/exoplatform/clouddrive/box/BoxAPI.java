@@ -51,13 +51,13 @@ import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.FileTrashRemovedException;
-import org.exoplatform.clouddrive.NotFoundException;
-import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.oauth2.UserToken;
-import org.exoplatform.clouddrive.utils.ChunkIterator;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.ConflictException;
+import org.exoplatform.services.cms.clouddrives.FileTrashRemovedException;
+import org.exoplatform.services.cms.clouddrives.NotFoundException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.oauth2.UserToken;
+import org.exoplatform.services.cms.clouddrives.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 

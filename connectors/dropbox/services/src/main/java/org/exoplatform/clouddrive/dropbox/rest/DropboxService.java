@@ -34,12 +34,12 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import org.exoplatform.clouddrive.CloudDrive;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudDriveService;
-import org.exoplatform.clouddrive.CloudFile;
-import org.exoplatform.clouddrive.NotCloudFileException;
-import org.exoplatform.clouddrive.features.CloudDriveFeatures;
+import org.exoplatform.services.cms.clouddrives.CloudDrive;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveService;
+import org.exoplatform.services.cms.clouddrives.CloudFile;
+import org.exoplatform.services.cms.clouddrives.NotCloudFileException;
+import org.exoplatform.services.cms.clouddrives.features.CloudDriveFeatures;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 import org.exoplatform.services.log.ExoLogger;

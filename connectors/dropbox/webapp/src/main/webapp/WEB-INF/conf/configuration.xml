@@ -91,7 +91,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.PersonalDocumentsFilter"></object>
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.PersonalDocumentsFilter"></object>
                 </value>
               </collection>
             </field>
@@ -107,7 +107,7 @@
               <string>ShowDropboxText</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.TextViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.TextViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -118,7 +118,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -129,9 +129,9 @@
                   </object>
                 </value>
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.FileTypeFilter">
+                  <object type="org.exoplatform.services.cms.clouddrives.webui.filters.FileTypeFilter">
                     <field name="mimeTypes">
-                      <collection type="java.util.LinkedHashSet"> 
+                      <collection type="java.util.LinkedHashSet">
                         <!-- text/rtf, text/csv and others like that should be filtered by UI comp with lower rank! -->
                         <value>
                           <string>text/</string>
@@ -202,7 +202,7 @@
               <string>ShowDropboxImage</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.ImageViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.ImageViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -213,7 +213,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -274,7 +274,7 @@
               <string>ShowDropboxPDF</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.PDFViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.PDFViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -285,7 +285,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -395,7 +395,7 @@
               <string>ShowDropboxFlash</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.FlashViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.FlashViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -406,7 +406,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -441,7 +441,7 @@
               <string>ShowDropboxH264Video</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.H264VideoViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.H264VideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -452,7 +452,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -535,7 +535,7 @@
               <string>ShowDropboxMpegVideo</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.MpegVideoViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.MpegVideoViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -546,7 +546,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>
@@ -584,7 +584,7 @@
               <string>ShowDropboxVideoAudio</string>
             </field>
             <field name="component">
-              <string>org.exoplatform.clouddrive.ecms.viewer.VideoAudioViewer</string>
+              <string>org.exoplatform.ecm.webui.viewer.VideoAudioViewer</string>
             </field>
             <field name="category">
               <string>FileViewer</string>
@@ -595,7 +595,7 @@
             <field name="extendedFilters">
               <collection type="java.util.ArrayList">
                 <value>
-                  <object type="org.exoplatform.clouddrive.ecms.filters.CloudFileFilter">
+                  <object type="org.exoplatform.ecm.webui.filters.CloudFileFilter">
                     <field name="providers">
                       <collection type="java.util.ArrayList">
                         <value>

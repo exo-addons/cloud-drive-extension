@@ -56,32 +56,32 @@ import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.sharing.SharedLinkMetadata;
 
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudFile;
-import org.exoplatform.clouddrive.CloudFileAPI;
-import org.exoplatform.clouddrive.CloudProviderException;
-import org.exoplatform.clouddrive.CloudUser;
-import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.LocalFileNotFoundException;
-import org.exoplatform.clouddrive.NotAcceptableException;
-import org.exoplatform.clouddrive.NotFoundException;
-import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.RetryLaterException;
-import org.exoplatform.clouddrive.SyncNotSupportedException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudFile;
+import org.exoplatform.services.cms.clouddrives.CloudFileAPI;
+import org.exoplatform.services.cms.clouddrives.CloudProviderException;
+import org.exoplatform.services.cms.clouddrives.CloudUser;
+import org.exoplatform.services.cms.clouddrives.ConflictException;
+import org.exoplatform.services.cms.clouddrives.DriveRemovedException;
+import org.exoplatform.services.cms.clouddrives.LocalFileNotFoundException;
+import org.exoplatform.services.cms.clouddrives.NotAcceptableException;
+import org.exoplatform.services.cms.clouddrives.NotFoundException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.RetryLaterException;
+import org.exoplatform.services.cms.clouddrives.SyncNotSupportedException;
 import org.exoplatform.clouddrive.dropbox.DropboxAPI.ListFolder;
 import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.clouddrive.dropbox.JCRLocalDropboxDrive.DropboxDrive.LocalItem;
-import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
-import org.exoplatform.clouddrive.jcr.JCRLocalCloudFile;
-import org.exoplatform.clouddrive.jcr.NodeFinder;
-import org.exoplatform.clouddrive.oauth2.UserToken;
-import org.exoplatform.clouddrive.oauth2.UserTokenRefreshListener;
-import org.exoplatform.clouddrive.rest.ContentService;
-import org.exoplatform.clouddrive.utils.ChunkIterator;
-import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
-import org.exoplatform.clouddrive.viewer.CloudFileContent;
-import org.exoplatform.clouddrive.viewer.ContentReader;
+import org.exoplatform.services.cms.clouddrives.jcr.JCRLocalCloudDrive;
+import org.exoplatform.services.cms.clouddrives.jcr.JCRLocalCloudFile;
+import org.exoplatform.services.cms.clouddrives.jcr.NodeFinder;
+import org.exoplatform.services.cms.clouddrives.oauth2.UserToken;
+import org.exoplatform.services.cms.clouddrives.oauth2.UserTokenRefreshListener;
+import org.exoplatform.ecm.connector.clouddrives.ContentService;
+import org.exoplatform.services.cms.clouddrives.utils.ChunkIterator;
+import org.exoplatform.services.cms.clouddrives.utils.ExtendedMimeTypeResolver;
+import org.exoplatform.services.cms.clouddrives.viewer.CloudFileContent;
+import org.exoplatform.services.cms.clouddrives.viewer.ContentReader;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
 
 /**
@@ -3306,13 +3306,7 @@ public class JCRLocalDropboxDrive extends JCRLocalCloudDrive implements UserToke
     // owner's Personal Docs, and if not owner and shared already - we return
     // shared link, otherwise return default (home-based) URL.
 
-    boolean isNotOwner;
-    try {
-      isNotOwner = !getLocalUser().equals(currentUserName());
-    } catch (DriveRemovedException e) {
-      LOG.warn("Cannot read drive owner: " + e.getMessage());
-      isNotOwner = false;
-    }
+    boolean isNotOwner = !getLocalUser().equals(currentUserName());
 
     if (isNotOwner) {
       // Here we assume the following:

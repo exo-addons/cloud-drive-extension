@@ -18,7 +18,7 @@
  */
 package org.exoplatform.clouddrive.cmis.ecms;
 
-import org.exoplatform.clouddrive.ecms.BaseConnectActionComponent;
+import org.exoplatform.ecm.webui.BaseConnectActionComponent;
 import org.exoplatform.ecm.webui.component.explorer.control.listener.UIActionBarActionListener;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
 import org.exoplatform.webui.config.annotation.EventConfig;

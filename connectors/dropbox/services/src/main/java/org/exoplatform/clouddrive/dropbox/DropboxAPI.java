@@ -76,16 +76,16 @@ import com.dropbox.core.v2.sharing.SharedLinkSettingsError;
 import com.dropbox.core.v2.sharing.UnshareFileErrorException;
 import com.dropbox.core.v2.users.FullAccount;
 
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.NotAcceptableException;
-import org.exoplatform.clouddrive.NotFoundException;
-import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.RetryLaterException;
-import org.exoplatform.clouddrive.UnauthorizedException;
-import org.exoplatform.clouddrive.oauth2.UserToken;
-import org.exoplatform.clouddrive.utils.ChunkIterator;
-import org.exoplatform.clouddrive.utils.Web;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.ConflictException;
+import org.exoplatform.services.cms.clouddrives.NotAcceptableException;
+import org.exoplatform.services.cms.clouddrives.NotFoundException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.RetryLaterException;
+import org.exoplatform.services.cms.clouddrives.UnauthorizedException;
+import org.exoplatform.services.cms.clouddrives.oauth2.UserToken;
+import org.exoplatform.services.cms.clouddrives.utils.ChunkIterator;
+import org.exoplatform.services.cms.clouddrives.utils.Web;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 
@@ -139,7 +139,7 @@ public class DropboxAPI {
      * @throws CloudDriveException the cloud drive exception
      */
     void store(String accessToken) throws CloudDriveException {
-      this.store(accessToken, null /* refreshToken */, -1/* expirationTime */);
+      this.store(accessToken, null /* refreshToken */, -1L/* expirationTime */);
     }
   }
 
@@ -396,7 +396,7 @@ public class DropboxAPI {
     this.client = new DbxClientV2(config, accessToken);
 
     this.token = new StoredToken();
-    this.token.load(accessToken, null /* refreshToken */, -1 /* expirationTime */);
+    this.token.load(accessToken, null /* refreshToken */, -1L /* expirationTime */);
 
     // init user (enterprise etc.)
     initUser();

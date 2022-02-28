@@ -20,8 +20,8 @@ package org.exoplatform.clouddrive.dropbox;
 
 import javax.jcr.RepositoryException;
 
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
 import org.exoplatform.clouddrive.dropbox.DropboxConnector.API;
 import org.exoplatform.services.jcr.RepositoryService;
 

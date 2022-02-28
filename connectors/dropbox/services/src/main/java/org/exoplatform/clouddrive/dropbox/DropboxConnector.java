@@ -41,18 +41,18 @@ import com.dropbox.core.InvalidAccessTokenException;
 import com.dropbox.core.RetryException;
 import com.dropbox.core.v2.users.FullAccount;
 
-import org.exoplatform.clouddrive.CloudDrive;
-import org.exoplatform.clouddrive.CloudDriveAccessException;
-import org.exoplatform.clouddrive.CloudDriveConnector;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudProvider;
-import org.exoplatform.clouddrive.CloudUser;
-import org.exoplatform.clouddrive.ConfigurationException;
-import org.exoplatform.clouddrive.DriveRemovedException;
-import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.jcr.JCRLocalCloudDrive;
-import org.exoplatform.clouddrive.jcr.NodeFinder;
-import org.exoplatform.clouddrive.utils.ExtendedMimeTypeResolver;
+import org.exoplatform.services.cms.clouddrives.CloudDrive;
+import org.exoplatform.services.cms.clouddrives.CloudDriveAccessException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveConnector;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.CloudUser;
+import org.exoplatform.services.cms.clouddrives.ConfigurationException;
+import org.exoplatform.services.cms.clouddrives.DriveRemovedException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.jcr.JCRLocalCloudDrive;
+import org.exoplatform.services.cms.clouddrives.jcr.NodeFinder;
+import org.exoplatform.services.cms.clouddrives.utils.ExtendedMimeTypeResolver;
 import org.exoplatform.container.xml.InitParams;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;
@@ -251,7 +251,7 @@ public class DropboxConnector extends CloudDriveConnector {
           } catch (NotApprovedException e) {
             String msg = "Access not approved";
             LOG.warn(msg + ": " + e.getMessage(), e);
-            throw new org.exoplatform.clouddrive.NotApprovedException(msg);
+            throw new org.exoplatform.services.cms.clouddrives.NotApprovedException(msg);
           } catch (ProviderException e) {
             String msg = "Authorization process error";
             LOG.error(msg + ": " + e.getMessage(), e);

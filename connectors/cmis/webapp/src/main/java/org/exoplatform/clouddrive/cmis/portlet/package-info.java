@@ -26,7 +26,7 @@
     @Binding(value = CodeAuthentication.class) })
 package org.exoplatform.clouddrive.cmis.portlet;
 
-import org.exoplatform.clouddrive.CloudDriveService;
+import org.exoplatform.services.cms.clouddrives.CloudDriveService;
 import org.exoplatform.clouddrive.cmis.login.CodeAuthentication;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.jcr.ext.app.SessionProviderService;

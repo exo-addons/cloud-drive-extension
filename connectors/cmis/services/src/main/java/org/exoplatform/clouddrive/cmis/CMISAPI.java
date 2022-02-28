@@ -85,15 +85,15 @@ import org.apache.chemistry.opencmis.commons.exceptions.CmisUpdateConflictExcept
 import org.apache.chemistry.opencmis.commons.impl.Constants;
 import org.apache.chemistry.opencmis.commons.spi.CmisBinding;
 
-import org.exoplatform.clouddrive.CloudDriveAccessException;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.ConflictException;
-import org.exoplatform.clouddrive.ConstraintException;
-import org.exoplatform.clouddrive.NotFoundException;
-import org.exoplatform.clouddrive.RefreshAccessException;
-import org.exoplatform.clouddrive.UnauthorizedException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveAccessException;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.ConflictException;
+import org.exoplatform.services.cms.clouddrives.ConstraintException;
+import org.exoplatform.services.cms.clouddrives.NotFoundException;
+import org.exoplatform.services.cms.clouddrives.RefreshAccessException;
+import org.exoplatform.services.cms.clouddrives.UnauthorizedException;
 import org.exoplatform.clouddrive.cmis.JCRLocalCMISDrive.LocalFile;
-import org.exoplatform.clouddrive.utils.ChunkIterator;
+import org.exoplatform.services.cms.clouddrives.utils.ChunkIterator;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 

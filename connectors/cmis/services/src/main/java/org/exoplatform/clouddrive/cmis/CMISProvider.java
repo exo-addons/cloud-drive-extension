@@ -24,9 +24,9 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
-import org.exoplatform.clouddrive.CloudDriveConnector.PredefinedServices;
-import org.exoplatform.clouddrive.CloudDriveException;
-import org.exoplatform.clouddrive.CloudProvider;
+import org.exoplatform.services.cms.clouddrives.CloudDriveConnector.PredefinedServices;
+import org.exoplatform.services.cms.clouddrives.CloudDriveException;
+import org.exoplatform.services.cms.clouddrives.CloudProvider;
 import org.exoplatform.services.jcr.RepositoryService;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;

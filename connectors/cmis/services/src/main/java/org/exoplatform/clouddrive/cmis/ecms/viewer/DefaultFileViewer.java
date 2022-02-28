@@ -18,7 +18,7 @@
  */
 package org.exoplatform.clouddrive.cmis.ecms.viewer;
 
-import org.exoplatform.clouddrive.ecms.viewer.AbstractFileViewer;
+import org.exoplatform.ecm.webui.viewer.AbstractCloudFileViewer;
 import org.exoplatform.services.log.ExoLogger;
 import org.exoplatform.services.log.Log;
 import org.exoplatform.webui.config.annotation.ComponentConfig;
@@ -33,7 +33,7 @@ import org.exoplatform.webui.config.annotation.ComponentConfig;
  * @version $Id: DefaultFileViewer.java 00000 Aug 14, 2015 pnedonosko $
  */
 @ComponentConfig(template = "classpath:groovy/templates/DefaultFileViewer.gtmpl")
-public class DefaultFileViewer extends AbstractFileViewer {
+public class DefaultFileViewer extends AbstractCloudFileViewer {
 
   /** The Constant LOG. */
   protected static final Log LOG = ExoLogger.getLogger(DefaultFileViewer.class);
