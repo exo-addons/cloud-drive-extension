@@ -46,7 +46,7 @@
         <include>com.eclipsesource.minimal-json:*:jar</include>
         <include>com.dropbox.core:*:jar</include>
         <include>org.apache.chemistry.opencmis:*:jar</include>
-        <include>org.codehaus.woodstox:woodstox-core-asl:jar</include>
+        <include>org.codehaus.woodstox:*:jar</include>
         <include>com.google.code.gson:gson</include>
       </includes>
       <scope>provided</scope>
