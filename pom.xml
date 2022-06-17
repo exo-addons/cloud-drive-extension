@@ -44,7 +44,7 @@
 
   <properties>
     <!-- eXo Modules -->
-    <org.exoplatform.platform.version>6.3.x-SNAPSHOT</org.exoplatform.platform.version>
+    <org.exoplatform.platform.version>6.3.0</org.exoplatform.platform.version>
 
     <!-- Google API -->
     <com.google.api.client.version>1.29.3</com.google.api.client.version>
